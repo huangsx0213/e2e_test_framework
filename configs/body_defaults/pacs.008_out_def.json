@@ -1,0 +1,24 @@
+{
+  "InstrId": "OUT123456",
+  "EndToEndId": "E2EOUT123456",
+  "amount": 1500.00,
+  "currency": "CNY",
+  "debtor": {
+    "name": "Vick Huang",
+    "phones": [
+      "555-555-5555",
+      "555-555-5556"
+    ],
+    "email": "vick.huang@example.com",
+    "address": "600 Green Arrow Street"
+  },
+  "creditor": {
+    "name": "Jay Huang",
+    "phones": [
+      "555-666-1234",
+      "555-666-1235"
+    ],
+    "email": "jay.huang@example.com",
+    "address": "3333 Coast City"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "Content-Type": "application/json",
+  "accept": "application/json",
+  "Authorization": "{{ token }}",
+  "test1": "{{ 1.response.name }}",
+  "test2": "{{ 1.response.phones[0].type }}",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"
+}

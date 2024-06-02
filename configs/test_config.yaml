@@ -1,0 +1,16 @@
+# Path to the excel file containing the test cases.
+# Make sure the file exists at this path.
+test_cases_path: 'test_cases/test_cases.xlsx'
+
+# List of Test Case IDs to run.
+# Specify one or more Test Case IDs here.
+tc_id_list:
+  - 'TC001'
+
+# List of tags to filter test cases.
+# Only test cases which contain any of these tags will be run.
+tags:
+  - 'tag1'
+
+# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+log_level: 'INFO'

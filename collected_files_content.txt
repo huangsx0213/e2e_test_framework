@@ -1,0 +1,1345 @@
+
+--- Content of: .\main.py ---
+from libraries.api_test_executor import APITestExecutor
+
+if __name__ == "__main__":
+    api_requester = APITestExecutor()
+    api_requester.run_test_suite()
+
+
+--- Content of: .\configs\config.yaml ---
+# The active environment to be used for the tests.
+# This should match one of the environment keys defined below in 'environments'.
+active_environment: DEV
+
+# Definition of different environments and their respective endpoints.
+environments:
+  DEV:
+    # Define API endpoints for the DEV environment.
+    endpoints:
+      pacs.008_inbound:
+        path: "http://localhost:5000/api/inbound_payment_json"
+        method: "POST"
+      pacs.008_outbound:
+        path: "http://localhost:5000/api/outbound_payment_xml"
+        method: "POST"
+      positions:
+        path: "http://localhost:5000/api/positions2"
+        method: "GET"
+  SIT:
+    # Define API endpoints for the SIT (System Integration Testing) environment.
+    endpoints:
+      pacs.008_inbound:
+        path: "https://vhuang2.free.beeceptor.com/api/outbound_payment_json"
+        method: "POST"
+      pacs.008_outbound:
+        path: "https://vhuang2.free.beeceptor.com/api/outbound_payment_xml"
+        method: "POST"
+      positions:
+        path: "https://vhuang2.free.beeceptor.com/api/positions"
+        method: "GET"
+  UAT:
+    # Define API endpoints for the UAT (User Acceptance Testing) environment.
+    endpoints:
+      pacs.008_inbound:
+        path: "https://vhuang1.free.beeceptor.com/api/outbound_payment_json"
+        method: "POST"
+      pacs.008_outbound:
+        path: "https://vhuang1.free.beeceptor.com/api/outbound_payment_xml"
+        method: "POST"
+      positions:
+        path: "https://vhuang1.free.beeceptor.com/api/positions"
+        method: "GET"
+
+--- Content of: .\configs\saved_fields.yaml ---
+PRE_001_01.response[3].balance: 57800.0
+PRE_001_02.response[3].balance: 57800.0
+TC001_01.response.amount: 100
+TC001_02.response.amount: 100.0
+
+
+--- Content of: .\configs\test_config.yaml ---
+# Path to the excel file containing the test cases.
+# Make sure the file exists at this path.
+test_cases_path: 'test_cases/test_cases.xlsx'
+
+# List of Test Case IDs to run.
+# Specify one or more Test Case IDs here.
+tc_id_list:
+  - 'TC001'
+
+# List of tags to filter test cases.
+# Only test cases which contain any of these tags will be run.
+tags:
+  - 'tag1'
+
+# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+log_level: 'DEBUG'
+
+--- Content of: .\configs\body_defaults\create_customer.json ---
+{
+  "name": "ACME Corp.",
+  "contact": {
+    "name": "Jane Doe",
+    "email": "contact@acme.com"
+  },
+  "address": {
+    "street": "456 Industry Rd",
+    "city": "Busytown",
+    "zipcode": "{{address.zipcode}}"
+  }
+}
+
+--- Content of: .\configs\body_defaults\create_user.json ---
+{
+  "name": "Vick",
+  "email": "john.doe@example.com",
+  "address": {
+    "street": "123 Main St",
+    "city": "Anytown",
+    "state": "CA",
+    "zip": "12345"
+  },
+  "phones": [
+    {
+      "type": "home",
+      "number": "555-555-5555"
+    },
+    {
+      "type": "work",
+      "number": "{{phones.number}}"
+    }
+  ],
+  "preferences": {
+    "newsletter": true,
+    "notifications": {
+      "email": true,
+      "sms": false
+    }
+  }
+}
+
+--- Content of: .\configs\body_defaults\pacs.008_in_def.json ---
+{
+  "transaction_id": "IN123457",
+  "amount": 1500.00,
+  "currency": "CNY",
+  "debtor": {
+    "name": "Oliver Queen",
+    "phones": [
+      "555-987-1234",
+      "555-987-1235"
+    ],
+    "email": "oliver.queen@example.com",
+    "address": "500 Green Arrow Street"
+  },
+  "creditor": {
+    "name": "Hal Jordan",
+    "phones": [
+      "555-789-1234",
+      "555-789-1235"
+    ],
+    "email": "hal.jordan@example.com",
+    "address": "3000 Coast City"
+  }
+}
+
+--- Content of: .\configs\body_defaults\pacs.008_out_def.json ---
+{
+  "InstrId": "OUT123456",
+  "EndToEndId": "E2EOUT123456",
+  "amount": 1500.00,
+  "currency": "CNY",
+  "debtor": {
+    "name": "Vick Huang",
+    "phones": [
+      "555-555-5555",
+      "555-555-5556"
+    ],
+    "email": "vick.huang@example.com",
+    "address": "600 Green Arrow Street"
+  },
+  "creditor": {
+    "name": "Jay Huang",
+    "phones": [
+      "555-666-1234",
+      "555-666-1235"
+    ],
+    "email": "jay.huang@example.com",
+    "address": "3333 Coast City"
+  }
+}
+
+--- Content of: .\configs\body_templates\pacs.008_in.json ---
+{
+  "transaction_id": "{{transaction_id}}",
+  "amount": {{amount}},
+  "currency": "{{currency}}",
+  "debtor": {
+    "name": "{{debtor.name}}",
+    "phones": [
+      {% for phone in debtor.phones %}
+
+      "{{ phone }}"
+    {% if not loop.last %},{% endif %}
+    {% endfor %}
+    ],
+    "email": "{{debtor.email}}",
+    "address": "{{debtor.address}}"
+  },
+  "creditor": {
+    "name": "Hal Jordan",
+    "phones": [
+      {% for phone in creditor.phones %}
+
+      "{{ phone }}"
+    {% if not loop.last %},{% endif %}
+    {% endfor %}
+    ],
+    "email": "{{debtor.email}}",
+    "address": "{{debtor.address}}"
+  }
+}
+
+--- Content of: .\configs\body_templates\pacs.008_out.xml ---
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02">
+    <CdtTrfTxInf>
+        <PmtId>
+            <InstrId>{{InstrId}}</InstrId>
+            <EndToEndId>{{EndToEndId}}</EndToEndId>
+        </PmtId>
+        <IntrBkSttlmAmt Ccy="{{currency}}">{{amount}}</IntrBkSttlmAmt>
+        <Dbtr>
+            <Nm>{{debtor.name}}</Nm>
+            <PstlAdr>
+                <StrtNm>{{debtor.address}}</StrtNm>
+                {% for phone in debtor.phones %}
+                  <Phne>"{{ phone }}"</Phne>
+                {% if not loop.last %},{% endif %}
+                {% endfor %}
+            </PstlAdr>
+            <CtctDtls>
+                <EmailAdr>{{debtor.email}}</EmailAdr>
+            </CtctDtls>
+        </Dbtr>
+        <Cdtr>
+            <Nm>{{creditor.name}}</Nm>
+            <PstlAdr>
+                <StrtNm>{{creditor.address}}</StrtNm>
+                {% for phone in debtor.phones %}
+                  <Phne>"{{ phone }}"</Phne>
+                {% if not loop.last %},{% endif %}
+                {% endfor %}
+            </PstlAdr>
+            <CtctDtls>
+                <EmailAdr>{{creditor.email}}</EmailAdr>
+            </CtctDtls>
+        </Cdtr>
+    </CdtTrfTxInf>
+</Document>
+
+--- Content of: .\configs\body_templates\sample_create_customer.xml ---
+<create_customer>
+  <name>aaa{{ name }}</name>
+  <contact>
+    <name>{{ contact.name }}</name>
+    <email>{{ contact.email }}</email>
+  </contact>
+  <address>
+    <street>{{ address.street }}</street>
+    <city>{{ address.city }}</city>
+    <zipcode>{{ address.zipcode }}</zipcode>
+  </address>
+</create_customer>
+
+
+--- Content of: .\configs\body_templates\sample_create_user.json ---
+{
+  "name": "{{ name }}",
+  "email": "{{ email }}",
+  "address": {
+    "street": "{{ address.street }}",
+    "city": "{{ address.city }}",
+    "state": "{{ address.state }}",
+    "zip": "{{ address.zip }}"
+  },
+  "phones": [
+    {% for phone in phones %}
+    {
+      "type": "{{ phone.type }}",
+      "number": "{{ phone.number }}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "preferences": {
+    "newsletter": {{ preferences.newsletter | json_bool }},
+    "notifications": {
+      "email": {{ preferences.notifications.email | json_bool }},
+      "sms": {{ preferences.notifications.sms | json_bool }}
+    }
+  }
+}
+
+
+--- Content of: .\configs\headers\default.json ---
+{
+  "Content-Type": "application/json",
+  "accept": "application/json",
+  "Authorization": "{{ token }}",
+  "test1": "{{ test1 }}",
+  "test2": "{{ test2 }}",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"
+}
+
+--- Content of: .\configs\headers\default2.json ---
+{
+  "Content-Type": "application/json",
+  "accept": "application/json",
+  "Authorization": "{{ token }}",
+  "test1": "{{ 1.response.name }}",
+  "test2": "{{ 1.response.phones[0].type }}",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"
+}
+
+--- Content of: .\libraries\api_test_executor.py ---
+from typing import Dict, List, Union, Any
+from libraries.config_manager import ConfigManager
+from libraries import logger
+from libraries.request_sender import RequestSender
+from libraries.body_generator import BodyGenerator
+from libraries.headers_generator import HeadersGenerator
+from libraries.response_handler import ResponseHandler
+from libraries.saved_fields_manager import SavedFieldsManager
+from libraries.test_case_manager import TestCaseManager
+from libraries.utility_helpers import UtilityHelpers
+
+
+class APITestExecutor:
+    def __init__(self, config_path: str = 'configs/config.yaml',
+                 test_config_path: str = 'configs/test_config.yaml') -> None:
+        self.test_cases_path: Union[str, None] = None
+        self.test_case_manager: Union[TestCaseManager, None] = None
+
+        # Load configuration
+        self.config: Dict = ConfigManager.load_yaml(config_path)
+        self.test_config: Dict = ConfigManager.load_yaml(test_config_path)
+        self.active_environment: Dict = self.config['environments'][self.config['active_environment']]
+        self.endpoints: Dict = self.active_environment['endpoints']
+
+        # Load other configurations
+        self.template_dir: str = 'configs/body_templates'
+        self.headers_dir: str = 'configs/headers'
+        self.body_defaults_dir: str = 'configs/body_defaults'
+
+        # Initialize other components
+        self.saved_fields_manager: SavedFieldsManager = SavedFieldsManager()
+        self.body_generator: BodyGenerator = BodyGenerator(self.template_dir, self.body_defaults_dir)
+        self.headers_generator: HeadersGenerator = HeadersGenerator(self.headers_dir)
+        self.response_handler: ResponseHandler = ResponseHandler()
+
+        # Flags to track if suite-level setup and teardown have been run
+        self.suite_setup_run = False
+        self.suite_teardown_run = False
+
+
+    @UtilityHelpers.time_calculation()
+    def run_test_suite(self, test_cases_path: str = None, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
+        test_cases_path = test_cases_path or self.test_config.get('test_cases_path', 'test_cases/test_cases.xlsx')
+        tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
+        tags = tags or self.test_config.get('tags', [])
+        self.test_cases_path = test_cases_path
+
+        try:
+            self.test_case_manager = TestCaseManager(test_cases_path)
+            filtered_cases = self.test_case_manager.filter_test_cases(tcid_list=tc_id_list, tags=tags)
+            logger.log("DEBUG", f"Successfully loaded test cases from {test_cases_path}")
+
+            # Run suite-level setup if defined
+            self.run_suite_setup(filtered_cases)
+
+            for tc_id, test_case in filtered_cases.items():
+                # Run test-level setup if defined
+                self.run_test_setup(test_case)
+
+                logger.log("DEBUG", f"Running test case {tc_id}")
+                self.run_test_case(test_case, tc_id)
+                logger.log("INFO", f"Test case {tc_id} ran successfully.")
+                logger.log("INFO", f"********************************************\n")
+
+                # Run test-level teardown if defined
+                self.run_test_teardown(test_case)
+
+            # Run suite-level teardown if defined
+            self.run_suite_teardown(filtered_cases)
+
+        except Exception as e:
+            logger.log("ERROR", f"Failed to run test suite: {str(e)}")
+        finally:
+            # Perform delayed Excel operations after all test cases are executed or an error is encountered
+            self.response_handler.apply_pending_operations()
+
+
+    def run_suite_setup(self, filtered_cases) -> None:
+        for tc_id, test_case in filtered_cases.items():
+            for test_step in test_case:
+                conditions = test_step['Conditions'].splitlines() if test_step.get('Conditions') else []
+                for condition in conditions:
+                    if "[suite setup]" in condition and not self.suite_setup_run:
+                        suite_tc_id = condition.split("[suite setup]")[1].strip()
+                        logger.log("DEBUG", f"Running suite-level setup {suite_tc_id}")
+                        self.execute_setup_teardown(suite_tc_id)
+                        logger.log("INFO", f"Suite-level setup {suite_tc_id} ran successfully.")
+                        self.suite_setup_run = True
+
+
+    def run_suite_teardown(self, filtered_cases) -> None:
+        if self.suite_teardown_run:
+            return
+        for tc_id, test_case in filtered_cases.items():
+            for test_step in test_case:
+                conditions = test_step['Conditions'].splitlines() if test_step.get('Conditions') else []
+                for condition in conditions:
+                    if "[suite teardown]" in condition:
+                        suite_tc_id = condition.split("[suite teardown]")[1].strip()
+                        logger.log("DEBUG", f"Running suite-level teardown {suite_tc_id}")
+                        self.execute_setup_teardown(suite_tc_id)
+                        logger.log("INFO", f"Suite-level teardown {suite_tc_id} ran successfully.")
+                        self.suite_teardown_run = True
+
+
+    def run_test_setup(self, test_case: List[Dict[str, Union[str, Any]]]) -> None:
+        for test_step in test_case:
+            conditions = test_step['Conditions'].splitlines() if test_step.get('Conditions') else []
+            for condition in conditions:
+                if "[test setup]" in condition:
+                    test_tc_id = condition.split("[test setup]")[1].strip()
+                    logger.log("DEBUG", f"Running test-level setup {test_tc_id}")
+                    self.execute_setup_teardown(test_tc_id)
+                    logger.log("INFO", f"Test-level setup {test_tc_id} ran successfully.")
+
+
+    def run_test_teardown(self, test_case: List[Dict[str, Union[str, Any]]]) -> None:
+        for test_step in test_case:
+            conditions = test_step['Conditions'].splitlines() if test_step.get('Conditions') else []
+            for condition in conditions:
+                if "[test teardown]" in condition:
+                    test_tc_id = condition.split("[test teardown]")[1].strip()
+                    logger.log("DEBUG", f"Running test-level teardown {test_tc_id}")
+                    self.execute_setup_teardown(test_tc_id)
+                    logger.log("INFO", f"Test-level teardown {test_tc_id} ran successfully.")
+
+
+    def execute_setup_teardown(self, tc_id: str) -> None:
+        conditions = self.test_case_manager.get_conditions_by_tc_id(tc_id)
+        for condition in conditions:
+            if condition:
+                test_step_result: bool = self.execute_test_step(condition)
+                if not test_step_result:
+                    raise Exception(f"Condition {tc_id} failed, skipping to the next case.")
+
+
+    def run_test_case(self, test_case: List[Dict[str, Union[str, Any]]], tc_id: str) -> None:
+        for test_step in test_case:
+            test_step_result = self.execute_test_step(test_step)
+            if not test_step_result:
+                logger.log("DEBUG", f"Test case {tc_id} failed, skipping to next case.")
+                break
+
+    @UtilityHelpers.time_calculation()
+    def execute_test_step(self, test_step: Dict[str, Union[str, Any]]) -> bool:
+        try:
+            ex_ts_id: str = test_step['TSID']
+            ex_endpoint: str = test_step['Endpoint']
+            ex_headers: str = test_step['Headers']
+            ex_defaults_body: str = test_step['Defaults']
+            ex_body_modifications: str = test_step['Body Modifications']
+            ex_exp_result: str = test_step['Exp Result']
+            ex_fields_to_save: str = test_step['Save Fields']
+
+            logger.log("DEBUG", f"Starting execution of test step {ex_ts_id}")
+            current_endpoint: Union[Dict[str, Any], None] = self.endpoints.get(ex_endpoint, None)
+            if current_endpoint is None:
+                raise Exception(f"Endpoint {ex_endpoint} not found in config file")
+            method: str = current_endpoint['method']
+            url: str = current_endpoint['path']
+            # Load saved fields
+            saved_fields: Dict[str, Any] = self.saved_fields_manager.load_saved_fields()
+            # Prepare headers
+            headers: Dict[str, str] = self.headers_generator.prepare_headers(ex_headers, saved_fields)
+            # Apply saved fields to [Body Modifications] and [Exp Result]
+            self.saved_fields_manager.apply_saved_fields(test_step, saved_fields, ['Body Modifications', 'Exp Result'])
+            # Prepare request body
+            body, format_type = self.body_generator.generate_request_body(test_step, ex_defaults_body, method)
+            # Log request
+            logger.log_request(ex_ts_id, ex_endpoint, method, url, headers, body, format_type)
+            # Send request and log response
+            response, execution_time = RequestSender.send_request(url, method, headers, body, format_type)
+            logger.log_response(ex_ts_id, ex_endpoint, response, format_type)
+            # Process response
+            self.response_handler.process_and_store_results(response, test_step, self.test_cases_path,
+                                                            self.test_case_manager, execution_time)
+            # Update saved fields
+            self.saved_fields_manager.update_saved_fields(response, test_step)
+
+            logger.log("INFO", f"Finished execution of test step {ex_ts_id}")
+            logger.log("INFO", f"============================================\n")
+            return True
+        except Exception as e:
+            logger.log("ERROR", f"Failed to execute test step {ex_ts_id}: {str(e)}")
+            return False
+
+--- Content of: .\libraries\body_generator.py ---
+import json
+import os
+import re
+from typing import Any, Dict, Union
+from .config_manager import ConfigManager
+from .utility_helpers import UtilityHelpers
+from .variable_generator import VariableGenerator
+from .template_renderer import TemplateRenderer
+
+
+class BodyGenerator:
+    def __init__(self, template_dir: str, body_defaults_dir: str) -> None:
+        self.template_dir = template_dir
+        self.body_defaults_dir = body_defaults_dir
+
+    def generate_request_body(self, test_step, default_values_file: str, method) -> (Union[Dict, str], str):
+        try:
+            if method == 'GET' or method == "DELETE":
+                return {}, 'json'
+            template_name = test_step['Template']
+            body_modifications = json.loads(test_step['Body Modifications'])
+            template_path = self._load_template(template_name)
+            format_type = UtilityHelpers.get_file_format(template_path)
+            body = self.build_body_from_template(template_path, default_values_file, body_modifications, format_type)
+            return body, format_type
+        except KeyError as e:
+            ValueError(f"Template not found: {str(e)}")
+        except json.JSONDecodeError as e:
+            ValueError("ERROR", f"Failed to decode JSON for body preparation: {str(e)}")
+        except Exception as e:
+            ValueError(f"ERROR", f"Failed to prepare request body: {str(e)}")
+
+    def _load_template(self, template_name: str) -> str:
+        template_path = os.path.join(self.template_dir, f"{template_name}.json")
+        # If the JSON file is not found, try with XML extension
+        if not os.path.exists(template_path):
+            template_path = os.path.join(self.template_dir, f"{template_name}.xml")
+        if not os.path.exists(template_path):
+            raise ValueError(f"Template '{template_name}' not found in {self.template_dir}")
+        return template_path
+
+    def build_body_from_template(self, template_path: str, default_values_file: str, modifications: Dict[str, Any], format_type: str) -> Union[Dict, str]:
+        try:
+            default_values = self._load_default_body_values(default_values_file)
+            # Merge default values and modifications
+            body_data = self._integrate_dynamic_defaults(default_values)
+            body_data = self._combine_data(body_data, modifications)
+            # Generate dynamic values
+            dynamic_values = self._generate_dynamic_values(body_data)
+            # Merge dynamic values
+            body_data = self._combine_data(body_data, dynamic_values)
+            return TemplateRenderer.render_template(self.template_dir, template_path, body_data, format_type)
+        except KeyError as e:
+            raise ValueError(f"Template not found: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"Failed to build body from template: {str(e)}")
+
+    def _load_default_body_values(self, default_values_file: str) -> Dict[str, Any]:
+        file_path = os.path.join(self.body_defaults_dir, default_values_file)
+        if not file_path.endswith('.json'):
+            file_path += '.json'
+        return ConfigManager.load_json(file_path)
+
+    def _integrate_dynamic_defaults(self, default_values: Dict[str, Any]) -> Dict[str, Any]:
+        merged_values: Dict[str, Any] = {}
+        try:
+            for key, value in default_values.items():
+                if isinstance(value, dict):
+                    merged_values[key] = self._integrate_dynamic_defaults(value)
+                elif isinstance(value, str):
+                    merged_values[key] = self._replace_dynamic_placeholders(value)
+                else:
+                    merged_values[key] = value
+        except Exception as e:
+            raise ValueError(f"Error integrating dynamic value and defaults value: {str(e)}")
+        return merged_values
+
+    def _generate_dynamic_values(self, nested_data: Union[Dict[str, Any], list]) -> Union[Dict[str, Any], list]:
+        try:
+            if isinstance(nested_data, dict):
+                return {key: self._generate_dynamic_values(value) if isinstance(value, (dict, list))
+                        else self._replace_dynamic_placeholders(value) for key, value in nested_data.items()}
+            elif isinstance(nested_data, list):
+                return [self._generate_dynamic_values(item) if isinstance(item, (dict, list))
+                        else self._replace_dynamic_placeholders(item) for item in nested_data]
+        except Exception as e:
+            raise ValueError(f"Error generating dynamic values: {str(e)}")
+        return nested_data
+
+    def _replace_dynamic_placeholders(self, value: Any) -> Any:
+        try:
+            if isinstance(value, str) and re.match(r'\{\{\s*[^}]+?\s*\}\}', value):
+                dynamic_key = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', value)[0]
+                return VariableGenerator.generate_dynamic_value(dynamic_key)
+        except Exception as e:
+            raise ValueError(f"Error replacing dynamic placeholders '{value}': {str(e)}")
+        return value
+
+    def _combine_data(self, base_data: Dict[str, Any], custom_data: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            for key, value in custom_data.items():
+                if key in base_data and isinstance(value, dict) and isinstance(base_data[key], dict):
+                    base_data[key] = self._combine_data(base_data.get(key, {}), value)
+                else:
+                    base_data[key] = value
+        except Exception as e:
+            raise ValueError(f"Error combining data: {str(e)}")
+        return base_data
+
+--- Content of: .\libraries\config_manager.py ---
+import yaml
+import json
+import os
+from typing import Dict
+
+
+class ConfigManager:
+
+    @staticmethod
+    def load_json(file_path: str) -> Dict:
+        with open(file_path, 'r') as file:
+            config = json.load(file)
+        return config
+
+    @staticmethod
+    def load_yaml(file_path: str) -> Dict:
+        with open(file_path, 'r') as file:
+            config = yaml.safe_load(file)
+        return config
+
+    @staticmethod
+    def load_templates(template_dir: str) -> Dict[str, str]:
+        templates = {}
+        for filename in os.listdir(template_dir):
+            if filename.endswith('.json') or filename.endswith('.xml'):
+                template_name = os.path.splitext(filename)[0]
+                templates[template_name] = os.path.join(template_dir, filename)
+        return templates
+
+
+--- Content of: .\libraries\headers_generator.py ---
+import os
+import re
+import json
+from typing import Dict, Any
+from .variable_generator import VariableGenerator
+
+
+class HeadersGenerator:
+    def __init__(self, headers_dir: str) -> None:
+        self.headers_dir: str = headers_dir
+
+    def prepare_headers(self, headers_filename: str, saved_fields: Dict[str, Any]) -> Dict[str, str]:
+        try:
+            headers = self._load_headers(headers_filename)
+            return {k: self._process_header_value(v, saved_fields) for k, v in headers.items()}
+        except KeyError as e:
+            raise ValueError(f"Headers file '{headers_filename}' not found: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"Headers file '{headers_filename}' is not valid: {str(e)}")
+
+    def _load_headers(self, headers_filename: str) -> Dict[str, str]:
+        headers_file_path = os.path.join(self.headers_dir, headers_filename)
+        if not headers_file_path.endswith('.json'):
+            headers_file_path += '.json'
+        with open(headers_file_path, 'r') as file:
+            headers = json.load(file)
+        return headers
+
+    def _process_header_value(self, value: str, saved_fields: Dict[str, Any]) -> str:
+        if isinstance(value, str) and re.match(r'\{\{\s*[^}]+?\s*\}\}', value):
+            return self._generate_dynamic_value(value, saved_fields)
+        return value
+
+    def _generate_dynamic_value(self, template_string: str, saved_fields: Dict[str, Any]) -> str:
+        dynamic_key = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', template_string)[0]
+        if dynamic_key in saved_fields:
+            return saved_fields[dynamic_key]
+        return VariableGenerator.generate_dynamic_value(dynamic_key)
+
+
+--- Content of: .\libraries\log_manager.py ---
+import json
+import os
+import time
+from datetime import datetime
+from typing import Dict, Union
+import requests
+from libraries.utility_helpers import UtilityHelpers
+
+class Logger:
+    _instance = None
+    _log_levels = {
+        'DEBUG': 10,
+        'INFO': 20,
+        'WARNING': 30,
+        'ERROR': 40,
+        'CRITICAL': 50
+    }
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(Logger, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self, log_dir: str = 'log', log_level: str = 'DEBUG') -> None:
+        if not hasattr(self, 'initialized'):
+            self.log_dir: str = log_dir
+            self.log_filename: str = self.generate_log_filename()
+            self.log_filepath: str = os.path.join(self.log_dir, self.log_filename)
+            self.log_level: int = self._log_levels.get(log_level.upper(), 10)
+            self.ensure_log_dir_exists()
+            self.initialized = True
+
+    def generate_log_filename(self) -> str:
+        timestamp = int(time.time())
+        date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
+        return f"log_{date_str}.log"
+
+    def ensure_log_dir_exists(self) -> None:
+        try:
+            if not os.path.exists(self.log_dir):
+                os.makedirs(self.log_dir)
+        except OSError as e:
+            raise RuntimeError(f"Failed to create log directory {self.log_dir}: {str(e)}")
+
+    def log(self, level: str, message: str) -> None:
+        if self._log_levels.get(level.upper(), 0) >= self.log_level:
+            try:
+                timestamp = int(time.time())
+                date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
+                log_content = f"{date_str} [{level.upper()}]: {message}"
+
+                # Write to log file
+                with open(self.log_filepath, 'a') as log_file:
+                    log_file.write(log_content + "\n")
+
+                # Print to console
+                print(log_content)
+
+            except (OSError, IOError) as e:
+                raise ValueError(f"Failed to write log message: {str(e)}")
+
+    def log_request(self, ts_id, endpoint_name, method, endpoint: str, headers: Dict[str, str],
+                    body: Union[Dict, str], format_type: str) -> None:
+        if self._log_levels.get('INFO', 0) >= self.log_level:
+            try:
+                timestamp = int(time.time())
+                date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
+                if format_type == 'json':
+                    formatted_body = body
+                elif format_type == 'xml':
+                    formatted_body = UtilityHelpers.format_xml(body)
+                log_content1 = {
+                    "method": method,
+                    "endpoint": endpoint,
+                    "headers": headers,
+                    "body": formatted_body,
+                    "format_type": format_type
+                }
+                log_content2 = f"{date_str} [INFO] [Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Request:"
+
+                with open(self.log_filepath, 'a') as log_file:
+                    log_file.write(log_content2 + "\n")
+                    json.dump(log_content1, log_file, indent=4)
+                    log_file.write("\n")
+
+                # Print request log to console
+                print(log_content2)
+                print(json.dumps(log_content1, indent=4))
+
+            except (OSError, IOError) as e:
+                raise ValueError(f"Failed to log request: {str(e)}")
+
+    def log_response(self, ts_id, endpoint_name: str, response: requests.Response, format_type: str) -> None:
+        if self._log_levels.get('INFO', 0) >= self.log_level:
+            try:
+                timestamp = int(time.time())
+                date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
+                log_content1 = {
+                    "response_status_code": response.status_code,
+                    "response_headers": dict(response.headers),
+                    "response_body": json.loads(response.text) if format_type == 'json' else response.text
+                }
+                log_content2 = f"{date_str} [INFO] [Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Response:"
+
+                with open(self.log_filepath, 'a') as log_file:
+                    log_file.write(log_content2 + "\n")
+                    json.dump(log_content1, log_file, indent=4)
+                    log_file.write("\n")
+
+                # Print response log to console
+                print(log_content2)
+                print(json.dumps(log_content1, indent=4))
+
+            except (OSError, IOError) as e:
+                raise ValueError(f"Failed to log response: {str(e)}")
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"Failed to log response(failed to decode response body): {str(e)}.\n Response body:\n{response.text}")
+
+--- Content of: .\libraries\request_sender.py ---
+import requests
+from typing import Dict, Union, Optional
+import time
+
+
+class RequestSender:
+    @staticmethod
+    def send_request(url: str, method: str, headers: Optional[Dict[str, str]] = None,
+                     body: Optional[Union[Dict, str]] = None, format_type: str = 'json') -> (
+            requests.Response, float, Optional[str]):
+        requests_method = RequestSender._get_request_method(method)
+        start_time = time.time()
+
+        try:
+            if format_type == 'json':
+                response = requests_method(url, headers=headers, json=body)
+            elif format_type == 'xml':
+                if headers is not None:
+                    headers['Content-Type'] = 'application/xml'
+                response = requests_method(url, headers=headers, data=body)
+            else:
+                raise ValueError(f"Unsupported format type: {format_type}")
+            response.raise_for_status()
+        except (requests.RequestException, ValueError) as e:
+            raise ValueError(f"sending request error: {str(e)}")
+
+        execution_time = time.time() - start_time
+        return response, execution_time
+
+    @staticmethod
+    def _get_request_method(method: str):
+        methods = {
+            'GET': requests.get,
+            'POST': requests.post,
+            'PUT': requests.put,
+            'DELETE': requests.delete,
+            'PATCH': requests.patch
+        }
+
+        if method in methods:
+            return methods[method]
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+
+
+--- Content of: .\libraries\response_handler.py ---
+import json
+import re
+import pandas as pd
+import requests
+from openpyxl.styles import Font
+from openpyxl import load_workbook
+from typing import Dict, Any, Union
+from libraries import logger
+
+
+class ResponseHandler:
+    def __init__(self) -> None:
+        self.workbook_cache = {}
+        self.pending_operations = []
+
+    def process_and_store_results(self, response: requests.Response, test_step, test_cases_path: str,
+                                  test_case_manager, execution_time: float) -> None:
+        try:
+            actual_status: int = response.status_code
+            actual_response: Union[Dict[str, Any], str] = self._extract_response_content(response)
+            expected_lines = self._split_lines(test_step['Exp Result'])
+            results = [self.compare_response_field(actual_response, expectation) for expectation in expected_lines]
+
+            fields_to_save_lines = self._split_lines(test_step['Save Fields'])
+            fields_saved_results = [self.extract_field_value(actual_response, field) for field in fields_to_save_lines]
+
+            overall_result = "FAIL" if any(res['result'] == "FAIL" for res in results) else "PASS"
+            formatted_results = self.format_comparison_results(results)
+            formatted_fields_saved = self.format_extracted_fields(fields_saved_results)
+
+            # Cache the operation
+            self.cache_excel_operation(test_step, test_cases_path, actual_status, formatted_results,
+                                       overall_result, formatted_fields_saved, test_case_manager,
+                                       execution_time)
+
+            logger.log("INFO", json.dumps(results, indent=4))
+            logger.log("INFO", f"The Result is: {overall_result}.")
+        except Exception as e:
+            logger.log("ERROR", f"An error occurred while processing and storing results: {str(e)}")
+            raise
+
+    def _extract_response_content(self, response: requests.Response) -> Union[Dict[str, Any], str]:
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            return response.text
+
+    def _split_lines(self, lines: str) -> list:
+        return lines.strip().split('\n') if pd.notna(lines) else []
+
+    def compare_response_field(self, actual_response: Union[Dict[str, Any], str], expectation: str) -> Dict[str, Any]:
+        try:
+            field_path, expected_value = expectation.split('=')
+        except ValueError:
+            return self.create_error_comparison_result(expectation, "Invalid [Expected Result] format")
+
+        expected_value = expected_value.strip().strip('""')
+        actual_value = self.extract_actual_value(actual_response, field_path)
+
+        if actual_value is None:
+            return self.create_fail_comparison_result(field_path, "Field not found")
+        return self.create_comparison_result(field_path, actual_value, expected_value)
+
+    def extract_actual_value(self, actual_response: Union[Dict[str, Any], str], field_path: str) -> Any:
+        parts = field_path.split('.')
+        try:
+            if isinstance(actual_response, list) and 'response[' in parts[0]:
+                match = re.match(r'response\[(\d+)\]', parts[0])
+                array_index = int(match.group(1))
+                value = actual_response[array_index]
+            else:
+                value = actual_response
+
+            for part in parts[1:]:
+                if '[' in part and ']' in part:
+                    array_part, idx = re.match(r'(.*)\[(\d+)\]', part).groups()
+                    value = value[array_part][int(idx)]
+                else:
+                    value = value[part]
+                return value
+        except (KeyError, IndexError, TypeError) as e:
+            logger.log("ERROR", f"Error retrieving the value for path '{field_path}': {str(e)}")
+            return None
+
+    def create_error_comparison_result(self, field_path: str, error_message: str) -> Dict[str, str]:
+        return {
+            "field": field_path,
+            "result": "ERROR",
+            "error": error_message
+        }
+
+    def create_fail_comparison_result(self, field_path: str, error_message: str) -> Dict[str, str]:
+        return {
+            "field": field_path,
+            "result": "FAIL",
+            "error": error_message
+        }
+
+    def create_comparison_result(self, field_path: str, actual_value: Any, expected_value: str) -> Dict[str, Any]:
+        return {
+            "field": field_path,
+            "expected_value": expected_value,
+            "actual_value": actual_value,
+            "result": "PASS" if str(actual_value) == expected_value else "FAIL"
+        }
+
+    def extract_field_value(self, actual_response: Union[Dict[str, Any], str], field_path: str) -> str:
+        parts = field_path.split('.')
+        try:
+            if isinstance(actual_response, list) and 'response[' in parts[0]:
+                match = re.match(r'response\[(\d+)\]', parts[0])
+                array_index = int(match.group(1))
+                value = actual_response[array_index]
+            else:
+                value = actual_response
+
+            for part in parts[1:]:
+                if '[' in part and ']' in part:
+                    array_part, idx = re.match(r'(.*)\[(\d+)\]', part).groups()
+                    value = value[array_part][int(idx)]
+                else:
+                    value = value[part]
+
+                return f"{field_path}=\"{value}\"" if isinstance(value, str) else f"{field_path}={value}"
+        except (KeyError, IndexError, TypeError) as e:
+            logger.log("ERROR", f"Error extracting the value for path '{field_path}': {str(e)}")
+            return f"{field_path}=null"
+
+    def format_comparison_results(self, results: list) -> str:
+        return '\n'.join(f"{res['field']}:{res['result']}" for res in results)
+
+    def format_extracted_fields(self, fields_saved_results: list) -> str:
+        return '\n'.join(fields_saved_results)
+
+    def cache_excel_operation(self, test_step, file_path: str, actual_status: int,
+                              formatted_results: str, overall_result: str,
+                              formatted_fields_saved: str, test_case_manager,
+                              execution_time: float) -> None:
+        self.pending_operations.append({
+            "test_step": test_step,
+            "file_path": file_path,
+            "actual_status": actual_status,
+            "formatted_results": formatted_results,
+            "overall_result": overall_result,
+            "formatted_fields_saved": formatted_fields_saved,
+            "test_case_manager": test_case_manager,
+            "execution_time": execution_time
+        })
+    def apply_pending_operations(self) -> None:
+        for operation in self.pending_operations:
+            self.apply_excel_operation(**operation)
+
+        # Save all workbooks in the cache
+        for file_path, workbook in self.workbook_cache.items():
+            workbook.save(file_path)
+
+    def apply_excel_operation(self, test_step, file_path: str, actual_status: int,
+                              formatted_results: str, overall_result: str,
+                              formatted_fields_saved: str, test_case_manager,
+                              execution_time: float) -> None:
+        if file_path not in self.workbook_cache:
+            try:
+                self.workbook_cache[file_path] = load_workbook(file_path)
+            except Exception as e:
+                logger.log("ERROR", f"Failed to load workbook: {str(e)}")
+                raise
+        try:
+            workbook = self.workbook_cache[file_path]
+            sheet = workbook.active
+            actual_status_col_idx = self.get_excel_column_index(sheet, "Act Status")
+            actual_result_col_idx = self.get_excel_column_index(sheet, "Act Result")
+            overall_result_col_idx = self.get_excel_column_index(sheet, "Result")
+            fields_saved_col_idx = self.get_excel_column_index(sheet, "Saved Fields")
+            api_execution_time_col_idx = self.get_excel_column_index(sheet, "API Timing")
+
+            row = test_case_manager.get_row_index_by_tsid(test_step["TSID"]) + 2
+            sheet.cell(row=row, column=actual_status_col_idx, value=actual_status)
+            sheet.cell(row=row, column=actual_result_col_idx, value=formatted_results)
+            overall_cell = sheet.cell(row=row, column=overall_result_col_idx, value=overall_result)
+
+            overall_cell.font = Font(color="006400" if overall_result == "PASS" else "8B0000")
+            sheet.cell(row=row, column=fields_saved_col_idx, value=formatted_fields_saved)
+            api_timing_cell = sheet.cell(row=row, column=api_execution_time_col_idx, value=f"{execution_time:.2f}s")
+            if execution_time > 5:
+                api_timing_cell.font = Font(color="8B0000")
+            else:
+                api_timing_cell.font = Font(color="006400")
+
+
+        except Exception as e:
+            logger.log("ERROR", f"An error occurred while writing results to the Excel file: {str(e)}")
+            raise
+
+    def get_excel_column_index(self, sheet, column_name: str) -> int:
+        try:
+            for col in sheet.iter_cols(1, sheet.max_column):
+                if col[0].value == column_name:
+                    return col[0].column
+        except Exception as e:
+            logger.log("ERROR", f"An error occurred while getting the column index for '{column_name}': {str(e)}")
+            return None
+
+
+--- Content of: .\libraries\saved_fields_manager.py ---
+import json
+import re
+import requests
+import yaml
+import os
+import pandas as pd
+from typing import Dict, Any
+
+
+class SavedFieldsManager:
+    def __init__(self, file_path: str = 'configs/saved_fields.yaml') -> None:
+        self.file_path: str = file_path
+
+    def load_saved_fields(self) -> Dict[str, Any]:
+        if not os.path.exists(self.file_path):
+            return {}
+        try:
+            with open(self.file_path, 'r') as f:
+                saved_fields: Dict[str, Any] = yaml.safe_load(f) or {}
+            return saved_fields
+        except Exception as e:
+            raise ValueError(f"Failed to load saved fields from the yaml file: {str(e)}")
+
+    def save_fields(self, field_data: Dict[str, Any]) -> None:
+        saved_fields: Dict[str, Any] = self.load_saved_fields()
+        saved_fields.update(field_data)
+        try:
+            with open(self.file_path, 'w') as f:
+                yaml.safe_dump(saved_fields, f, default_flow_style=False)
+        except Exception as e:
+            raise ValueError(f"Failed to save fields to the yaml file: {str(e)}")
+
+    def update_saved_fields(self, response: requests.Response, test_step) -> None:
+        fields_to_save_lines = self._parse_fields_to_save(test_step.get('Save Fields', ''))
+        try:
+            actual_response: Dict[str, Any] = response.json()
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f"Failed to parse response as JSON while updating the saved files to the yaml file: {str(e)}")
+        field_data = {
+            f"{test_step['TSID']}.{field}": self._extract_value(actual_response, field)
+            for field in fields_to_save_lines
+        }
+        self.save_fields(field_data)
+
+    def _parse_fields_to_save(self, fields_to_save: str) -> list:
+        return fields_to_save.strip().split('\n') if pd.notna(fields_to_save) else []
+
+    def _extract_value(self, actual_response: Dict[str, Any], field_path: str) -> Any:
+        parts = field_path.split('.')
+        try:
+            if isinstance(actual_response, list) and 'response[' in parts[0]:
+                match = re.match(r'response\[(\d+)\]', parts[0])
+                array_index = int(match.group(1))
+                value = actual_response[array_index]
+            else:
+                value = actual_response
+
+            for part in parts[1:]:
+                if '[' in part and ']' in part:
+                    array_part, idx = re.match(r'(.*)\[(\d+)\]', part).groups()
+                    value = value[array_part][int(idx)]
+                else:
+                    value = value[part]
+            return value
+        except (KeyError, IndexError, TypeError) as e:
+            raise ValueError(f"KeyError/IndexError/TypeError while handling _extract_value to the yaml file: {str(e)}")
+
+    def apply_saved_fields(self, test_step, saved_fields: Dict, columns: list) -> None:
+        try:
+            for key, value in saved_fields.items():
+                for column in columns:
+                    if column in test_step and test_step[column] != '':
+                        lines = test_step[column].splitlines()
+                        replaced_lines = [line.replace(f"${{{key}}}", str(value)) for line in lines]
+                        test_step[column] = "\n".join(replaced_lines)
+        except Exception as e:
+            logger.log("ERROR", f"Failed to apply saved fields to [Body Modifications], [Exp Result]: {str(e)}")
+            raise
+
+
+--- Content of: .\libraries\template_renderer.py ---
+import os
+import json
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+from typing import Dict, Any, Union
+
+
+class TemplateRenderer:
+    @staticmethod
+    def render_template(template_dir: str, template_path: str, modifications: Dict[str, Any], format_type: str) -> Union[Dict, str]:
+        try:
+            env = TemplateRenderer._create_environment(template_dir)
+            template = TemplateRenderer._load_template(env, template_path)
+            rendered_body: str = template.render(modifications)
+            return TemplateRenderer._format_rendered_body(rendered_body, format_type)
+        except (TemplateNotFound, json.JSONDecodeError) as e:
+            raise ValueError(f"Error rendering template: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"An unexpected error occurred while rendering template: {str(e)}")
+
+    @staticmethod
+    def _create_environment(template_dir: str) -> Environment:
+        env = Environment(loader=FileSystemLoader(template_dir))
+        env.filters['json_bool'] = lambda value: str(value).lower()
+        return env
+
+    @staticmethod
+    def _load_template(env: Environment, template_path: str):
+        template_name: str = os.path.basename(template_path)
+        return env.get_template(template_name)
+
+    @staticmethod
+    def _format_rendered_body(rendered_body: str, format_type: str) -> Union[Dict, str]:
+        if format_type == 'json':
+            return json.loads(rendered_body)
+        elif format_type == 'xml':
+            return rendered_body
+        else:
+            raise ValueError(f"Unsupported format type: {format_type}")
+
+
+--- Content of: .\libraries\test_case_manager.py ---
+import pandas as pd
+from collections import defaultdict
+import pprint
+
+
+class TestCaseManager:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.test_cases_df = None
+        self.test_cases = self._read_test_cases()
+
+    def _read_test_cases(self):
+        test_cases_df = pd.read_excel(self.file_path, sheet_name='Active')
+        test_cases_df = test_cases_df.fillna("")
+        self.test_cases_df = test_cases_df
+        test_cases = defaultdict(list)
+
+        for _, row in test_cases_df.iterrows():
+            tcid = row.get('TCID', "")
+            test_step = {
+                "TSID": row.get('TSID', ""),
+                "Descriptions": row.get('Descriptions', ""),
+                "Conditions": row.get('Conditions', ""),
+                "Endpoint": row.get('Endpoint', ""),
+                "Method": row.get('Method', ""),
+                "Headers": row.get('Headers', ""),
+                "Template": row.get('Template', ""),
+                "Defaults": row.get('Defaults', ""),
+                "Body Modifications": row.get('Body Modifications', ""),
+                "Run": row.get('Run', ""),
+                "Tags": row.get('Tags', ""),
+                "Exp Status": row.get('Exp Status', ""),
+                "Exp Result": row.get('Exp Result', ""),
+                "Save Fields": row.get('Save Fields', ""),
+                "Act Status": row.get('Act Status', ""),
+                "Act Result": row.get('Act Result', ""),
+                "Result": row.get('Result', ""),
+                "Saved Fields": row.get('Saved Fields', "")
+            }
+            test_cases[tcid].append(test_step)
+
+        return test_cases
+
+    def get_conditions_by_tc_id(self, tcid: str):
+        return self.test_cases.get(tcid, None)
+
+    def filter_test_cases(self, tcid_list=None, tags=None):
+        filtered = defaultdict(list)
+        for tcid, test_steps in self.test_cases.items():
+            if tcid_list and tcid not in tcid_list:
+                continue
+            for test_step in test_steps:
+                if test_step['Run'].upper() != 'Y':
+                    continue
+                if tags and not any(tag in test_step['Tags'] for tag in tags):
+                    continue
+                filtered[tcid].append(test_step)
+        return filtered
+
+    def get_row_index_by_tsid(self, tsid):
+        try:
+            tsid_list = self.test_cases_df['TSID'].tolist()
+            index = tsid_list.index(tsid)
+            return index
+        except ValueError:
+            return None
+
+--- Content of: .\libraries\utility_helpers.py ---
+import os
+import time
+from functools import wraps
+from lxml import etree
+
+
+class UtilityHelpers:
+    @staticmethod
+    def get_file_format(file_path: str) -> str:
+        _, file_extension = os.path.splitext(file_path)
+        return file_extension.lower().strip('.')
+
+    @staticmethod
+    def format_xml(xml_string: str) -> str:
+        parser = etree.XMLParser(remove_blank_text=True)
+        xml_element = etree.fromstring(xml_string, parser)
+        formatted_xml = etree.tostring(xml_element, pretty_print=False, encoding='unicode')
+        return formatted_xml.strip()
+
+    @staticmethod
+    def time_calculation():
+        def decorator(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                from libraries import logger
+                start_time = time.time()
+                result = func(*args, **kwargs)
+                end_time = time.time()
+                execution_time = end_time - start_time
+                logger.log("INFO", f"Function '{func.__name__}' executed in {execution_time:.2f} seconds")
+                return result
+
+            return wrapper
+
+        return decorator
+
+
+--- Content of: .\libraries\variable_generator.py ---
+import uuid
+from typing import Any, Dict, Callable
+
+
+class VariableGenerator:
+    @staticmethod
+    def generate_dynamic_value(field_name: str, saved_fields: Dict[str, Any] = None) -> Any:
+        if saved_fields and field_name in saved_fields:
+            return saved_fields[field_name]
+
+        handlers: Dict[str, Callable[[str], Any]] = {
+            'user_id': VariableGenerator._generate_user_id,
+            'name': VariableGenerator._generate_name,
+            'email': VariableGenerator._generate_email,
+            'age': VariableGenerator._generate_age,
+            'address.street': VariableGenerator._generate_street,
+            'phones.number': VariableGenerator._generate_phone_number,
+            'address.zipcode': VariableGenerator._generate_zipcode,
+            'token': VariableGenerator._generate_token,
+            'test1': VariableGenerator._generate_test1,
+            'test2': VariableGenerator._generate_test2,
+        }
+
+        return handlers.get(field_name, VariableGenerator._generate_default_value)(field_name)
+
+    @staticmethod
+    def _generate_user_id(field_name: str = None) -> int:
+        return 1  # Example value, actual implementation can vary
+
+    @staticmethod
+    def _generate_name(field_name: str = None) -> str:
+        return 'Dynamic Name'
+
+    @staticmethod
+    def _generate_email(field_name: str = None) -> str:
+        return 'dynamic@example.com'
+
+    @staticmethod
+    def _generate_age(field_name: str = None) -> int:
+        return 25
+
+    @staticmethod
+    def _generate_street(field_name: str = None) -> str:
+        return 'Dynamic Street'
+
+    @staticmethod
+    def _generate_phone_number(field_name: str = None) -> str:
+        return '5511539'
+
+    @staticmethod
+    def _generate_zipcode(field_name: str = None) -> str:
+        return '00000'
+
+    @staticmethod
+    def _generate_token(field_name: str = None) -> str:
+        return str(uuid.uuid4())
+
+    @staticmethod
+    def _generate_test1(field_name: str = None) -> str:
+        return 'Dynamic Test1'
+
+    @staticmethod
+    def _generate_test2(field_name: str = None) -> str:
+        return 'Dynamic Test2'
+
+    @staticmethod
+    def _generate_default_value(field_name: str) -> str:
+        return f'dynamic_{field_name}'
+
+
+--- Content of: .\libraries\__init__.py ---
+from .log_manager import Logger
+logger = Logger()

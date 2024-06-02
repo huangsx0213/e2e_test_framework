@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Automatic Testing Framework</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .code-container {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        .code-container pre {
+            margin: 0;
+        }
+        .class-header {
+            font-size: 1.5em;
+            color: #61dafb;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Automatic Testing Framework</h1>
+    <div class="code-container">
+    <div class="class-header">.\config\body_defaults.yaml</div>
+    <pre>create_user:
+  name: "Vick"
+  email: "john.doe@example.com"
+  address:
+    street: "123 Main St"
+    city: "Anytown"
+    state: "CA"
+    zip: "12345"
+  phones:
+    - type: "home"
+      number: "555-555-5555"
+    - type: "work"
+      number: "{{phones.number}}"
+  preferences:
+    newsletter: true
+    notifications:
+      email: true
+      sms: false
+create_customer:
+  name: "ACME Corp."
+  contact:
+    name: "Jane Doe"
+    email: "contact@acme.com"
+  address:
+    street: "456 Industry Rd"
+    city: "Busytown"
+    zipcode: "{{address.zipcode}}"
+pacs.008_in_def:
+  transaction_id: IN123457
+  amount: 1500.00
+  currency: CNY
+  debtor:
+    name: Oliver Queen
+    phones:
+      - 555-987-1234
+      - 555-987-1235
+    email: oliver.queen@example.com
+    address: 500 Green Arrow Street
+  creditor:
+    name: Hal Jordan
+    phones:
+      - 555-789-1234
+      - 555-789-1235
+    email: hal.jordan@example.com
+    address: 3000 Coast City
+pacs.008_out_def:
+  InstrId: OUT123456
+  EndToEndId: E2EOUT123456
+  amount: 1500.00
+  currency: CNY
+  debtor:
+    name: Vick Huang
+    phones:
+      - 555-555-5555
+      - 555-555-5556
+    email: vick.huang@example.com
+    address: 600 Green Arrow Street
+  creditor:
+    name: Jay Huang
+    phones:
+      - 555-666-1234
+      - 555-666-1235
+    email: jay.huang@example.com
+    address: 3333 Coast City
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\config\body_templates\create_customer.xml</div>
+    <pre>&lt;create_customer&gt;
+  &lt;name&gt;aaa{{ name }}&lt;/name&gt;
+  &lt;contact&gt;
+    &lt;name&gt;{{ contact.name }}&lt;/name&gt;
+    &lt;email&gt;{{ contact.email }}&lt;/email&gt;
+  &lt;/contact&gt;
+  &lt;address&gt;
+    &lt;street&gt;{{ address.street }}&lt;/street&gt;
+    &lt;city&gt;{{ address.city }}&lt;/city&gt;
+    &lt;zipcode&gt;{{ address.zipcode }}&lt;/zipcode&gt;
+  &lt;/address&gt;
+&lt;/create_customer&gt;
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\config\body_templates\create_user.json</div>
+    <pre>{
+  "name": "{{ name }}",
+  "email": "{{ email }}",
+  "address": {
+    "street": "{{ address.street }}",
+    "city": "{{ address.city }}",
+    "state": "{{ address.state }}",
+    "zip": "{{ address.zip }}"
+  },
+  "phones": [
+    {% for phone in phones %}
+    {
+      "type": "{{ phone.type }}",
+      "number": "{{ phone.number }}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "preferences": {
+    "newsletter": {{ preferences.newsletter | json_bool }},
+    "notifications": {
+      "email": {{ preferences.notifications.email | json_bool }},
+      "sms": {{ preferences.notifications.sms | json_bool }}
+    }
+  }
+}
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\config\body_templates\pacs.008_in.json</div>
+    <pre>{
+  "transaction_id": "{{transaction_id}}",
+  "amount": {{amount}},
+  "currency": "{{currency}}",
+  "debtor": {
+    "name": "{{debtor.name}}",
+    "phones": [
+      {% for phone in debtor.phones %}
+
+      "{{ phone }}"
+    {% if not loop.last %},{% endif %}
+    {% endfor %}
+    ],
+    "email": "{{debtor.email}}",
+    "address": "{{debtor.address}}"
+  },
+  "creditor": {
+    "name": "Hal Jordan",
+    "phones": [
+      {% for phone in creditor.phones %}
+
+      "{{ phone }}"
+    {% if not loop.last %},{% endif %}
+    {% endfor %}
+    ],
+    "email": "{{debtor.email}}",
+    "address": "{{debtor.address}}"
+  }
+}</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\config\body_templates\pacs.008_out.xml</div>
+    <pre>&lt;Document xmlns="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02"&gt;
+    &lt;CdtTrfTxInf&gt;
+        &lt;PmtId&gt;
+            &lt;InstrId&gt;{{InstrId}}&lt;/InstrId&gt;
+            &lt;EndToEndId&gt;{{EndToEndId}}&lt;/EndToEndId&gt;
+        &lt;/PmtId&gt;
+        &lt;IntrBkSttlmAmt Ccy="{{currency}}"&gt;{{amount}}&lt;/IntrBkSttlmAmt&gt;
+        &lt;Dbtr&gt;
+            &lt;Nm&gt;{{debtor.name}}&lt;/Nm&gt;
+            &lt;PstlAdr&gt;
+                &lt;StrtNm&gt;{{debtor.address}}&lt;/StrtNm&gt;
+                {% for phone in debtor.phones %}
+                  &lt;Phne&gt;"{{ phone }}"&lt;/Phne&gt;
+                {% if not loop.last %},{% endif %}
+                {% endfor %}
+            &lt;/PstlAdr&gt;
+            &lt;CtctDtls&gt;
+                &lt;EmailAdr&gt;{{debtor.email}}&lt;/EmailAdr&gt;
+            &lt;/CtctDtls&gt;
+        &lt;/Dbtr&gt;
+        &lt;Cdtr&gt;
+            &lt;Nm&gt;{{creditor.name}}&lt;/Nm&gt;
+            &lt;PstlAdr&gt;
+                &lt;StrtNm&gt;{{creditor.address}}&lt;/StrtNm&gt;
+                {% for phone in debtor.phones %}
+                  &lt;Phne&gt;"{{ phone }}"&lt;/Phne&gt;
+                {% if not loop.last %},{% endif %}
+                {% endfor %}
+            &lt;/PstlAdr&gt;
+            &lt;CtctDtls&gt;
+                &lt;EmailAdr&gt;{{creditor.email}}&lt;/EmailAdr&gt;
+            &lt;/CtctDtls&gt;
+        &lt;/Cdtr&gt;
+    &lt;/CdtTrfTxInf&gt;
+&lt;/Document&gt;</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\config\config.yaml</div>
+    <pre>active_environment: development
+environments:
+  development:
+    base_url: "http://localhost:5000"
+  test1:
+    base_url: "https://vhuang2.free.beeceptor.com"
+  test2:
+    base_url: "https://vhuang1.free.beeceptor.com"</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\config\endpoints.yaml</div>
+    <pre>create_user: "/api/users"
+create_customer: "/customers"
+pacs.008_inbound: "/api/outbound_payment_json"
+pacs.008_outbound: "/api/outbound_payment_xml"
+positions: "/api/positions"
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\config\headers.yaml</div>
+    <pre>default:
+  Content-Type: "application/json"
+  accept: "application/json"
+  Authorization: "{{ token }}"
+  test1: "{{ test1 }}"
+  test2: "{{ test2 }}"
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"
+default2:
+  Content-Type: "application/json"
+  accept: "application/json"
+  Authorization: "{{ token }}"
+  test1: "{{ 1.response.name }}"
+  test2: "{{ 1.response.phones[0].type }}"
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36"</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\config\saved_fields.yaml</div>
+    <pre>TC001_01.response.amount: 100
+TC001_02.response.amount: 200.0
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\main.py</div>
+    <pre>from utils.APITestRunner import APITestRunner
+
+if __name__ == "__main__":
+    api_requester = APITestRunner()
+    api_requester.run_tests(tcid_list=["TC001"])
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\testing_server\positions.json</div>
+    <pre>{
+    "balances": {
+        "USD": 13500.0,
+        "EUR": 8000.0,
+        "HKD": 50000.0,
+        "CNY": 54000.0
+    },
+    "transactions": {
+        "USD": {
+            "2024-05-29": {
+                "inbound": {
+                    "count": 2,
+                    "total_amount": 4000.0
+                },
+                "outbound": {
+                    "count": 0,
+                    "total_amount": 0.0
+                }
+            }
+        },
+        "EUR": {
+            "2024-05-28": {
+                "inbound": {
+                    "count": 1,
+                    "total_amount": 200.0
+                },
+                "outbound": {
+                    "count": 2,
+                    "total_amount": 150.0
+                }
+            }
+        },
+        "HKD": {
+            "2024-05-28": {
+                "inbound": {
+                    "count": 0,
+                    "total_amount": 0.0
+                },
+                "outbound": {
+                    "count": 1,
+                    "total_amount": 1000.0
+                }
+            }
+        },
+        "CNY": {
+            "2024-05-29": {
+                "inbound": {
+                    "count": 1,
+                    "total_amount": 1500.0
+                },
+                "outbound": {
+                    "count": 74,
+                    "total_amount": 13400.0
+                }
+            },
+            "2024-05-30": {
+                "inbound": {
+                    "count": 0,
+                    "total_amount": 0.0
+                },
+                "outbound": {
+                    "count": 10,
+                    "total_amount": 1500.0
+                }
+            },
+            "2024-05-31": {
+                "inbound": {
+                    "count": 0,
+                    "total_amount": 0.0
+                },
+                "outbound": {
+                    "count": 20,
+                    "total_amount": 2600.0
+                }
+            }
+        }
+    }
+}</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\testing_server\server.py</div>
+    <pre>import json
+from flask import Flask, request, jsonify
+import xml.etree.ElementTree as ET
+from datetime import datetime
+
+app = Flask(__name__)
+
+
+def load_positions():
+    try:
+        with open('positions.json', 'r') as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        data = {
+            "balances": {},
+            "transactions": {}
+        }
+
+    # 确保总是存在 balances 和 transactions 键
+    if 'balances' not in data:
+        data['balances'] = {}
+    if 'transactions' not in data:
+        data['transactions'] = {}
+
+    return data
+
+
+def save_positions(data):
+    with open('positions.json', 'w') as file:
+        json.dump(data, file, indent=4)
+
+
+def clear_old_positions():
+    data = load_positions()
+    today = datetime.today().strftime('%Y-%m-%d')
+
+    for currency, transactions in data['transactions'].items():
+        if today in transactions:
+            data['transactions'][currency] = {today: transactions[today]}
+
+    save_positions(data)
+
+
+def parse_iso20022_pacs008(xml_data):
+    try:
+        root = ET.fromstring(xml_data)
+        transaction_id = root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}InstrId').text
+        amount = float(root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}IntrBkSttlmAmt').text)
+        currency = root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}IntrBkSttlmAmt').attrib['Ccy']
+
+        debtor = {
+            "name": root.find(
+                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Nm').text,
+            "phones": [phone.text for phone in root.findall(
+                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Phne')],
+            "email": root.find(
+                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}CtctDtls/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}EmailAdr').text,
+            "address": root.find(
+                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}StrtNm').text
+        }
+
+        creditor = {
+            "name": root.find(
+                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Nm').text,
+            "phones": [phone.text for phone in root.findall(
+                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Phne')],
+            "email": root.find(
+                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}CtctDtls/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}EmailAdr').text,
+            "address": root.find(
+                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}StrtNm').text
+        }
+        return {
+            "transaction_id": transaction_id,
+            "amount": amount,
+            "currency": currency,
+            "debtor": debtor,
+            "creditor": creditor
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.route('/api/outbound_payment_xml', methods=['POST'])
+def outbound_payment_xml():
+    xml_data = request.data
+    parsed_data = parse_iso20022_pacs008(xml_data)
+    if "error" in parsed_data:
+        return jsonify(parsed_data), 400
+
+    data = load_positions()
+    currency = parsed_data['currency']
+    amount = parsed_data['amount']
+
+    if currency in data['balances']:
+        data['balances'][currency] -= amount
+    else:
+        return jsonify({"error": f"Currency {currency} not found"}), 400
+
+    # 记录当天出站支付信息
+    today = datetime.today().strftime('%Y-%m-%d')
+    if currency not in data['transactions']:
+        data['transactions'][currency] = {}
+
+    if today not in data['transactions'][currency]:
+        data['transactions'][currency][today] = {"inbound": {"count": 0, "total_amount": 0.0},
+                                                 "outbound": {"count": 0, "total_amount": 0.0}}
+
+    data['transactions'][currency][today]["outbound"]["count"] += 1
+    data['transactions'][currency][today]["outbound"]["total_amount"] += amount
+
+    save_positions(data)
+
+    response = {
+        **parsed_data,
+        "status": "Outbound Processed",
+        "new_position": data['balances'][currency]
+    }
+    return jsonify(response), 200
+
+
+@app.route('/api/inbound_payment_xml', methods=['POST'])
+def inbound_payment_xml():
+    xml_data = request.data
+    parsed_data = parse_iso20022_pacs008(xml_data)
+    if "error" in parsed_data:
+        return jsonify(parsed_data), 400
+
+    data = load_positions()
+    currency = parsed_data['currency']
+    amount = parsed_data['amount']
+
+    if currency in data['balances']:
+        data['balances'][currency] += amount
+    else:
+        data['balances'][currency] = amount
+
+    # 记录当天入站支付信息
+    today = datetime.today().strftime('%Y-%m-%d')
+    if currency not in data['transactions']:
+        data['transactions'][currency] = {}
+
+    if today not in data['transactions'][currency]:
+        data['transactions'][currency][today] = {"inbound": {"count": 0, "total_amount": 0.0},
+                                                 "outbound": {"count": 0, "total_amount": 0.0}}
+
+    data['transactions'][currency][today]["inbound"]["count"] += 1
+    data['transactions'][currency][today]["inbound"]["total_amount"] += amount
+
+    save_positions(data)
+
+    response = {
+        **parsed_data,
+        "status": "Inbound Processed",
+        "new_position": data['balances'][currency]
+    }
+    return jsonify(response), 200
+
+
+@app.route('/api/outbound_payment_json', methods=['POST'])
+def outbound_payment_json():
+    request_data = request.json
+
+    try:
+        transaction_id = request_data['transaction_id']
+        amount = request_data['amount']
+        currency = request_data['currency']
+        debtor = request_data['debtor']
+        creditor = request_data['creditor']
+    except KeyError as e:
+        return jsonify({"error": f"Missing key: {str(e)}"}), 400
+
+    data = load_positions()
+
+    if currency in data['balances']:
+        data['balances'][currency] -= amount
+    else:
+        return jsonify({"error": f"Currency {currency} not found"}), 400
+
+    # 记录当天出站支付信息
+    today = datetime.today().strftime('%Y-%m-%d')
+    if currency not in data['transactions']:
+        data['transactions'][currency] = {}
+
+    if today not in data['transactions'][currency]:
+        data['transactions'][currency][today] = {"inbound": {"count": 0, "total_amount": 0.0},
+                                                 "outbound": {"count": 0, "total_amount": 0.0}}
+
+    data['transactions'][currency][today]["outbound"]["count"] += 1
+    data['transactions'][currency][today]["outbound"]["total_amount"] += amount
+
+    save_positions(data)
+
+    response = {
+        "transaction_id": transaction_id,
+        "amount": amount,
+        "currency": currency,
+        "debtor": debtor,
+        "creditor": creditor,
+        "status": "Outbound Processed",
+        "new_position": data['balances'][currency]
+    }
+    return jsonify(response), 200
+
+
+@app.route('/api/inbound_payment_json', methods=['POST'])
+def inbound_payment_json():
+    request_data = request.json
+
+    try:
+        transaction_id = transaction_id = request_data['transaction_id']
+        amount = request_data['amount']
+        currency = request_data['currency']
+        debtor = request_data['debtor']
+        creditor = request_data['creditor']
+    except KeyError as e:
+        return jsonify({"error": f"Missing key: {str(e)}"}), 400
+
+    data = load_positions()
+
+    if currency in data['balances']:
+        data['balances'][currency] += amount
+    else:
+        data['balances'][currency] = amount
+
+    # 记录当天入站支付信息
+    today = datetime.today().strftime('%Y-%m-%d')
+    if currency not in data['transactions']:
+        data['transactions'][currency] = {}
+
+    if today not in data['transactions'][currency]:
+        data['transactions'][currency][today] = {"inbound": {"count": 0, "total_amount": 0.0},
+                                                 "outbound": {"count": 0, "total_amount": 0.0}}
+
+    data['transactions'][currency][today]["inbound"]["count"] += 1
+    data['transactions'][currency][today]["inbound"]["total_amount"] += amount
+
+    save_positions(data)
+
+    response = {
+        "transaction_id": transaction_id,
+        "amount": amount,
+        "currency": currency,
+        "debtor": debtor,
+        "creditor": creditor,
+        "status": "Inbound Processed",
+        "new_position": data['balances'][currency]
+    }
+    return jsonify(response), 200
+
+
+@app.route('/api/positions', methods=['POST'])
+def get_positions():
+    clear_old_positions()
+    request_data = request.json
+    data = load_positions()
+    today = datetime.today().strftime('%Y-%m-%d')
+
+    if not isinstance(request_data, list):
+        return jsonify({"error": "Request body must be a list of currencies"}), 400
+
+    results = []
+    for currency in request_data:
+        if currency in data['balances']:
+            transactions = data['transactions'].get(currency, {}).get(today,
+                                                                      {"inbound": {"count": 0, "total_amount": 0.0},
+                                                                       "outbound": {"count": 0, "total_amount": 0.0}})
+            results.append({
+                "currency": currency,
+                "balance": data['balances'][currency],
+                "value_date": today,
+                "inbound": transactions["inbound"],
+                "outbound": transactions["outbound"]
+            })
+        else:
+            results.append({
+                "currency": currency,
+                "balance": 0,
+                "value_date": today,
+                "inbound": {"count": 0, "total_amount": 0.0},
+                "outbound": {"count": 0, "total_amount": 0.0}
+            })
+
+    return jsonify(results), 200
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\APITestRunner.py</div>
+    <pre>import json
+from utils.common_utils import CommonUtils
+from utils.config_loader import ConfigLoader
+from utils.logger import Logger
+from utils.request_sender import RequestSender
+from utils.request_body_builder import RequestBodyBuilder
+from utils.request_headers_builder import RequestHeadersBuilder
+from utils.response_handler import ResponseHandler
+from utils.saved_fields_handler import SavedFieldsHandler
+from typing import Dict, Union
+
+from utils.test_case_manager import TestCaseManager
+
+
+class APITestRunner:
+    def __init__(self, config_path: str = 'config/config.yaml') -&gt; None:
+        # Initialize Logger first to log any errors during initialization
+        logger: Logger = Logger()
+        self.test_cases_path = None  # type: str
+        self.test_case_manager = None  # type: TestCaseManager
+
+        # Load configuration
+        self.config: Dict = self.load_config(config_path)
+        self.active_environment: Dict = self.config['environments'][self.config['active_environment']]
+        self.base_url: str = self.active_environment['base_url']
+
+        # Load other configurations
+        self.endpoints: Dict = self.load_config('config/endpoints.yaml')
+        self.headers_config: Dict = self.load_config('config/headers.yaml')
+        self.body_defaults: Dict = self.load_config('config/body_defaults.yaml')
+        self.templates: Dict = ConfigLoader.load_templates('config/body_templates')
+        self.template_dir: str = 'config/body_templates'
+        self.default_headers: Dict = self.headers_config['default']
+
+        # Initialize other components
+        self.saved_fields_manager: SavedFieldsHandler = SavedFieldsHandler()
+        self.body_builder: RequestBodyBuilder = RequestBodyBuilder(self.template_dir, self.body_defaults,
+                                                                   self.templates)
+        self.headers_builder: RequestHeadersBuilder = RequestHeadersBuilder(self.headers_config)
+        self.response_handler: ResponseHandler = ResponseHandler(logger)
+
+    def run_tests(self, test_cases_path: str = 'test_cases/test_cases.xlsx', tcid_list=None, tags=None,
+                  run=None) -&gt; None:
+        self.test_cases_path = test_cases_path
+        # Load test cases from Excel file
+        try:
+            self.test_case_manager = TestCaseManager(test_cases_path)
+            filtered_cases = self.test_case_manager.filter_test_cases(tcid_list=tcid_list, tags=tags, run=run)
+            logger.log("INFO", f"Successfully loaded test cases from {test_cases_path}")
+
+            # Run tests by group
+            for tcid, test_case in filtered_cases.items():
+                logger.log("INFO", f"Running test case {tcid}")
+                test_case_result = self.run_test_case(test_case)
+                if not test_case_result:
+                    logger.log("INFO", f"Test case {tcid} failed, skipping to next case.")
+                else:
+                    logger.log("INFO", f"Test case {tcid} ran successfully1.")
+                    logger.log("INFO", f"********************************************\n")
+
+        except Exception as e:
+            logger.log("ERROR", f"Failed to load test cases from {test_cases_path}: {str(e)}")
+            return
+
+    def run_test_case(self, test_case):
+        test_case_result = True
+        for test_step in test_case:
+            test_case_result = self.execute_test_step(test_step)
+            if not test_case_result:  # If any test step fails, stop the case
+                test_case_result = False
+                break
+        return test_case_result
+
+    def execute_test_step(self, test_step) -&gt; bool:
+        try:
+            ex_ts_id = test_step['TSID']
+            ex_preconditions = test_step['Preconditions']
+            ex_endpoint = test_step['Endpoint']
+            ex_method = test_step['Method']
+            ex_headers = test_step['Headers']
+            ex_template = test_step['Template']
+            ex_defaults_body = test_step['Defaults']
+            ex_body_modifications = test_step['Body Modifications']
+            ex_exp_status = test_step['Exp Status']
+            ex_exp_result = test_step['Exp Result']
+            ex_fields_to_save = test_step['Save Fields']
+
+            logger.log("INFO", f"Starting execution of test step {ex_ts_id}")
+            endpoint = self.endpoints[ex_endpoint]
+            # Load saved fields
+            saved_fields = self.saved_fields_manager.load_saved_fields()
+            # Prepare headers
+            headers = self.headers_builder.prepare_headers(ex_headers, saved_fields)
+            # Apply saved fields to [Body Modifications], [Exp Result]
+            self.apply_saved_fields(test_step, saved_fields, ['Body Modifications', 'Exp Result'])
+            # Prepare request body
+            body, format_type = self.prepare_request_body(test_step)
+            # Log request
+            logger.log_request(ex_ts_id, ex_endpoint, ex_method, endpoint, headers, body, format_type)
+
+            # Send request and log response
+            response = RequestSender.send_request(self.base_url, ex_method, endpoint, headers, body, format_type)
+
+            logger.log_response(ex_ts_id, ex_endpoint, response, format_type)
+
+            # Handle response
+            self.response_handler.evaluate_and_save_results(response, test_step, self.test_cases_path,self.test_case_manager)
+
+            # Update saved fields
+            self.saved_fields_manager.update_saved_fields(response, test_step)
+
+            logger.log("INFO", f"Finished execution of test step {ex_ts_id}")
+            logger.log("INFO", f"============================================\n")
+            return True  # Test step passed
+        except Exception as e:
+            logger.log("ERROR", f"Failed to execute test step {ex_ts_id}: {str(e)}")
+            return False  # Test step failed
+
+    def prepare_request_body(self, test_step) -&gt; (Union[Dict, str], str):
+        try:
+            template_name = test_step['Template']
+            template_defaults = test_step['Defaults']
+            body_modifications = json.loads(test_step['Body Modifications'])
+            default_values = self.body_defaults.get(template_defaults, {})
+            format_type = CommonUtils.get_file_format(self.templates[template_name])
+            body = self.body_builder.prepare_body(template_name, default_values, body_modifications, format_type)
+            return body, format_type
+        except KeyError as e:
+            logger.log("ERROR", f"Template not found: {str(e)}")
+            raise
+        except json.JSONDecodeError as e:
+            logger.log("ERROR", f"Failed to decode JSON for body preparation: {str(e)}")
+            raise
+        except Exception as e:
+            logger.log("ERROR", f"Failed to prepare request body: {str(e)}")
+            raise
+
+    def apply_saved_fields(self, test_step, saved_fields: Dict, columns: list) -&gt; None:
+        try:
+            for key, value in saved_fields.items():
+                for column in columns:
+                    if column in test_step and test_step[column] != '':
+                        lines = test_step[column].splitlines()
+                        replaced_lines = [line.replace(f"${{{key}}}", str(value)) for line in lines]
+                        test_step[column] = "\n".join(replaced_lines)
+        except Exception as e:
+            logger.log("ERROR", f"Failed to apply saved fields to [Body Modifications], [Exp Result]: {str(e)}")
+            raise
+
+    def load_config(self, file_path: str) -&gt; Dict:
+        try:
+            return ConfigLoader.load_yaml(file_path)
+        except Exception as e:
+            logger.log("ERROR", f"Failed to load config from {file_path}: {str(e)}")
+            raise
+
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\__init__.py</div>
+    <pre></pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\common_utils.py</div>
+    <pre>import os
+from lxml import etree
+
+
+class CommonUtils:
+    @staticmethod
+    def get_file_format(file_path: str) -&gt; str:
+        _, file_extension = os.path.splitext(file_path)
+        return file_extension.lower().strip('.')
+
+    @staticmethod
+    def format_xml(xml_string: str) -&gt; str:
+        parser = etree.XMLParser(remove_blank_text=True)
+        xml_element = etree.fromstring(xml_string, parser)
+        formatted_xml = etree.tostring(xml_element, pretty_print=False, encoding='unicode')
+        return formatted_xml.strip()
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\config_loader.py</div>
+    <pre>import yaml
+import json
+import os
+from typing import Dict
+
+
+class ConfigLoader:
+
+    @staticmethod
+    def load_json(file_path: str) -&gt; Dict:
+        with open(file_path, 'r') as file:
+            config = json.load(file)
+        return config
+
+    @staticmethod
+    def load_yaml(file_path: str) -&gt; Dict:
+        with open(file_path, 'r') as file:
+            config = yaml.safe_load(file)
+        return config
+
+    @staticmethod
+    def load_templates(template_dir: str) -&gt; Dict[str, str]:
+        templates = {}
+        for filename in os.listdir(template_dir):
+            if filename.endswith('.json') or filename.endswith('.xml'):
+                template_name = os.path.splitext(filename)[0]
+                templates[template_name] = os.path.join(template_dir, filename)
+        return templates
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\logger.py</div>
+    <pre>import json
+import os
+import time
+from datetime import datetime
+from typing import Dict, Union
+import requests
+
+from utils.common_utils import CommonUtils
+
+
+class Logger:
+    def __init__(self, log_dir: str = 'log') -&gt; None:
+        self.log_dir: str = log_dir
+        self.log_filename: str = self.generate_log_filename()
+        self.log_filepath: str = os.path.join(self.log_dir, self.log_filename)
+
+        # 确保日志目录存在
+        self.ensure_log_dir_exists()
+
+    def generate_log_filename(self) -&gt; str:
+        timestamp = int(time.time())
+        date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
+        return f"log_{date_str}.log"
+
+    def ensure_log_dir_exists(self) -&gt; None:
+        try:
+            if not os.path.exists(self.log_dir):
+                os.makedirs(self.log_dir)
+        except OSError as e:
+            raise RuntimeError(f"Failed to create log directory {self.log_dir}: {str(e)}")
+
+    def log_request(self, ts_id, endpoint_name, method, endpoint: str, headers: Dict[str, str],
+                    body: Union[Dict, str], format_type: str) -&gt; None:
+        try:
+            timestamp = int(time.time())
+            date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
+            if format_type == 'json':
+                formatted_body = body
+            elif format_type == 'xml':
+                formatted_body = CommonUtils.format_xml(body)
+            log_content1 = {
+                "method": method,
+                "endpoint": endpoint,
+                "headers": headers,
+                "body": formatted_body,
+                "format_type": format_type
+            }
+            log_content2 = f"{date_str} [INFO] [Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Request:"
+
+            with open(self.log_filepath, 'a') as log_file:
+                log_file.write(log_content2 + "\n")
+                json.dump(log_content1, log_file, indent=4)
+                log_file.write("\n")
+        except (OSError, IOError) as e:
+            print(f"Failed to log request: {str(e)}")
+
+    def log_response(self, ts_id, endpoint_name: str, response: requests.Response, format_type: str) -&gt; None:
+        try:
+            timestamp = int(time.time())
+            date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
+            log_content1 = {
+                "response_status_code": response.status_code,
+                "response_headers": dict(response.headers),
+                "response_body": json.loads(response.text) if format_type == 'json' else response.text
+            }
+            log_content2 = f"{date_str} [INFO] [Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Response:"
+
+            with open(self.log_filepath, 'a') as log_file:
+                log_file.write(log_content2 + "\n")
+                json.dump(log_content1, log_file, indent=4)
+                log_file.write("\n")
+        except (OSError, IOError) as e:
+            print(f"Failed to log response: {str(e)}")
+        except json.JSONDecodeError as e:
+            print(f"Failed to decode response body: {str(e)}")
+
+    def log(self, level: str, message: str) -&gt; None:
+        try:
+            timestamp = int(time.time())
+            date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
+            log_content = f"{date_str} [{level.upper()}]: {message}"
+            with open(self.log_filepath, 'a') as log_file:
+                log_file.write(log_content + "\n")
+        except (OSError, IOError) as e:
+            print(f"Failed to write log message: {str(e)}")
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\request_body_builder.py</div>
+    <pre>import re
+from typing import Any, Dict, Union
+from .variable_generator import VariableGenerator
+from .template_renderer import TemplateRenderer
+
+
+class RequestBodyBuilder:
+    def __init__(self, template_dir: str, body_defaults: Dict[str, dict], templates: Dict[str, str]) -&gt; None:
+        self.template_dir = template_dir
+        self.body_defaults = body_defaults
+        self.templates = templates
+
+    def prepare_body(self, template_name: str, default_values: Dict[str, Any], modifications: Dict[str, Any],
+                     format_type: str) -&gt; Union[Dict, str]:
+        try:
+            template_path = self.templates[template_name]
+            # Merge default values and modifications
+            body_data = self._merge_data(self._merge_dynamic_defaults(default_values), modifications)
+            # Generate dynamic values
+            dynamic_values = self._generate_dynamic_values(body_data)
+            # Merge dynamic values
+            body_data = self._merge_data(body_data, dynamic_values)
+            return TemplateRenderer.render_template(self.template_dir, template_path, body_data, format_type)
+        except KeyError as e:
+            raise ValueError(f"Template '{template_name}' not found: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"Error preparing request body: {str(e)}")
+
+    def _merge_dynamic_defaults(self, default_values: Dict[str, Any]) -&gt; Dict[str, Any]:
+        merged_values: Dict[str, Any] = {}
+        try:
+            for key, value in default_values.items():
+                if isinstance(value, dict):
+                    merged_values[key] = self._merge_dynamic_defaults(value)
+                elif isinstance(value, str):
+                    merged_values[key] = self._process_string(value)
+                else:
+                    merged_values[key] = value
+        except Exception as e:
+            raise ValueError(f"Error merging dynamic value and defaults value: {str(e)}")
+        return merged_values
+
+    def _generate_dynamic_values(self, nested_data: Union[Dict[str, Any], list]) -&gt; Union[Dict[str, Any], list]:
+        try:
+            if isinstance(nested_data, dict):
+                return {key: self._generate_dynamic_values(value) if isinstance(value, (dict, list))
+                else self._process_string(value) for key, value in nested_data.items()}
+            elif isinstance(nested_data, list):
+                return [self._generate_dynamic_values(item) if isinstance(item, (dict, list))
+                        else self._process_string(item) for item in nested_data]
+        except Exception as e:
+            raise ValueError(f"Error generating dynamic values: {str(e)}")
+        return nested_data
+
+    def _process_string(self, value: Any) -&gt; Any:
+        try:
+            if isinstance(value, str) and re.match(r'\{\{\s*[^}]+?\s*\}\}', value):
+                dynamic_key = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', value)[0]
+                return VariableGenerator.generate_dynamic_value(dynamic_key)
+        except Exception as e:
+            raise ValueError(f"Error processing string '{value}': {str(e)}")
+        return value
+
+    def _merge_data(self, base_data: Dict[str, Any], custom_data: Dict[str, Any]) -&gt; Dict[str, Any]:
+        try:
+            for key, value in custom_data.items():
+                if key in base_data and isinstance(value, dict) and isinstance(base_data[key], dict):
+                    base_data[key] = self._merge_data(base_data.get(key, {}), value)
+                else:
+                    base_data[key] = value
+        except Exception as e:
+            raise ValueError(f"Error merging data: {str(e)}")
+        return base_data
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\request_headers_builder.py</div>
+    <pre>import re
+from typing import Dict, Any
+from .variable_generator import VariableGenerator
+
+
+class RequestHeadersBuilder:
+    def __init__(self, headers_config: Dict[str, Dict[str, str]]) -&gt; None:
+        self.headers_config: Dict[str, Dict[str, str]] = headers_config
+
+    def prepare_headers(self, headers_name: str, saved_fields: Dict[str, Any]) -&gt; Dict[str, str]:
+        try:
+            headers: Dict[str, str] = self.headers_config[headers_name]
+            return {k: self._process_header_value(v, saved_fields) for k, v in headers.items()}
+        except KeyError as e:
+            raise ValueError(f"Headers configuration '{headers_name}' not found: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"Headers configuration '{headers_name}' is not valid: {str(e)}")
+
+    def _process_header_value(self, value: str, saved_fields: Dict[str, Any]) -&gt; str:
+        if isinstance(value, str) and re.match(r'\{\{\s*[^}]+?\s*\}\}', value):
+            return self._generate_dynamic_value(value, saved_fields)
+        return value
+
+    def _generate_dynamic_value(self, template_string: str, saved_fields: Dict[str, Any]) -&gt; str:
+        dynamic_key = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', template_string)[0]
+        if dynamic_key in saved_fields:
+            return saved_fields[dynamic_key]
+        return VariableGenerator.generate_dynamic_value(dynamic_key)
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\request_sender.py</div>
+    <pre>import requests
+from typing import Dict, Union, Optional
+
+
+class RequestSender:
+    @staticmethod
+    def send_request(base_url: str, method: str, endpoint: str, headers: Optional[Dict[str, str]] = None,
+                     body: Optional[Union[Dict, str]] = None, format_type: str = 'json') -&gt; requests.Response:
+        url: str = f"{base_url}{endpoint}"
+        requests_method = RequestSender._get_request_method(method)
+
+        if format_type == 'json':
+            response = requests_method(url, headers=headers, json=body)
+        elif format_type == 'xml':
+            if headers is not None:
+                headers['Content-Type'] = 'application/xml'
+            response = requests_method(url, headers=headers, data=body)
+        else:
+            raise ValueError(f"Unsupported format type: {format_type}")
+
+        return response
+
+    @staticmethod
+    def _get_request_method(method: str):
+        methods = {
+            'GET': requests.get,
+            'POST': requests.post,
+            'PUT': requests.put,
+            'DELETE': requests.delete,
+            'PATCH': requests.patch
+        }
+
+        if method in methods:
+            return methods[method]
+        else:
+            raise ValueError(f"Unsupported HTTP method: {method}")
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\response_handler.py</div>
+    <pre>import json
+import re
+import pandas as pd
+import requests
+from openpyxl.styles import Font
+from openpyxl import load_workbook
+from typing import Dict, Any, Union
+from .logger import Logger
+from .test_case_manager import TestCaseManager
+
+
+class ResponseHandler:
+    def __init__(self, logger: Logger) -&gt; None:
+        logger: Logger = logger
+
+    def evaluate_and_save_results(self, response: requests.Response, test_step, test_cases_path: str, test_case_manager) -&gt; None:
+        try:
+            actual_status: int = response.status_code
+            actual_response: Union[Dict[str, Any], str] = self._get_response_content(
+                response)  # Get the response content
+            expected_lines = self._parse_lines(test_step['Exp Result'])  # Parse the expected results lines
+            results = [self._compare_field(actual_response, expectation) for expectation in
+                       expected_lines]  # Compare fields
+
+            fields_to_save_lines = self._parse_lines(test_step['Save Fields'])  # Parse the fields to save lines
+            fields_saved_results = [self._extract_field(actual_response, field) for field in
+                                    fields_to_save_lines]  # Extract fields
+
+            overall_result = "fail" if any(
+                res['result'] == "fail" for res in results) else "pass"  # Determine overall result
+            formatted_results = self._format_results(results)  # Format the results
+            formatted_fields_saved = self._format_saved_fields(fields_saved_results)  # Format the saved fields
+
+            self._write_results_to_excel(test_step, test_cases_path, actual_status, formatted_results, overall_result,
+                                         formatted_fields_saved, test_case_manager)  # Write results to Excel
+
+            logger.log("INFO", json.dumps(results, indent=4))  # Log detailed results
+            logger.log("INFO", f"The Result is: {overall_result}.")  # Log the overall result
+        except Exception as e:
+            logger.log("ERROR", f"An error occurred while evaluating and saving results: {str(e)}")
+            raise
+
+    def _get_response_content(self, response: requests.Response) -&gt; Union[Dict[str, Any], str]:
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            return response.text
+
+    def _parse_lines(self, lines: str) -&gt; list:
+        return lines.strip().split('\n') if pd.notna(lines) else []
+
+    def _compare_field(self, actual_response: Union[Dict[str, Any], str], expectation: str) -&gt; Dict[str, Any]:
+        try:
+            field_path, expected_value = expectation.split('=')
+        except ValueError:
+            return self._create_error_result(expectation, "Invalid [Expected Result] format")
+
+        expected_value = expected_value.strip().strip('""')
+        actual_value = self._get_actual_value(actual_response, field_path)
+
+        if actual_value is None:
+            return self._create_fail_result(field_path, "Field not found")
+        return self._create_pass_fail_result(field_path, actual_value, expected_value)
+
+    def _get_actual_value(self, actual_response: Union[Dict[str, Any], str], field_path: str) -&gt; Any:
+        parts = field_path.split('.')
+        try:
+            if isinstance(actual_response, list) and 'response[' in parts[0]:
+                match = re.match(r'response\[(\d+)\]', parts[0])
+                array_index = int(match.group(1))
+                value = actual_response[array_index]
+            else:
+                value = actual_response
+
+            for part in parts[1:]:
+                if '[' in part and ']' in part:
+                    array_part, idx = re.match(r'(.*)\[(\d+)\]', part).groups()
+                    value = value[array_part][int(idx)]
+                else:
+                    value = value[part]
+                return value
+        except (KeyError, IndexError, TypeError) as e:
+            logger.log("ERROR", f"Error retrieving the value for path '{field_path}': {str(e)}")
+            return None
+
+    def _create_error_result(self, field_path: str, error_message: str) -&gt; Dict[str, str]:
+        return {
+            "field": field_path,
+            "result": "error",
+            "error": error_message
+        }
+
+    def _create_fail_result(self, field_path: str, error_message: str) -&gt; Dict[str, str]:
+        return {
+            "field": field_path,
+            "result": "fail",
+            "error": error_message
+        }
+
+    def _create_pass_fail_result(self, field_path: str, actual_value: Any, expected_value: str) -&gt; Dict[str, Any]:
+        return {
+            "field": field_path,
+            "expected_value": expected_value,
+            "actual_value": actual_value,
+            "result": "pass" if str(actual_value) == expected_value else "fail"
+        }
+
+    def _extract_field(self, actual_response: Union[Dict[str, Any], str], field_path: str) -&gt; str:
+        parts = field_path.split('.')
+        try:
+            if isinstance(actual_response, list) and 'response[' in parts[0]:
+                match = re.match(r'response\[(\d+)\]', parts[0])
+                array_index = int(match.group(1))
+                value = actual_response[array_index]
+            else:
+                value = actual_response
+
+            for part in parts[1:]:
+                if '[' in part and ']' in part:
+                    array_part, idx = re.match(r'(.*)\[(\d+)\]', part).groups()
+                    value = value[array_part][int(idx)]
+                else:
+                    value = value[part]
+
+                return f"{field_path}=\"{value}\"" if isinstance(value, str) else f"{field_path}={value}"
+        except (KeyError, IndexError, TypeError) as e:
+            logger.log("ERROR", f"Error extracting the value for path '{field_path}': {str(e)}")
+            return f"{field_path}=null"
+
+    def _format_results(self, results: list) -&gt; str:
+        return '\n'.join(f"{res['field']}:{res['result']}" for res in results)
+
+    def _format_saved_fields(self, fields_saved_results: list) -&gt; str:
+        return '\n'.join(fields_saved_results)
+
+    def _write_results_to_excel(self, test_step, file_path: str, actual_status: int, formatted_results: str,
+                                overall_result: str, formatted_fields_saved: str, test_case_manager) -&gt; None:
+        try:
+            workbook = load_workbook(file_path)
+            sheet = workbook.active
+            actual_status_col_idx = self._get_column_index_by_name(sheet, "Act Status")
+            actual_result_col_idx = self._get_column_index_by_name(sheet, "Act Result")
+            overall_result_col_idx = self._get_column_index_by_name(sheet, "Result")
+            fields_saved_col_idx = self._get_column_index_by_name(sheet, "Saved Fields")
+
+            row = test_case_manager.get_row_index_by_tsid(test_step["TSID"])+2
+            sheet.cell(row=row, column=actual_status_col_idx, value=actual_status)
+            sheet.cell(row=row, column=actual_result_col_idx, value=formatted_results)
+            overall_cell = sheet.cell(row=row, column=overall_result_col_idx, value=overall_result)
+
+            overall_cell.font = Font(color="00FF00" if overall_result == "pass" else "FF0000")
+            sheet.cell(row=row, column=fields_saved_col_idx, value=formatted_fields_saved)
+
+            workbook.save(file_path)
+        except Exception as e:
+            logger.log("ERROR", f"An error occurred while writing results to the Excel file: {str(e)}")
+            raise
+
+    def _get_column_index_by_name(self, sheet: 'Worksheet', column_name: str) -&gt; int:
+        try:
+            for col in sheet.iter_cols(1, sheet.max_column):
+                if col[0].value == column_name:
+                    return col[0].column
+        except Exception as e:
+            logger.log("ERROR", f"An error occurred while getting the column index for '{column_name}': {str(e)}")
+        return None
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\saved_fields_handler.py</div>
+    <pre>import json
+import re
+import requests
+import yaml
+import os
+import pandas as pd
+from typing import Dict, Any
+
+
+class SavedFieldsHandler:
+    def __init__(self, file_path: str = 'config/saved_fields.yaml') -&gt; None:
+        self.file_path: str = file_path
+
+    def load_saved_fields(self) -&gt; Dict[str, Any]:
+        if not os.path.exists(self.file_path):
+            return {}
+        try:
+            with open(self.file_path, 'r') as f:
+                saved_fields: Dict[str, Any] = yaml.safe_load(f) or {}
+            return saved_fields
+        except Exception as e:
+            raise ValueError(f"Failed to load saved fields from the yaml file: {str(e)}")
+
+    def save_fields(self, field_data: Dict[str, Any]) -&gt; None:
+        saved_fields: Dict[str, Any] = self.load_saved_fields()
+        saved_fields.update(field_data)
+        try:
+            with open(self.file_path, 'w') as f:
+                yaml.safe_dump(saved_fields, f, default_flow_style=False)
+        except Exception as e:
+            raise ValueError(f"Failed to save fields to the yaml file: {str(e)}")
+
+    def update_saved_fields(self, response: requests.Response, test_step) -&gt; None:
+        fields_to_save_lines = self._parse_fields_to_save(test_step.get('Save Fields', ''))
+        try:
+            actual_response: Dict[str, Any] = response.json()
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse response as JSON while updating the saved files to the yaml file: {str(e)}")
+        field_data = {
+            f"{test_step['TSID']}.{field}": self._extract_value(actual_response, field)
+            for field in fields_to_save_lines
+        }
+        self.save_fields(field_data)
+
+    def _parse_fields_to_save(self, fields_to_save: str) -&gt; list:
+        return fields_to_save.strip().split('\n') if pd.notna(fields_to_save) else []
+
+    def _extract_value(self, actual_response: Dict[str, Any], field_path: str) -&gt; Any:
+        parts = field_path.split('.')
+        try:
+            if isinstance(actual_response, list) and 'response[' in parts[0]:
+                match = re.match(r'response\[(\d+)\]', parts[0])
+                array_index = int(match.group(1))
+                value = actual_response[array_index]
+            else:
+                value = actual_response
+
+            for part in parts[1:]:
+                if '[' in part and ']' in part:
+                    array_part, idx = re.match(r'(.*)\[(\d+)\]', part).groups()
+                    value = value[array_part][int(idx)]
+                else:
+                    value = value[part]
+            return value
+        except (KeyError, IndexError, TypeError) as e:
+            raise ValueError(f"KeyError/IndexError/TypeError while handling _extract_value to the yaml file: {str(e)}")
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\template_renderer.py</div>
+    <pre>import os
+import json
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+from typing import Dict, Any, Union
+
+
+class TemplateRenderer:
+    @staticmethod
+    def render_template(template_dir: str, template_path: str, modifications: Dict[str, Any], format_type: str) -&gt; \
+            Union[Dict, str]:
+        try:
+            env = TemplateRenderer._create_environment(template_dir)
+            template = TemplateRenderer._load_template(env, template_path)
+            rendered_body: str = template.render(modifications)
+            return TemplateRenderer._format_rendered_body(rendered_body, format_type)
+        except (TemplateNotFound, json.JSONDecodeError) as e:
+            raise ValueError(f"Error rendering template: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"An unexpected error occurred while rendering template: {str(e)}")
+
+    @staticmethod
+    def _create_environment(template_dir: str) -&gt; Environment:
+        env = Environment(loader=FileSystemLoader(template_dir))
+        env.filters['json_bool'] = lambda value: str(value).lower()
+        return env
+
+    @staticmethod
+    def _load_template(env: Environment, template_path: str):
+        template_name: str = os.path.basename(template_path)
+        return env.get_template(template_name)
+
+    @staticmethod
+    def _format_rendered_body(rendered_body: str, format_type: str) -&gt; Union[Dict, str]:
+        if format_type == 'json':
+            return json.loads(rendered_body)
+        elif format_type == 'xml':
+            return rendered_body
+        else:
+            raise ValueError(f"Unsupported format type: {format_type}")
+</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\test_case_manager.py</div>
+    <pre>import pandas as pd
+from collections import defaultdict
+import pprint
+
+
+class TestCaseManager:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.test_cases_df = None
+        self.test_cases = self._read_test_cases()
+
+    def _read_test_cases(self):
+        # 读取Excel文件中的数据
+        test_cases_df = pd.read_excel(self.file_path, sheet_name='Active')
+        test_cases_df = test_cases_df.fillna("")
+        self.test_cases_df = test_cases_df
+
+        # 初始化存储测试用例的字典
+        test_cases = defaultdict(list)
+
+        # 遍历每一行，将每个测试用例存储到字典中
+        for _, row in test_cases_df.iterrows():
+            tcid = row.get('TCID', "")
+            test_step = {
+                "TSID": row.get('TSID', ""),
+                "Descriptions": row.get('Descriptions', ""),
+                "Preconditions": row.get('Preconditions', ""),
+                "Endpoint": row.get('Endpoint', ""),
+                "Method": row.get('Method', ""),
+                "Headers": row.get('Headers', ""),
+                "Template": row.get('Template', ""),
+                "Defaults": row.get('Defaults', ""),
+                "Body Modifications": row.get('Body Modifications', ""),
+                "Run": row.get('Run', ""),
+                "Tags": row.get('Tags', ""),
+                "Exp Status": row.get('Exp Status', ""),
+                "Exp Result": row.get('Exp Result', ""),
+                "Save Fields": row.get('Save Fields', ""),
+                "Act Status": row.get('Act Status', ""),
+                "Act Result": row.get('Act Result', ""),
+                "Result": row.get('Result', ""),
+                "Saved Fields": row.get('Saved Fields', "")
+            }
+            test_cases[tcid].append(test_step)
+        return test_cases
+
+    def print_test_cases(self, test_cases=None):
+        if test_cases is None:
+            test_cases = self.test_cases
+        pp = pprint.PrettyPrinter(indent=2)
+        pp.pprint(test_cases)
+
+    def filter_test_cases(self, tcid_list=None, tags=None, run=None):
+        filtered = defaultdict(list)
+        for tcid, test_steps in self.test_cases.items():
+            if tcid_list and tcid not in tcid_list:
+                continue
+            for test_step in test_steps:
+                if run and test_step['Run'].upper() != 'Y':
+                    continue
+                if tags and not any(tag in test_step['Tags'] for tag in tags):
+                    continue
+                filtered[tcid].append(test_step)
+        return filtered
+    def get_row_index_by_tsid(self, tsid):
+        try:
+            # 获取TSID对应的行索引
+            tsid_list = self.test_cases_df['TSID'].tolist()
+            index = tsid_list.index(tsid)
+            return index
+        except ValueError:
+            # 如果TSID未找到,则返回None
+            return None
+if __name__ == '__main__':
+    # 示例使用
+    test_case_manager = TestCaseManager('test_cases.xlsx')
+
+    # 打印所有测试用例
+    test_case_manager.print_test_cases()
+
+    # 按组合条件过滤测试用例
+    filtered_cases = test_case_manager.filter_test_cases(tcid_list=['TC001'])
+    #filtered_cases = test_case_manager.filter_test_cases(tcid_list=['TC001'], tags=['tag1'], run='Y')
+    test_case_manager.print_test_cases(filtered_cases)</pre>
+</div>
+
+<div class="code-container">
+    <div class="class-header">.\utils\variable_generator.py</div>
+    <pre>import uuid
+from typing import Any, Dict, Callable
+
+
+class VariableGenerator:
+    @staticmethod
+    def generate_dynamic_value(field_name: str, saved_fields: Dict[str, Any] = None) -&gt; Any:
+        if saved_fields and field_name in saved_fields:
+            return saved_fields[field_name]
+
+        handlers: Dict[str, Callable[[str], Any]] = {
+            'user_id': VariableGenerator._generate_user_id,
+            'name': VariableGenerator._generate_name,
+            'email': VariableGenerator._generate_email,
+            'age': VariableGenerator._generate_age,
+            'address.street': VariableGenerator._generate_street,
+            'phones.number': VariableGenerator._generate_phone_number,
+            'address.zipcode': VariableGenerator._generate_zipcode,
+            'token': VariableGenerator._generate_token,
+            'test1': VariableGenerator._generate_test1,
+            'test2': VariableGenerator._generate_test2,
+        }
+
+        return handlers.get(field_name, VariableGenerator._generate_default_value)(field_name)
+
+    @staticmethod
+    def _generate_user_id(field_name: str = None) -&gt; int:
+        return 1  # Example value, actual implementation can vary
+
+    @staticmethod
+    def _generate_name(field_name: str = None) -&gt; str:
+        return 'Dynamic Name'
+
+    @staticmethod
+    def _generate_email(field_name: str = None) -&gt; str:
+        return 'dynamic@example.com'
+
+    @staticmethod
+    def _generate_age(field_name: str = None) -&gt; int:
+        return 25
+
+    @staticmethod
+    def _generate_street(field_name: str = None) -&gt; str:
+        return 'Dynamic Street'
+
+    @staticmethod
+    def _generate_phone_number(field_name: str = None) -&gt; str:
+        return '5511539'
+
+    @staticmethod
+    def _generate_zipcode(field_name: str = None) -&gt; str:
+        return '00000'
+
+    @staticmethod
+    def _generate_token(field_name: str = None) -&gt; str:
+        return str(uuid.uuid4())
+
+    @staticmethod
+    def _generate_test1(field_name: str = None) -&gt; str:
+        return 'Dynamic Test1'
+
+    @staticmethod
+    def _generate_test2(field_name: str = None) -&gt; str:
+        return 'Dynamic Test2'
+
+    @staticmethod
+    def _generate_default_value(field_name: str) -&gt; str:
+        return f'dynamic_{field_name}'
+</pre>
+</div>
+
+
+</body>
+</html>

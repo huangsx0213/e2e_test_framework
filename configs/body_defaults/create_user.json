@@ -1,0 +1,27 @@
+{
+  "name": "Vick",
+  "email": "john.doe@example.com",
+  "address": {
+    "street": "123 Main St",
+    "city": "Anytown",
+    "state": "CA",
+    "zip": "12345"
+  },
+  "phones": [
+    {
+      "type": "home",
+      "number": "555-555-5555"
+    },
+    {
+      "type": "work",
+      "number": "{{phones.number}}"
+    }
+  ],
+  "preferences": {
+    "newsletter": true,
+    "notifications": {
+      "email": true,
+      "sms": false
+    }
+  }
+}

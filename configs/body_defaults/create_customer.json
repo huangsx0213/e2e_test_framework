@@ -1,0 +1,12 @@
+{
+  "name": "ACME Corp.",
+  "contact": {
+    "name": "Jane Doe",
+    "email": "contact@acme.com"
+  },
+  "address": {
+    "street": "456 Industry Rd",
+    "city": "Busytown",
+    "zipcode": "{{address.zipcode}}"
+  }
+}

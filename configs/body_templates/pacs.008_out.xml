@@ -1,0 +1,35 @@
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02">
+    <CdtTrfTxInf>
+        <PmtId>
+            <InstrId>{{InstrId}}</InstrId>
+            <EndToEndId>{{EndToEndId}}</EndToEndId>
+        </PmtId>
+        <IntrBkSttlmAmt Ccy="{{currency}}">{{amount}}</IntrBkSttlmAmt>
+        <Dbtr>
+            <Nm>{{debtor.name}}</Nm>
+            <PstlAdr>
+                <StrtNm>{{debtor.address}}</StrtNm>
+                {% for phone in debtor.phones %}
+                  <Phne>"{{ phone }}"</Phne>
+                {% if not loop.last %},{% endif %}
+                {% endfor %}
+            </PstlAdr>
+            <CtctDtls>
+                <EmailAdr>{{debtor.email}}</EmailAdr>
+            </CtctDtls>
+        </Dbtr>
+        <Cdtr>
+            <Nm>{{creditor.name}}</Nm>
+            <PstlAdr>
+                <StrtNm>{{creditor.address}}</StrtNm>
+                {% for phone in debtor.phones %}
+                  <Phne>"{{ phone }}"</Phne>
+                {% if not loop.last %},{% endif %}
+                {% endfor %}
+            </PstlAdr>
+            <CtctDtls>
+                <EmailAdr>{{creditor.email}}</EmailAdr>
+            </CtctDtls>
+        </Cdtr>
+    </CdtTrfTxInf>
+</Document>

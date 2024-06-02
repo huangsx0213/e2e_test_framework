@@ -1,0 +1,29 @@
+{
+  "transaction_id": "{{transaction_id}}",
+  "amount": {{amount}},
+  "currency": "{{currency}}",
+  "debtor": {
+    "name": "{{debtor.name}}",
+    "phones": [
+      {% for phone in debtor.phones %}
+
+      "{{ phone }}"
+    {% if not loop.last %},{% endif %}
+    {% endfor %}
+    ],
+    "email": "{{debtor.email}}",
+    "address": "{{debtor.address}}"
+  },
+  "creditor": {
+    "name": "Hal Jordan",
+    "phones": [
+      {% for phone in creditor.phones %}
+
+      "{{ phone }}"
+    {% if not loop.last %},{% endif %}
+    {% endfor %}
+    ],
+    "email": "{{debtor.email}}",
+    "address": "{{debtor.address}}"
+  }
+}

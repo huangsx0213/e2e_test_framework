@@ -1,0 +1,23 @@
+{
+  "transaction_id": "IN123457",
+  "amount": 1500.00,
+  "currency": "CNY",
+  "debtor": {
+    "name": "Oliver Queen",
+    "phones": [
+      "555-987-1234",
+      "555-987-1235"
+    ],
+    "email": "oliver.queen@example.com",
+    "address": "500 Green Arrow Street"
+  },
+  "creditor": {
+    "name": "Hal Jordan",
+    "phones": [
+      "555-789-1234",
+      "555-789-1235"
+    ],
+    "email": "hal.jordan@example.com",
+    "address": "3000 Coast City"
+  }
+}
