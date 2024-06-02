@@ -6,6 +6,7 @@ from openpyxl.styles import Font
 from openpyxl import load_workbook
 from typing import Dict, Any, Union
 from libraries import logger
+import xmltodict
 
 
 class ResponseHandler:
@@ -42,8 +43,13 @@ class ResponseHandler:
     def _extract_response_content(self, response: requests.Response) -> Union[Dict[str, Any], str]:
         try:
             return response.json()
-        except json.JSONDecodeError:
-            return response.text
+        except json.JSONDecodeError as json_error:
+            logger.log("ERROR", f"JSON decode error: {json_error}. Attempting XML parse.")
+            try:
+                return xmltodict.parse(response.text)
+            except Exception as xml_error:
+                logger.log("ERROR", f"XML parse error: {xml_error}. Returning raw response text.")
+                return response.text
 
     def _split_lines(self, lines: str) -> list:
         return lines.strip().split('\n') if pd.notna(lines) else []
@@ -146,6 +152,7 @@ class ResponseHandler:
             "test_case_manager": test_case_manager,
             "execution_time": execution_time
         })
+
     def apply_pending_operations(self) -> None:
         for operation in self.pending_operations:
             self.apply_excel_operation(**operation)
