@@ -326,6 +326,10 @@ class APITestExecutor:
         self.active_environment: Dict = self.config['environments'][self.config['active_environment']]
         self.endpoints: Dict = self.active_environment['endpoints']
 
+        # Set log level
+        log_level = self.test_config.get('log_level', 'INFO')
+        logger.set_level(log_level)
+
         # Load other configurations
         self.template_dir: str = 'configs/body_templates'
         self.headers_dir: str = 'configs/headers'
@@ -361,7 +365,7 @@ class APITestExecutor:
                 # Run test-level setup if defined
                 self.run_test_setup(test_case)
 
-                logger.log("DEBUG", f"Running test case {tc_id}")
+                logger.log("INFO", f"Running test case {tc_id}")
                 self.run_test_case(test_case, tc_id)
                 logger.log("INFO", f"Test case {tc_id} ran successfully.")
                 logger.log("INFO", f"********************************************\n")
@@ -373,7 +377,7 @@ class APITestExecutor:
             self.run_suite_teardown(filtered_cases)
 
         except Exception as e:
-            logger.log("ERROR", f"Failed to run test suite: {str(e)}")
+            logger.log("INFO", f"Failed to run test suite: {str(e)}")
         finally:
             # Perform delayed Excel operations after all test cases are executed or an error is encountered
             self.response_handler.apply_pending_operations()
@@ -386,7 +390,7 @@ class APITestExecutor:
                 for condition in conditions:
                     if "[suite setup]" in condition and not self.suite_setup_run:
                         suite_tc_id = condition.split("[suite setup]")[1].strip()
-                        logger.log("DEBUG", f"Running suite-level setup {suite_tc_id}")
+                        logger.log("INFO", f"Running suite-level setup {suite_tc_id}")
                         self.execute_setup_teardown(suite_tc_id)
                         logger.log("INFO", f"Suite-level setup {suite_tc_id} ran successfully.")
                         self.suite_setup_run = True
@@ -401,7 +405,7 @@ class APITestExecutor:
                 for condition in conditions:
                     if "[suite teardown]" in condition:
                         suite_tc_id = condition.split("[suite teardown]")[1].strip()
-                        logger.log("DEBUG", f"Running suite-level teardown {suite_tc_id}")
+                        logger.log("INFO", f"Running suite-level teardown {suite_tc_id}")
                         self.execute_setup_teardown(suite_tc_id)
                         logger.log("INFO", f"Suite-level teardown {suite_tc_id} ran successfully.")
                         self.suite_teardown_run = True
@@ -413,7 +417,7 @@ class APITestExecutor:
             for condition in conditions:
                 if "[test setup]" in condition:
                     test_tc_id = condition.split("[test setup]")[1].strip()
-                    logger.log("DEBUG", f"Running test-level setup {test_tc_id}")
+                    logger.log("INFO", f"Running test-level setup {test_tc_id}")
                     self.execute_setup_teardown(test_tc_id)
                     logger.log("INFO", f"Test-level setup {test_tc_id} ran successfully.")
 
@@ -424,7 +428,7 @@ class APITestExecutor:
             for condition in conditions:
                 if "[test teardown]" in condition:
                     test_tc_id = condition.split("[test teardown]")[1].strip()
-                    logger.log("DEBUG", f"Running test-level teardown {test_tc_id}")
+                    logger.log("INFO", f"Running test-level teardown {test_tc_id}")
                     self.execute_setup_teardown(test_tc_id)
                     logger.log("INFO", f"Test-level teardown {test_tc_id} ran successfully.")
 
@@ -442,7 +446,7 @@ class APITestExecutor:
         for test_step in test_case:
             test_step_result = self.execute_test_step(test_step)
             if not test_step_result:
-                logger.log("DEBUG", f"Test case {tc_id} failed, skipping to next case.")
+                logger.log("INFO", f"Test case {tc_id} failed, skipping to next case.")
                 break
 
     @UtilityHelpers.time_calculation()
@@ -456,7 +460,7 @@ class APITestExecutor:
             ex_exp_result: str = test_step['Exp Result']
             ex_fields_to_save: str = test_step['Save Fields']
 
-            logger.log("DEBUG", f"Starting execution of test step {ex_ts_id}")
+            logger.log("INFO", f"Starting execution of test step {ex_ts_id}")
             current_endpoint: Union[Dict[str, Any], None] = self.endpoints.get(ex_endpoint, None)
             if current_endpoint is None:
                 raise Exception(f"Endpoint {ex_endpoint} not found in config file")
@@ -694,7 +698,7 @@ class Logger:
             cls._instance = super(Logger, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, log_dir: str = 'log', log_level: str = 'DEBUG') -> None:
+    def __init__(self, log_dir: str = 'log', log_level: str = 'INFO') -> None:
         if not hasattr(self, 'initialized'):
             self.log_dir: str = log_dir
             self.log_filename: str = self.generate_log_filename()
@@ -702,6 +706,9 @@ class Logger:
             self.log_level: int = self._log_levels.get(log_level.upper(), 10)
             self.ensure_log_dir_exists()
             self.initialized = True
+
+    def set_level(self, level: str) -> None:
+        self.log_level = self._log_levels.get(level.upper(), 10)
 
     def generate_log_filename(self) -> str:
         timestamp = int(time.time())
@@ -734,7 +741,7 @@ class Logger:
 
     def log_request(self, ts_id, endpoint_name, method, endpoint: str, headers: Dict[str, str],
                     body: Union[Dict, str], format_type: str) -> None:
-        if self._log_levels.get('INFO', 0) >= self.log_level:
+        if self._log_levels.get('DEBUG', 0) >= self.log_level:
             try:
                 timestamp = int(time.time())
                 date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
@@ -749,7 +756,7 @@ class Logger:
                     "body": formatted_body,
                     "format_type": format_type
                 }
-                log_content2 = f"{date_str} [INFO] [Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Request:"
+                log_content2 = f"{date_str} [DEBUG] [Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Request:"
 
                 with open(self.log_filepath, 'a') as log_file:
                     log_file.write(log_content2 + "\n")
@@ -764,7 +771,7 @@ class Logger:
                 raise ValueError(f"Failed to log request: {str(e)}")
 
     def log_response(self, ts_id, endpoint_name: str, response: requests.Response, format_type: str) -> None:
-        if self._log_levels.get('INFO', 0) >= self.log_level:
+        if self._log_levels.get('DEBUG', 0) >= self.log_level:
             try:
                 timestamp = int(time.time())
                 date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
@@ -773,7 +780,7 @@ class Logger:
                     "response_headers": dict(response.headers),
                     "response_body": json.loads(response.text) if format_type == 'json' else response.text
                 }
-                log_content2 = f"{date_str} [INFO] [Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Response:"
+                log_content2 = f"{date_str} [DEBUG] [Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Response:"
 
                 with open(self.log_filepath, 'a') as log_file:
                     log_file.write(log_content2 + "\n")

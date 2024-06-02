@@ -1,202 +1,157 @@
-# API Testing Framework Requirements Specification
+# API Test Framework
 
-## Introduction
-
-This document provides a detailed requirements specification for an API testing framework. The framework aims to streamline and automate the testing of API endpoints, ensuring comprehensive test coverage, accurate results logging, and detailed reporting.
-
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Requirements](#requirements)
-   - [Core Components](#core-components)
-     - [TestCaseExecutor](#testcaseexecutor)
-     - [Logger](#logger)
-     - [RequestBodyBuilder](#requestbodybuilder)
-     - [RequestHeadersBuilder](#requestheadersbuilder)
-     - [RequestSender](#requestsender)
-     - [ResponseHandler](#responsehandler)
-     - [TemplateRenderer](#templaterenderer)
-     - [VariableGenerator](#variablegenerator)
-3. [Classes and Methods](#classes-and-methods)
-   - [TestCaseExecutor](#testcaseexecutor-1)
-   - [Logger](#logger-1)
-   - [RequestBodyBuilder](#requestbodybuilder-1)
-   - [RequestHeadersBuilder](#requestheadersbuilder-1)
-   - [RequestSender](#requestsender-1)
-   - [ResponseHandler](#responsehandler-1)
-   - [TemplateRenderer](#templaterenderer-1)
-   - [VariableGenerator](#variablegenerator-1)
+This repository contains an API testing framework built in Python, aimed at automating the verification of API endpoints.
 
 ## Overview
 
-The API Testing Framework is designed to automate the process of testing RESTful APIs. It allows for the definition of test cases, preparation of request bodies and headers, sending requests, logging requests and responses, and handling responses. The framework supports templating for request bodies and headers, and it dynamically generates variable values for testing purposes.
+The API Test Framework is designed to facilitate automated testing of various API endpoints by defining test cases in a systematic and configurable manner. The framework leverages Python's robustness and simplicity to define, execute, and log API tests. Key features include:
 
-## Requirements
+- **Environment Configuration:** Easily switch between different test environments (DEV, SIT, UAT) to ensure flexibility and comprehensive testing coverage.
+- **Request and Response Handling:** Define default request bodies, templates, and headers to streamline test case creation and ensure consistency.
+- **Dynamic Value Generation:** Automatically generate and inject dynamic values into test cases, such as user IDs, tokens, and other placeholder values.
+- **Logging and Reporting:** Detailed logging of API requests and responses, along with the ability to save and reuse response fields in subsequent tests.
+- **Excel Integration:** Use Excel files to define test cases, making it easy to manage and modify tests without altering the codebase.
 
-### Core Components
+## Getting Started
 
-#### TestCaseExecutor
+### Prerequisites
 
-- **Purpose**: Executes test cases defined in an Excel file.
-- **Inputs**:
-  - Path to the test cases Excel file.
-- **Outputs**:
-  - Logs of requests and responses.
-  - Updated test cases file with test results.
+- Python 3.8 or higher
+- Pip (Python package installer)
 
-#### Logger
+### Setup
 
-- **Purpose**: Logs request and response details.
-- **Inputs**:
-  - Request and response data.
-- **Outputs**:
-  - Log files.
+1. Clone the repository:
 
-#### RequestBodyBuilder
+    ```sh
+    git clone <repository-url>
+    cd <repository-name>
+    ```
 
-- **Purpose**: Prepares request bodies using templates and default values.
-- **Inputs**:
-  - Template name.
-  - Default values.
-  - Modifications.
-- **Outputs**:
-  - Rendered request body.
+2. Install the dependencies:
 
-#### RequestHeadersBuilder
+    ```sh
+    pip install -r requirements.txt
+    ```
 
-- **Purpose**: Prepares request headers.
-- **Inputs**:
-  - Header modifications.
-- **Outputs**:
-  - Prepared headers.
+### Running Tests
 
-#### RequestSender
+To execute the tests, run the main script:
 
-- **Purpose**: Sends HTTP requests.
-- **Inputs**:
-  - Base URL.
-  - HTTP method.
-  - Endpoint.
-  - Headers.
-  - Body.
-- **Outputs**:
-  - HTTP response.
+```sh
+python main.py
+```
 
-#### ResponseHandler
+This will run the test suite based on the configurations provided in `configs/test_config.yaml`.
 
-- **Purpose**: Handles API responses and updates test cases file.
-- **Inputs**:
-  - Response.
-  - Test case data.
-  - Path to the test cases file.
-  - Row index of the test case.
-- **Outputs**:
-  - Logs.
-  - Updated test cases file.
+## Configuration
 
-#### TemplateRenderer
+### `configs/config.yaml`
 
-- **Purpose**: Renders templates using Jinja2.
-- **Inputs**:
-  - Template name.
-  - Context data.
-- **Outputs**:
-  - Rendered template content.
+Defines the active environment and available endpoints for different environments.
 
-#### VariableGenerator
+```yaml
+active_environment: DEV
 
-- **Purpose**: Generates dynamic values for request headers and bodies.
-- **Inputs**: None.
-- **Outputs**:
-  - Dictionary of generated variables.
+environments:
+  DEV:
+    endpoints:
+      pacs.008_inbound:
+        path: "http://localhost:5000/api/inbound_payment_json"
+        method: "POST"
+  # Additional environments...
+```
 
-## Classes and Methods
+### `configs/saved_fields.yaml`
 
-### TestCaseExecutor
+Stores field values from previous test cases that can be reused in subsequent tests.
 
-#### Methods
+```yaml
+PRE_001_01.response[3].balance: 57800.0
+TC001_01.response.amount: 100
+# Additional saved fields...
+```
 
-- `__init__(self, test_cases_path: str, logger: Logger, body_builder: RequestBodyBuilder, headers_builder: RequestHeadersBuilder, request_sender: RequestSender, response_handler: ResponseHandler) -> None`
-  - Initializes the TestCaseExecutor with required components.
+### `configs/test_config.yaml`
 
-- `execute_test_cases(self) -> None`
-  - Executes the test cases defined in the provided Excel file.
+Specifies the path to the test cases, test case IDs to run, tags for filtering, and log level.
 
-### Logger
+```yaml
+test_cases_path: 'test_cases/test_cases.xlsx'
+tc_id_list:
+  - 'TC001'
+tags:
+  - 'tag1'
+log_level: 'DEBUG'
+```
 
-#### Methods
+### `configs/body_defaults`
 
-- `__init__(self, log_dir: str) -> None`
-  - Initializes the Logger with the log directory.
+Contains default JSON files for request bodies.
 
-- `log_request(self, test_id: str, endpoint_name: str, method: str, endpoint: str, headers: dict, body: dict, format_type: str) -> str`
-  - Logs the request details to a file and returns the log file path.
+- `create_customer.json`
+- `create_user.json`
+- `pacs.008_in_def.json`
+- `pacs.008_out_def.json`
 
-- `log_response(self, log_filepath: str, response: Response, format_type: str) -> None`
-  - Logs the response details to the same file as the request.
+### `configs/body_templates`
 
-### RequestBodyBuilder
+Includes the Jinja2 template files for request bodies.
 
-#### Methods
+- `pacs.008_in.json`
+- `pacs.008_out.xml`
+- `sample_create_customer.xml`
+- `sample_create_user.json`
 
-- `__init__(self, template_dir: str, body_defaults: dict, templates: dict) -> None`
-  - Initializes the RequestBodyBuilder with the template directory, default values, and templates.
+### `configs/headers`
 
-- `prepare_body(self, template_name: str, default_values: dict, modifications: dict, format_type: str) -> str`
-  - Prepares the request body by rendering the template with default values and modifications.
+Contains JSON files for request headers.
 
-### RequestHeadersBuilder
+- `default.json`
+- `default2.json`
 
-#### Methods
+## Creating Test Cases
 
-- `__init__(self, headers_config: dict) -> None`
-  - Initializes the RequestHeadersBuilder with the headers configuration.
+Test cases should be defined in an Excel file specified by `test_cases_path` in `test_config.yaml`. Each test case should include the following columns:
 
-- `prepare_headers(self, header_modifications: dict) -> dict`
-  - Prepares the request headers by merging default headers and modifications.
+| Column               | Description                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| **TCID**             | A unique identifier for a test case. Multiple test steps (TSID) can be associated with a single test case.                                                                       |
+| **TSID**             | A unique identifier for a test step. A test case may consist of multiple test steps.                                                                          |
+| **Descriptions**     | A brief description of the test step, explaining its specific function and testing purpose.                                                         |
+| **Conditions**       | Conditions to check before running the test. Can include multiple lines and support   pre-conditions and post-conditions like `[suite setup]+tcid`, `[suite teardown]+tcid`, `[test setup]+tcid`, `[test teardown]+tcid`.                                       |
+| **Endpoint**         | API endpoint to which the request should be sent.                                     |
+| **Headers**          | Headers file to use. You can specify the header filename, and the header can also include variable placeholders set dynamically through `VariableGenerator`.           |
+| **Template**         | The name of the request body template, pointing to predefined JSON or XML template files stored in the configuration file, rendered using Jinja2.                            |
+| **Defaults**         | Default values file for the request body. These values support dynamic generation via `VariableGenerator`.                                                                 |
+| **Body Modifications** | JSON string specifying any modifications to the request body. Use this to customize the body content, only setting the necessary fields that differ from the default values. Supports `${TC001_01.response.amount}` to dynamically use values from previous responses.                                                                         |
+| **Run**              | Whether to run this test step (`'Y'` or `'N'`).                                       |
+| **Tags**             | Tags associated with this test case. Tags help in filtering test cases to run specific sets defined in `test_config.yaml`.                                                  |
+| **Exp Status**       | Expected HTTP status code.                                                            |
+| **Exp Result**       | Expected result in the response body, can refer to fields from previous responses using `${TC001_01.response.amount}`.                                                 |
+| **Save Fields**      | Fields from the response to save for later use.                                       |
+| **Act Status**       | Actual HTTP status code (filled in by the framework).                                 |
+| **Act Result**       | Actual result in the response body (filled in by the framework).                      |
+| **Result**           | Test result (`'PASS'` or `'FAIL'`, filled in by the framework).                       |
+| **Saved Fields**     | Fields saved from the response (filled in by the framework).                          |
+| **API Timing**       | API execution time.                                                                   |
 
-### RequestSender
+For example, a sample Excel test case might look like this:
 
-#### Methods
+| TCID  | TSID        | Descriptions | Conditions        | Endpoint          | Headers | Template    | Defaults      | Body Modifications                  | Run | Tags | Exp Status | Exp Result                     | Save Fields            | Act Status | Act Result               | Result | Saved Fields            | API Timing |
+|-------|-------------|--------------|-------------------|-------------------|---------|-------------|---------------|-------------------------------------|-----|------|------------|--------------------------------|-------------------------|------------|-------------------------|--------|-------------------------|------------|
+| PRE_001 | PRE_001_01  |              |                   | positions         | default |             |               |                                     | Y   | tag1 | 200        | response[3].balance=57800.0   | response[3].balance     | 200        | response[3].balance:PASS | PASS   | response[3].balance=57800.0 | 2.05s      |
+| PRE_001 | PRE_001_02  |              |                   | positions         | default |             |               |                                     | Y   | tag1 | 200        | response[3].balance=57800.0   | response[3].balance     | 200        | response[3].balance:PASS | PASS   | response[3].balance=57800.0 | 2.06s      |
+| TC001   | TC001_01    |              | [test setup]PRE_001 | pacs.008_inbound  | default | pacs.008_in | pacs.008_in_def | {"amount": 100}                    | Y   | tag1 | 200        | response.amount=100           | response.amount         | 200        | response.amount:PASS     | PASS   | response.amount=100       | 2.05s      |
+| TC001   | TC001_02    |              |                   | pacs.008_outbound | default | pacs.008_out | pacs.008_out_def | {"amount": ${TC001_01.response.amount}} | Y   | tag1 | 200        | response.amount=${TC001_01.response.amount} | response.amount         | 200        | response.amount:FAIL     | FAIL   | response.amount=100.0     | 2.06s      |
 
-- `send_request(self, base_url: str, method: str, endpoint: str, headers: dict, body: dict, format_type: str) -> Response`
-  - Sends an HTTP request and returns the response.
+## Log Files
 
-### ResponseHandler
+Log files are generated in the `log` directory. The log level can be configured in `test_config.yaml`. Each log entry includes timestamps, log level, and a message describing the logged event.
 
-#### Methods
+```plaintext
+log/
+├── log_YYYY-MM-DD_HH-MM-SS.log
+```
 
-- `__init__(self, logger: Logger) -> None`
-  - Initializes the ResponseHandler with the Logger.
-
-- `handle_response(self, response: Response, test_case: pd.Series, test_cases_path: str, row_idx: int) -> None`
-  - Handles the API response by logging it and updating the test cases file with the result.
-
-### TemplateRenderer
-
-#### Methods
-
-- `__init__(self, template_dir: str) -> None`
-  - Initializes the TemplateRenderer with the template directory.
-
-- `render_template(self, template_name: str, context: dict, format_type: str) -> str`
-  - Renders a template with the given context.
-
-### VariableGenerator
-
-#### Methods
-
-- `generate_variables(self) -> dict`
-  - Generates a dictionary of dynamic variables.
-
-- `generate_token(self, length: int = 16) -> str`
-  - Generates a random token.
-
-- `generate_random_string(self, length: int) -> str`
-  - Generates a random string.
-
-- `generate_phone_number(self) -> str`
-  - Generates a random phone number.
-
-- `generate_zipcode(self) -> str`
-  - Generates a random ZIP code.
+These log files provide detailed trace information regarding the test execution, including requests, responses, and any errors encountered.
