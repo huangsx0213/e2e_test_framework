@@ -1,4 +1,5 @@
 import uuid
+import datetime
 from typing import Any, Dict, Callable
 
 
@@ -9,9 +10,9 @@ class VariableGenerator:
             return saved_fields[field_name]
 
         handlers: Dict[str, Callable[[str], Any]] = {
-            'user_id': VariableGenerator._generate_user_id,
-            'name': VariableGenerator._generate_name,
-            'email': VariableGenerator._generate_email,
+            'uetr': VariableGenerator._generate_uuid4,
+            'value_date': VariableGenerator._generate_current_day,
+            'msg_id ': VariableGenerator._generate_msg_id,
             'age': VariableGenerator._generate_age,
             'address.street': VariableGenerator._generate_street,
             'phones.number': VariableGenerator._generate_phone_number,
@@ -24,16 +25,19 @@ class VariableGenerator:
         return handlers.get(field_name, VariableGenerator._generate_default_value)(field_name)
 
     @staticmethod
-    def _generate_user_id(field_name: str = None) -> int:
-        return 1  # Example value, actual implementation can vary
+    def _generate_uuid4() -> str:
+        return str(uuid.uuid4())
 
     @staticmethod
-    def _generate_name(field_name: str = None) -> str:
-        return 'Dynamic Name'
+    def _generate_current_day(date_format: str = "%Y-%m-%d") -> str:
+        current_date = datetime.datetime.now()
+        return current_date.strftime(date_format)
 
     @staticmethod
-    def _generate_email(field_name: str = None) -> str:
-        return 'dynamic@example.com'
+    def _generate_msg_id() -> str:
+        uuid_part = str(uuid.uuid4())
+        timestamp_part = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        return f"{uuid_part}-{timestamp_part}"
 
     @staticmethod
     def _generate_age(field_name: str = None) -> int:
