@@ -18,7 +18,7 @@ class BodyGenerator:
             if method == 'GET' or method == "DELETE":
                 return {}, 'json'
             template_name = test_step['Template']
-            body_modifications = json.loads(test_step['Body Modifications'])
+            body_modifications = json.loads(test_step.get('Body Modifications', '{}'))
             template_path = self._load_template(template_name)
             format_type = UtilityHelpers.get_file_format(template_path)
             body = self.build_body_from_template(template_path, default_values_file, body_modifications, format_type)

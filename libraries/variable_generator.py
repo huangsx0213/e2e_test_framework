@@ -22,7 +22,7 @@ class VariableGenerator:
             'test2': VariableGenerator._generate_test2,
         }
 
-        return handlers.get(field_name, VariableGenerator._generate_default_value)(field_name)
+        return handlers.get(field_name, VariableGenerator._generate_default_value)()
 
     @staticmethod
     def _generate_uuid4() -> str:
@@ -40,33 +40,33 @@ class VariableGenerator:
         return f"{uuid_part}-{timestamp_part}"
 
     @staticmethod
-    def _generate_age(field_name: str = None) -> int:
+    def _generate_age() -> int:
         return 25
 
     @staticmethod
-    def _generate_street(field_name: str = None) -> str:
+    def _generate_street() -> str:
         return 'Dynamic Street'
 
     @staticmethod
-    def _generate_phone_number(field_name: str = None) -> str:
+    def _generate_phone_number() -> str:
         return '5511539'
 
     @staticmethod
-    def _generate_zipcode(field_name: str = None) -> str:
+    def _generate_zipcode() -> str:
         return '00000'
 
     @staticmethod
-    def _generate_token(field_name: str = None) -> str:
+    def _generate_token() -> str:
         return str(uuid.uuid4())
 
     @staticmethod
-    def _generate_test1(field_name: str = None) -> str:
+    def _generate_test1() -> str:
         return 'Dynamic Test1'
 
     @staticmethod
-    def _generate_test2(field_name: str = None) -> str:
+    def _generate_test2() -> str:
         return 'Dynamic Test2'
 
     @staticmethod
-    def _generate_default_value(field_name: str) -> str:
-        return f'dynamic_{field_name}'
+    def _generate_default_value() -> str:
+        return f'not support this dynamic field.'

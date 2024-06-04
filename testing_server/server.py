@@ -1,5 +1,5 @@
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
@@ -80,6 +80,17 @@ def parse_iso20022_pacs008(xml_data):
         return {"error": str(e)}
 
 
+def dict_to_xml(tag, d):
+    elem = ET.Element(tag)
+    for key, val in d.items():
+        child = ET.Element(key)
+        if isinstance(val, dict):
+            child.extend(dict_to_xml(key, val))
+        else:
+            child.text = str(val)
+        elem.append(child)
+    return elem
+
 @app.route('/api/outbound_payment_xml', methods=['POST'])
 def outbound_payment_xml():
     xml_data = request.data
@@ -115,7 +126,9 @@ def outbound_payment_xml():
         "status": "Outbound Processed",
         "new_position": data['balances'][currency]
     }
-    return jsonify(response), 200
+
+    response_xml = ET.tostring(dict_to_xml('response', response))
+    return Response(response_xml, content_type='application/xml')
 
 
 @app.route('/api/inbound_payment_xml', methods=['POST'])

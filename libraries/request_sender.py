@@ -13,11 +13,11 @@ class RequestSender:
 
         try:
             if format_type == 'json':
-                response = requests_method(url, headers=headers, json=body)
+                response = requests_method(url, headers=headers, json=body, verify=False)
             elif format_type == 'xml':
                 if headers is not None:
                     headers['Content-Type'] = 'application/xml'
-                response = requests_method(url, headers=headers, data=body)
+                response = requests_method(url, headers=headers, data=body, verify=False)
             else:
                 raise ValueError(f"Unsupported format type: {format_type}")
             response.raise_for_status()
