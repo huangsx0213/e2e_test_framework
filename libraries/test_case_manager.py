@@ -18,11 +18,11 @@ class TestCaseManager:
         for _, row in test_cases_df.iterrows():
             tcid = row.get('TCID', "")
             test_step = {
+                "TCID": tcid,
                 "TSID": row.get('TSID', ""),
                 "Descriptions": row.get('Descriptions', ""),
                 "Conditions": row.get('Conditions', ""),
                 "Endpoint": row.get('Endpoint', ""),
-                "Method": row.get('Method', ""),
                 "Headers": row.get('Headers', ""),
                 "Template": row.get('Template', ""),
                 "Defaults": row.get('Defaults', ""),

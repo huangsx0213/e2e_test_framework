@@ -13,4 +13,4 @@ tags:
   - 'tag1'
 
 # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-log_level: 'INFO'
+log_level: 'DEBUG'

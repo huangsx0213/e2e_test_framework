@@ -77,6 +77,7 @@ class APITestExecutor:
         finally:
             # Perform delayed Excel operations after all test cases are executed or an error is encountered
             self.response_handler.apply_pending_operations()
+            self.response_handler.generate_html_report('output/test_report.html')
 
 
     def run_suite_setup(self, filtered_cases) -> None:
@@ -178,8 +179,6 @@ class APITestExecutor:
             # Process response
             self.response_handler.process_and_store_results(response, test_step, self.test_cases_path,
                                                             self.test_case_manager, execution_time)
-            # Update saved fields
-            self.saved_fields_manager.update_saved_fields(response, test_step)
 
             logger.log("INFO", f"Finished execution of test step {ex_ts_id}")
             logger.log("INFO", f"============================================\n")
