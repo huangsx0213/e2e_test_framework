@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import datetime
 import pandas as pd
 import requests
 from jinja2 import Environment, FileSystemLoader
@@ -45,6 +46,7 @@ class ResponseHandler:
 
             logger.log("INFO", json.dumps(results, indent=4))
             logger.log("INFO", f"The Result is: {overall_result}.")
+            return overall_result
         except Exception as e:
             logger.log("ERROR", f"An error occurred while processing and storing results: {str(e)}")
             raise
@@ -225,14 +227,25 @@ class ResponseHandler:
             "actual_value": actual_value
         }
 
-    def generate_html_report(self, report_path: str):
+    def generate_html_report(self, report_path=None):
         try:
-            env = Environment(loader=FileSystemLoader('configs/body_templates'))
+            env = Environment(loader=FileSystemLoader('configs/report_template'))
             template = env.get_template('report_template.html')
 
             results = []
             for operation in self.pending_operations:
-                test_step = operation['test_step']  # 获取test_step
+                test_step = operation['test_step']
+                log_entries = logger.html_log_entries.get(test_step['TSID'], [])
+
+                formatted_logs = [{
+                    'log_id': log['id'],
+                    'timestamp': log['timestamp'],
+                    'level': log['level'],
+                    'message': log['message'],
+                    'details': log['details'],
+                    'result': log['result']
+                } for log in log_entries]
+
                 results.append({
                     'tcid': test_step['TCID'],
                     'tsid': test_step['TSID'],
@@ -242,9 +255,13 @@ class ResponseHandler:
                     'expected_result': test_step['Exp Result'],
                     'actual_result': operation['formatted_results'],
                     'saved_fields': operation['formatted_fields_saved'],
-                    'execution_time': f"{operation['execution_time']:.2f}s"
+                    'execution_time': f"{operation['execution_time']:.2f}s",
+                    'logs': formatted_logs
                 })
-
+            # Use the start time from the logger to generate the report filename
+            if report_path is None:
+                start_time = datetime.fromtimestamp(logger.start_time).strftime('%Y-%m-%d_%H-%M-%S')
+                report_path = f"output/report_{start_time}.html"
             html_content = template.render(results=results)
             with open(report_path, 'w') as report_file:
                 report_file.write(html_content)

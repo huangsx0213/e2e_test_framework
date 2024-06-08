@@ -1,10 +1,12 @@
 import json
 import os
 import time
+import uuid
 from datetime import datetime
 from typing import Dict, Union
 import requests
-from libraries.utility_helpers import UtilityHelpers
+from xml.dom.minidom import parseString
+
 
 class Logger:
     _instance = None
@@ -15,6 +17,7 @@ class Logger:
         'ERROR': 40,
         'CRITICAL': 50
     }
+    start_time = int(time.time())
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -28,14 +31,19 @@ class Logger:
             self.log_filepath: str = os.path.join(self.log_dir, self.log_filename)
             self.log_level: int = self._log_levels.get(log_level.upper(), 10)
             self.ensure_log_dir_exists()
+            self.html_log_entries = {}
             self.initialized = True
+            self.set_context('', '')
 
     def set_level(self, level: str) -> None:
         self.log_level = self._log_levels.get(level.upper(), 10)
 
+    def set_context(self, ts_id: str, result: str) -> None:
+        self.ts_id = ts_id if ts_id else ''
+        self.result = result if result else ''
+
     def generate_log_filename(self) -> str:
-        timestamp = int(time.time())
-        date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
+        date_str = datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d_%H-%M-%S')
         return f"log_{date_str}.log"
 
     def ensure_log_dir_exists(self) -> None:
@@ -59,11 +67,21 @@ class Logger:
                 # Print to console
                 print(log_content)
 
+                # Store HTML log entry
+                self.html_log_entries.setdefault(self.ts_id, []).append({
+                    'id': str(uuid.uuid4()),
+                    'timestamp': date_str,
+                    'level': level.upper(),
+                    'message': message,
+                    'details': '',
+                    'result': self.result
+                })
+
             except (OSError, IOError) as e:
                 raise ValueError(f"Failed to write log message: {str(e)}")
 
     def log_request(self, ts_id, endpoint_name, method, endpoint: str, headers: Dict[str, str],
-                    body: Union[Dict, str], format_type: str) -> None:
+                    body: Union[Dict, str], format_type: str, result: str) -> None:
         if self._log_levels.get('DEBUG', 0) >= self.log_level:
             try:
                 timestamp = int(time.time())
@@ -71,7 +89,7 @@ class Logger:
                 if format_type == 'json':
                     formatted_body = body
                 elif format_type == 'xml':
-                    formatted_body = UtilityHelpers.format_xml(body)
+                    formatted_body = parseString(body).toprettyxml()
                 log_content1 = {
                     "method": method,
                     "endpoint": endpoint,
@@ -90,18 +108,35 @@ class Logger:
                 print(log_content2)
                 print(json.dumps(log_content1, indent=4))
 
+                # Store HTML log entry
+                self.html_log_entries.setdefault(ts_id, []).append({
+                    'id': str(uuid.uuid4()),
+                    'timestamp': date_str,
+                    'level': 'DEBUG',
+                    'message': f"[Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Request",
+                    'details': json.dumps(log_content1, indent=4) if format_type == 'json' else formatted_body,
+                    'result': result
+                })
+
             except (OSError, IOError) as e:
                 raise ValueError(f"Failed to log request: {str(e)}")
 
-    def log_response(self, ts_id, endpoint_name: str, response: requests.Response, format_type: str) -> None:
+    def log_response(self, ts_id, endpoint_name: str, response: requests.Response, format_type: str,
+                     result: str) -> None:
         if self._log_levels.get('DEBUG', 0) >= self.log_level:
             try:
                 timestamp = int(time.time())
                 date_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d_%H-%M-%S')
+                if format_type == 'json':
+                    formatted_body = json.loads(response.text)
+                elif format_type == 'xml':
+                    formatted_body = parseString(response.text).toprettyxml()
+                else:
+                    formatted_body = response.text
                 log_content1 = {
                     "response_status_code": response.status_code,
                     "response_headers": dict(response.headers),
-                    "response_body": json.loads(response.text) if format_type == 'json' else response.text
+                    "response_body": formatted_body
                 }
                 log_content2 = f"{date_str} [DEBUG] [Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Response:"
 
@@ -114,8 +149,18 @@ class Logger:
                 print(log_content2)
                 print(json.dumps(log_content1, indent=4))
 
+                # Store HTML log entry
+                self.html_log_entries.setdefault(ts_id, []).append({
+                    'id': str(uuid.uuid4()),
+                    'timestamp': date_str,
+                    'level': 'DEBUG',
+                    'message': f"[Test step ID: {ts_id}] [Endpoint: {endpoint_name}]: Response",
+                    'details': json.dumps(log_content1, indent=4) if format_type == 'json' else formatted_body,
+                    'result': result
+                })
+
             except (OSError, IOError) as e:
                 raise ValueError(f"Failed to log response: {str(e)}")
             except json.JSONDecodeError as e:
                 raise ValueError(
-                    f"Failed to log response(failed to decode response body): {str(e)}.\n Response body:\n{response.text}")
+                    f"Failed to log response (failed to decode response body): {str(e)}.\n Response body:\n{response.text}")

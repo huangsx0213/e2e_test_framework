@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List, Union, Any
 from libraries.config_manager import ConfigManager
 from libraries import logger
@@ -41,7 +42,6 @@ class APITestExecutor:
         self.suite_setup_run = False
         self.suite_teardown_run = False
 
-
     @UtilityHelpers.time_calculation()
     def run_test_suite(self, test_cases_path: str = None, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
         test_cases_path = test_cases_path or self.test_config.get('test_cases_path', 'test_cases/test_cases.xlsx')
@@ -77,8 +77,7 @@ class APITestExecutor:
         finally:
             # Perform delayed Excel operations after all test cases are executed or an error is encountered
             self.response_handler.apply_pending_operations()
-            self.response_handler.generate_html_report('output/test_report.html')
-
+            self.response_handler.generate_html_report()
 
     def run_suite_setup(self, filtered_cases) -> None:
         for tc_id, test_case in filtered_cases.items():
@@ -91,7 +90,6 @@ class APITestExecutor:
                         self.execute_setup_teardown(suite_tc_id)
                         logger.log("INFO", f"Suite-level setup {suite_tc_id} ran successfully.")
                         self.suite_setup_run = True
-
 
     def run_suite_teardown(self, filtered_cases) -> None:
         if self.suite_teardown_run:
@@ -107,7 +105,6 @@ class APITestExecutor:
                         logger.log("INFO", f"Suite-level teardown {suite_tc_id} ran successfully.")
                         self.suite_teardown_run = True
 
-
     def run_test_setup(self, test_case: List[Dict[str, Union[str, Any]]]) -> None:
         for test_step in test_case:
             conditions = test_step['Conditions'].splitlines() if test_step.get('Conditions') else []
@@ -117,7 +114,6 @@ class APITestExecutor:
                     logger.log("INFO", f"Running test-level setup {test_tc_id}")
                     self.execute_setup_teardown(test_tc_id)
                     logger.log("INFO", f"Test-level setup {test_tc_id} ran successfully.")
-
 
     def run_test_teardown(self, test_case: List[Dict[str, Union[str, Any]]]) -> None:
         for test_step in test_case:
@@ -129,7 +125,6 @@ class APITestExecutor:
                     self.execute_setup_teardown(test_tc_id)
                     logger.log("INFO", f"Test-level teardown {test_tc_id} ran successfully.")
 
-
     def execute_setup_teardown(self, tc_id: str) -> None:
         conditions = self.test_case_manager.get_conditions_by_tc_id(tc_id)
         for condition in conditions:
@@ -137,7 +132,6 @@ class APITestExecutor:
                 test_step_result: bool = self.execute_test_step(condition)
                 if not test_step_result:
                     raise Exception(f"Condition {tc_id} failed, skipping to the next case.")
-
 
     def run_test_case(self, test_case: List[Dict[str, Union[str, Any]]], tc_id: str) -> None:
         for test_step in test_case:
@@ -150,6 +144,7 @@ class APITestExecutor:
     def execute_test_step(self, test_step: Dict[str, Union[str, Any]]) -> bool:
         try:
             ex_ts_id: str = test_step['TSID']
+            logger.set_context(ts_id=ex_ts_id, result='Pending')
             ex_endpoint: str = test_step['Endpoint']
             ex_headers: str = test_step['Headers']
             ex_defaults_body: str = test_step['Defaults']
@@ -172,13 +167,17 @@ class APITestExecutor:
             # Prepare request body
             body, format_type = self.body_generator.generate_request_body(test_step, ex_defaults_body, method)
             # Log request
-            logger.log_request(ex_ts_id, ex_endpoint, method, url, headers, body, format_type)
+            logger.log_request(ex_ts_id, ex_endpoint, method, url, headers, body, format_type, 'pending')
             # Send request and log response
             response, execution_time = RequestSender.send_request(url, method, headers, body, format_type)
-            logger.log_response(ex_ts_id, ex_endpoint, response, format_type)
+            logger.log_response(ex_ts_id, ex_endpoint, response, format_type, 'pending')
             # Process response
-            self.response_handler.process_and_store_results(response, test_step, self.test_cases_path,
-                                                            self.test_case_manager, execution_time)
+            result = self.response_handler.process_and_store_results(response, test_step, self.test_cases_path,
+                                                                     self.test_case_manager, execution_time)
+            # Update log with actual test result
+            test_result = 'pass' if result == 'PASS' else 'fail'
+            logger.html_log_entries[ex_ts_id][-2]['result'] = test_result  # Update request log entry
+            logger.html_log_entries[ex_ts_id][-1]['result'] = test_result  # Update response log entry
 
             logger.log("INFO", f"Finished execution of test step {ex_ts_id}")
             logger.log("INFO", f"============================================\n")

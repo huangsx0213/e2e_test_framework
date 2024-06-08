@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #2c3e50; /* 暗蓝色 */
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .pass {
+            background-color: #eaf5ea !important; /* 非常淡的绿色 */
+        }
+        .fail {
+            background-color: #fdecea !important; /* 非常淡的红色 */
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:nth-child(odd) {
+            background-color: #fff;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .log-content {
+            display: none;
+            background-color: #f0f2f5;
+        }
+        .log-content pre {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .toggle-indicator {
+            cursor: pointer;
+            color: #2c3e50;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .log-entry-header.pass {
+            background-color: #e6ffee;
+        }
+        .log-entry-header.fail {
+            background-color: #ffe6e6;
+        }
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Report</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Test Case ID</th>
+                <th>Test Step ID</th>
+                <th>Endpoint</th>
+                <th>Actual Status</th>
+                <th>Expected Result</th>
+                <th>Actual Result</th>
+                <th>Result</th>
+                <th>Execution Time</th>
+                <th>Log</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in results %}
+            <tr class="{{ 'pass' if result.result == 'PASS' else 'fail' }}">
+                <td>{{ result.tcid }}</td>
+                <td>{{ result.tsid }}</td>
+                <td>{{ result.endpoint }}</td>
+                <td>{{ result.status }}</td>
+                <td>{{ result.expected_result }}</td>
+                <td>{{ result.actual_result }}</td>
+                <td style="color: {{ 'green' if result.result == 'PASS' else 'red' }}">{{ result.result }}</td>
+                <td>{{ result.execution_time }}</td>
+                <td>
+                    {% if result.logs|selectattr('details')|reject('equalto', '')|list %}
+                        <span class="toggle-indicator" onclick="toggleLogContent('{{ result.tsid }}')">[+]</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr class="log-content" id="log-{{ result.tsid }}">
+                <td colspan="9">
+                    <ul>
+                        {% for log in result.logs %}
+                        <li class="log-entry">
+                            <div class="log-entry-header {{ log.result }}" onclick="toggleContent('{{ log.log_id }}')">
+                                [{{ log.timestamp }}] {{ log.level }}: {{ log.message }}
+                                {% if log.details %}
+                                    <span class="toggle-indicator" id="indicator-{{ log.log_id }}">[-]</span>
+                                {% endif %}
+                            </div>
+                            {% if log.details %}
+                                <ul class="log-entry-content" id="content-{{ log.log_id }}">
+                                    <li>
+                                        <pre><code>{{ log.details | escape }}</code></pre>
+                                    </li>
+                                </ul>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script>
+        // Function to toggle the visibility of log content
+        function toggleLogContent(tsid) {
+            var content = document.getElementById('log-' + tsid);
+            var indicator = content.previousElementSibling.querySelector('.toggle-indicator');
+            if (content.style.display === "none" || content.style.display === "") {
+                content.style.display = "table-row";
+                indicator.textContent = "[-]";
+            } else {
+                content.style.display = "none";
+                indicator.textContent = "[+]";
+            }
+        }
+
+        // Function to toggle the visibility of individual log entries
+        function toggleContent(log_id) {
+            var content = document.getElementById('content-' + log_id);
+            var indicator = document.getElementById('indicator-' + log_id);
+            if (content.style.display === "none" || content.style.display === "") {
+                content.style.display = "block";
+                indicator.textContent = "[-]";
+            } else {
+                content.style.display = "none";
+                indicator.textContent = "[+]";
+            }
+        }
+    </script>
+</body>
+</html>
