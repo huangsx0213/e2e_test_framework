@@ -5,10 +5,7 @@ from typing import Any, Dict, Callable
 
 class VariableGenerator:
     @staticmethod
-    def generate_dynamic_value(field_name: str, saved_fields: Dict[str, Any] = None) -> Any:
-        if saved_fields and field_name in saved_fields:
-            return saved_fields[field_name]
-
+    def generate_dynamic_value(field_name: str) -> Any:
         handlers: Dict[str, Callable[[str], Any]] = {
             'uetr': VariableGenerator._generate_uuid4,
             'value_date': VariableGenerator._generate_current_day,

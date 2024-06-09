@@ -162,7 +162,7 @@ class APITestExecutor:
             # Load saved fields
             saved_fields: Dict[str, Any] = self.saved_fields_manager.load_saved_fields()
             # Prepare headers
-            headers: Dict[str, str] = self.headers_generator.prepare_headers(ex_headers, saved_fields)
+            headers: Dict[str, str] = self.headers_generator.prepare_headers(ex_headers, saved_fields, test_step)
             # Apply saved fields to [Body Modifications] and [Exp Result]
             self.saved_fields_manager.apply_saved_fields(test_step, saved_fields, ['Body Modifications', 'Exp Result'])
             # Prepare request body
