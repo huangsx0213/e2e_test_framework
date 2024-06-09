@@ -15,94 +15,109 @@ class BodyGenerator:
 
     def generate_request_body(self, test_step, default_values_file: str, method) -> (Union[Dict, str], str):
         try:
-            if method == 'GET' or method == "DELETE":
+            if method in ['GET', 'DELETE']:
                 return {}, 'json'
-            template_name = test_step['Template']
-            body_modifications = json.loads(test_step.get('Body Modifications', '{}'))
-            template_path = self._load_template(template_name)
-            format_type = UtilityHelpers.get_file_format(template_path)
-            body = self.build_body_from_template(template_path, default_values_file, body_modifications, format_type)
-            return body, format_type
-        except KeyError as e:
-            ValueError(f"Template not found: {str(e)}")
-        except json.JSONDecodeError as e:
-            ValueError("ERROR", f"Failed to decode JSON for body preparation: {str(e)}")
-        except Exception as e:
-            ValueError(f"ERROR", f"Failed to prepare request body: {str(e)}")
 
-    def _load_template(self, template_name: str) -> str:
+            template_name = test_step['Template']
+            body_modifications = self._validate_and_load_json(test_step['Body Modifications'], test_step)
+            template_path = self._resolve_template_path(template_name, test_step)
+            format_type = UtilityHelpers.get_file_format(template_path)
+
+            # Prepare all required request data
+            request_data = self._prepare_request_data(default_values_file, body_modifications, test_step)
+
+            # Generate request body
+            body = TemplateRenderer.render_template(self.template_dir, template_path, request_data, format_type)
+            return body, format_type
+        except Exception as e:
+            raise ValueError(
+                f"Error in generate_request_body for test step {test_step['TSID']}: {str(e)}")
+
+    def _validate_and_load_json(self, json_string: str, test_step: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate and load JSON string.
+        """
+        try:
+            return json.loads(json_string)
+        except json.JSONDecodeError:
+            raise ValueError(
+                f"Invalid JSON format in test step {test_step['TSID']}: {json_string}")
+
+    def _resolve_template_path(self, template_name: str, test_step: Dict[str, Any]) -> str:
+        """
+        Resolve the template path based on the template name. If the JSON template is not found, try the XML template.
+        """
         template_path = os.path.join(self.template_dir, f"{template_name}.json")
-        # If the JSON file is not found, try with XML extension
         if not os.path.exists(template_path):
             template_path = os.path.join(self.template_dir, f"{template_name}.xml")
         if not os.path.exists(template_path):
-            raise ValueError(f"Template '{template_name}' not found in {self.template_dir}")
+            raise ValueError(
+                f"Template '{template_name}' not found for test step {test_step['TSID']} in {self.template_dir}")
         return template_path
 
-    def build_body_from_template(self, template_path: str, default_values_file: str, modifications: Dict[str, Any], format_type: str) -> Union[Dict, str]:
-        try:
-            default_values = self._load_default_body_values(default_values_file)
-            # Merge default values and modifications
-            body_data = self._integrate_dynamic_defaults(default_values)
-            body_data = self._combine_data(body_data, modifications)
-            # Generate dynamic values
-            dynamic_values = self._generate_dynamic_values(body_data)
-            # Merge dynamic values
-            body_data = self._combine_data(body_data, dynamic_values)
-            return TemplateRenderer.render_template(self.template_dir, template_path, body_data, format_type)
-        except KeyError as e:
-            raise ValueError(f"Template not found: {str(e)}")
-        except Exception as e:
-            raise ValueError(f"Failed to build body from template: {str(e)}")
+    def _prepare_request_data(self, default_values_file: str, modifications: Dict[str, Any],
+                              test_step: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Prepare request data, including loading default values, merging custom modifications, and generating dynamic values.
+        """
+        default_values = self._load_default_values(default_values_file, test_step)
+        combined_data = self._merge_values(default_values, modifications, test_step)
+        return self._generate_dynamic_values(combined_data, test_step)
 
-    def _load_default_body_values(self, default_values_file: str) -> Dict[str, Any]:
+    def _load_default_values(self, default_values_file: str, test_step: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Load data from the default values file.
+        """
         file_path = os.path.join(self.body_defaults_dir, default_values_file)
         if not file_path.endswith('.json'):
             file_path += '.json'
+        if not os.path.exists(file_path):
+            raise ValueError(
+                f"Default values file '{default_values_file}' not found for test step {test_step['TSID']} in {self.body_defaults_dir}")
         return ConfigManager.load_json(file_path)
 
-    def _integrate_dynamic_defaults(self, default_values: Dict[str, Any]) -> Dict[str, Any]:
-        merged_values: Dict[str, Any] = {}
+    def _merge_values(self, base_values: Dict[str, Any], custom_values: Dict[str, Any], test_step: Dict[str, Any]) -> \
+    Dict[str, Any]:
+        """
+        Merge default values and custom values.
+        """
         try:
-            for key, value in default_values.items():
-                if isinstance(value, dict):
-                    merged_values[key] = self._integrate_dynamic_defaults(value)
-                elif isinstance(value, str):
-                    merged_values[key] = self._replace_dynamic_placeholders(value)
+            for key, value in custom_values.items():
+                if key in base_values and isinstance(value, dict) and isinstance(base_values[key], dict):
+                    base_values[key] = self._merge_values(base_values.get(key, {}), value, test_step)
                 else:
-                    merged_values[key] = value
+                    base_values[key] = value
+            return base_values
         except Exception as e:
-            raise ValueError(f"Error integrating dynamic value and defaults value: {str(e)}")
-        return merged_values
+            raise ValueError(
+                f"Error merging default values and custom values in test step {test_step['TSID']} : {str(e)}")
 
-    def _generate_dynamic_values(self, nested_data: Union[Dict[str, Any], list]) -> Union[Dict[str, Any], list]:
+    def _generate_dynamic_values(self, data: Union[Dict[str, Any], list], test_step: Dict[str, Any]) -> Union[
+        Dict[str, Any], list]:
+        """
+        Recursively generate dynamic values in the data.
+        """
         try:
-            if isinstance(nested_data, dict):
-                return {key: self._generate_dynamic_values(value) if isinstance(value, (dict, list))
-                        else self._replace_dynamic_placeholders(value) for key, value in nested_data.items()}
-            elif isinstance(nested_data, list):
-                return [self._generate_dynamic_values(item) if isinstance(item, (dict, list))
-                        else self._replace_dynamic_placeholders(item) for item in nested_data]
+            if isinstance(data, dict):
+                return {key: self._generate_dynamic_values(value, test_step) if isinstance(value, (dict, list))
+                else self._replace_placeholders(value, test_step) for key, value in data.items()}
+            elif isinstance(data, list):
+                return [self._generate_dynamic_values(item, test_step) if isinstance(item, (dict, list))
+                        else self._replace_placeholders(item, test_step) for item in data]
+            return data
         except Exception as e:
-            raise ValueError(f"Error generating dynamic values: {str(e)}")
-        return nested_data
+            raise ValueError(
+                f"Error generating dynamic values in test step {test_step['TSID']} : {str(e)}")
 
-    def _replace_dynamic_placeholders(self, value: Any) -> Any:
+    def _replace_placeholders(self, value: Any, test_step: Dict[str, Any]) -> Any:
+        """
+        Replace dynamic placeholders in the string.
+        """
         try:
             if isinstance(value, str) and re.match(r'\{\{\s*[^}]+?\s*\}\}', value):
-                dynamic_key = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', value)[0]
-                return VariableGenerator.generate_dynamic_value(dynamic_key)
+                placeholder = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', value)[0]
+                return VariableGenerator.generate_dynamic_value(placeholder)
+            return value
         except Exception as e:
-            raise ValueError(f"Error replacing dynamic placeholders '{value}': {str(e)}")
-        return value
-
-    def _combine_data(self, base_data: Dict[str, Any], custom_data: Dict[str, Any]) -> Dict[str, Any]:
-        try:
-            for key, value in custom_data.items():
-                if key in base_data and isinstance(value, dict) and isinstance(base_data[key], dict):
-                    base_data[key] = self._combine_data(base_data.get(key, {}), value)
-                else:
-                    base_data[key] = value
-        except Exception as e:
-            raise ValueError(f"Error combining data: {str(e)}")
-        return base_data
+            raise ValueError(
+                f"Error replacing placeholders in test step {test_step['TSID']} : {str(e)}")
