@@ -50,7 +50,8 @@ class APITestExecutor:
         self.test_cases_path = test_cases_path
 
         try:
-            self.test_case_manager = TestCaseManager(test_cases_path)
+            self.test_case_manager = TestCaseManager(test_cases_path, self.endpoints, self.headers_dir,
+                                                     self.template_dir, self.body_defaults_dir)
             filtered_cases = self.test_case_manager.filter_test_cases(tcid_list=tc_id_list, tags=tags)
             logger.log("DEBUG", f"Successfully loaded test cases from {test_cases_path}")
 
