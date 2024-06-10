@@ -2,6 +2,7 @@ import json
 import os
 import re
 from typing import Any, Dict, Union
+from . import logger
 from .config_manager import ConfigManager
 from .utility_helpers import UtilityHelpers
 from .variable_generator import VariableGenerator
@@ -30,57 +31,44 @@ class BodyGenerator:
             body = TemplateRenderer.render_template(self.template_dir, template_path, request_data, format_type)
             return body, format_type
         except Exception as e:
-            raise ValueError(
-                f"Error in generate_request_body for test step {test_step['TSID']}: {str(e)}")
+            logger.log("ERROR", f"Error in generate_request_body for test step {test_step['TSID']}: {str(e)}")
+            raise
 
     def _validate_and_load_json(self, json_string: str, test_step: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Validate and load JSON string.
-        """
         try:
             return json.loads(json_string)
         except json.JSONDecodeError:
-            raise ValueError(
-                f"Invalid JSON format in test step {test_step['TSID']}: {json_string}")
+            logger.log("ERROR", f"Invalid JSON format in test step {test_step['TSID']}: {json_string}")
+            raise
 
     def _resolve_template_path(self, template_name: str, test_step: Dict[str, Any]) -> str:
-        """
-        Resolve the template path based on the template name. If the JSON template is not found, try the XML template.
-        """
         template_path = os.path.join(self.template_dir, f"{template_name}.json")
         if not os.path.exists(template_path):
             template_path = os.path.join(self.template_dir, f"{template_name}.xml")
         if not os.path.exists(template_path):
-            raise ValueError(
-                f"Template '{template_name}' not found for test step {test_step['TSID']} in {self.template_dir}")
+            logger.log("ERROR",
+                       f"Template '{template_name}' not found for test step {test_step['TSID']} in {self.template_dir}")
+            raise
         return template_path
 
     def _prepare_request_data(self, default_values_file: str, modifications: Dict[str, Any],
                               test_step: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Prepare request data, including loading default values, merging custom modifications, and generating dynamic values.
-        """
         default_values = self._load_default_values(default_values_file, test_step)
         combined_data = self._merge_values(default_values, modifications, test_step)
         return self._generate_dynamic_values(combined_data, test_step)
 
     def _load_default_values(self, default_values_file: str, test_step: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Load data from the default values file.
-        """
         file_path = os.path.join(self.body_defaults_dir, default_values_file)
         if not file_path.endswith('.json'):
             file_path += '.json'
         if not os.path.exists(file_path):
-            raise ValueError(
-                f"Default values file '{default_values_file}' not found for test step {test_step['TSID']} in {self.body_defaults_dir}")
+            logger.log("ERROR",
+                       f"Default values file '{default_values_file}' not found for test step {test_step['TSID']} in {self.body_defaults_dir}")
+            raise
         return ConfigManager.load_json(file_path)
 
     def _merge_values(self, base_values: Dict[str, Any], custom_values: Dict[str, Any], test_step: Dict[str, Any]) -> \
-    Dict[str, Any]:
-        """
-        Merge default values and custom values.
-        """
+            Dict[str, Any]:
         try:
             for key, value in custom_values.items():
                 if key in base_values and isinstance(value, dict) and isinstance(base_values[key], dict):
@@ -89,14 +77,12 @@ class BodyGenerator:
                     base_values[key] = value
             return base_values
         except Exception as e:
-            raise ValueError(
-                f"Error merging default values and custom values in test step {test_step['TSID']} : {str(e)}")
+            logger.log("ERROR",
+                       f"Error merging default values and custom values in test step {test_step['TSID']} : {str(e)}")
+            raise
 
     def _generate_dynamic_values(self, data: Union[Dict[str, Any], list], test_step: Dict[str, Any]) -> Union[
         Dict[str, Any], list]:
-        """
-        Recursively generate dynamic values in the data.
-        """
         try:
             if isinstance(data, dict):
                 return {key: self._generate_dynamic_values(value, test_step) if isinstance(value, (dict, list))
@@ -106,18 +92,17 @@ class BodyGenerator:
                         else self._replace_placeholders(item, test_step) for item in data]
             return data
         except Exception as e:
-            raise ValueError(
-                f"Error generating dynamic values in test step {test_step['TSID']} : {str(e)}")
+            logger.log("ERROR",
+                       f"Error generating dynamic values in test step {test_step['TSID']} : {str(e)}")
+            raise
 
     def _replace_placeholders(self, value: Any, test_step: Dict[str, Any]) -> Any:
-        """
-        Replace dynamic placeholders in the string.
-        """
         try:
             if isinstance(value, str) and re.match(r'\{\{\s*[^}]+?\s*\}\}', value):
                 placeholder = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', value)[0]
                 return VariableGenerator.generate_dynamic_value(placeholder)
             return value
         except Exception as e:
-            raise ValueError(
-                f"Error replacing placeholders in test step {test_step['TSID']} : {str(e)}")
+            logger.log("ERROR",
+                       f"Error replacing placeholders in test step {test_step['TSID']} : {str(e)}")
+            raise
