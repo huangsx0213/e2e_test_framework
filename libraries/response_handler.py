@@ -9,6 +9,8 @@ from openpyxl import load_workbook
 from typing import Dict, Any, Union
 from libraries import logger
 import xmltodict
+
+from libraries.html_report_generator import HTMLReportGenerator
 from libraries.saved_fields_manager import SavedFieldsManager
 
 
@@ -17,6 +19,7 @@ class ResponseHandler:
         self.workbook_cache = {}
         self.pending_operations = []
         self.sfm = SavedFieldsManager()
+        self.html_report_generator = HTMLReportGenerator(logger.html_log_entries)
 
     def process_and_store_results(self, response: requests.Response, test_step, test_cases_path: str,
                                   test_case_manager, execution_time: float) -> None:
@@ -227,44 +230,5 @@ class ResponseHandler:
             "actual_value": actual_value
         }
 
-    def generate_html_report(self, report_path=None):
-        try:
-            env = Environment(loader=FileSystemLoader('configs/report_template'))
-            template = env.get_template('report_template.html')
-
-            results = []
-            for operation in self.pending_operations:
-                test_step = operation['test_step']
-                log_entries = logger.html_log_entries.get(test_step['TSID'], [])
-
-                formatted_logs = [{
-                    'log_id': log['id'],
-                    'timestamp': log['timestamp'],
-                    'level': log['level'],
-                    'message': log['message'],
-                    'details': log['details'],
-                    'result': log['result']
-                } for log in log_entries]
-
-                results.append({
-                    'tcid': test_step['TCID'],
-                    'tsid': test_step['TSID'],
-                    'endpoint': test_step['Endpoint'],
-                    'status': operation['actual_status'],
-                    'result': operation['overall_result'],
-                    'expected_result': test_step['Exp Result'],
-                    'actual_result': operation['formatted_results'],
-                    'saved_fields': operation['formatted_fields_saved'],
-                    'execution_time': f"{operation['execution_time']:.2f}s",
-                    'logs': formatted_logs
-                })
-            # Use the start time from the logger to generate the report filename
-            if report_path is None:
-                start_time = datetime.fromtimestamp(logger.start_time).strftime('%Y-%m-%d_%H-%M-%S')
-                report_path = f"output/report_{start_time}.html"
-            html_content = template.render(results=results)
-            with open(report_path, 'w') as report_file:
-                report_file.write(html_content)
-        except Exception as e:
-            logger.log("ERROR", f"Failed to generate HTML report: {str(e)}")
-            raise
+    def generate_html_report(self):
+        self.html_report_generator.generate_html_report(self.pending_operations)
