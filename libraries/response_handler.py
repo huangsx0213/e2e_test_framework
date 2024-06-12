@@ -3,13 +3,12 @@ import re
 from datetime import datetime
 import pandas as pd
 import requests
-from jinja2 import Environment, FileSystemLoader
 from openpyxl.styles import Font
 from openpyxl import load_workbook
 from typing import Dict, Any, Union
 from libraries import logger
 import xmltodict
-
+from libraries.excel_operation_manager import ExcelOperationManager
 from libraries.html_report_generator import HTMLReportGenerator
 from libraries.saved_fields_manager import SavedFieldsManager
 
@@ -20,6 +19,7 @@ class ResponseHandler:
         self.pending_operations = []
         self.sfm = SavedFieldsManager()
         self.html_report_generator = HTMLReportGenerator(logger.html_log_entries)
+        self.excel_manager = ExcelOperationManager()
 
     def process_and_store_results(self, response: requests.Response, test_step, test_cases_path: str,
                                   test_case_manager, execution_time: float) -> None:
@@ -43,9 +43,9 @@ class ResponseHandler:
             self.sfm.save_fields(fields_to_save_for_yaml)
 
             # Cache the operation
-            self.cache_excel_operation(test_step, test_cases_path, actual_status, actual_results,
-                                       overall_result, fields_to_save_for_excel, test_case_manager,
-                                       execution_time)
+            self.excel_manager.cache_excel_operation(test_step, test_cases_path, actual_status, actual_results,
+                                                     overall_result, fields_to_save_for_excel, test_case_manager,
+                                                     execution_time)
 
             logger.log("INFO", json.dumps(results, indent=4))
             logger.log("INFO", f"The Result is: {overall_result}.")
@@ -53,6 +53,12 @@ class ResponseHandler:
         except Exception as e:
             logger.log("ERROR", f"An error occurred while processing and storing results: {str(e)}")
             raise
+
+    def apply_pending_operations(self) -> None:
+        self.excel_manager.apply_pending_operations()
+
+    def generate_html_report(self):
+        self.html_report_generator.generate_html_report(self.pending_operations)
 
     def _extract_response_content(self, response: requests.Response) -> Union[Dict[str, Any], str]:
         try:
@@ -128,76 +134,6 @@ class ResponseHandler:
             f"{test_step['TSID']}.{res['field']}": res['actual_value'] for res in fields_saved_results
         }
 
-    def cache_excel_operation(self, test_step, file_path: str, actual_status: int,
-                              formatted_results: str, overall_result: str,
-                              formatted_fields_saved: str, test_case_manager,
-                              execution_time: float) -> None:
-        self.pending_operations.append({
-            "tcid": test_step.get('TCID'),  # 添加TCID
-            "test_step": test_step,  # 修改为test_steps
-            "file_path": file_path,
-            "actual_status": actual_status,
-            "formatted_results": formatted_results,
-            "overall_result": overall_result,
-            "formatted_fields_saved": formatted_fields_saved,
-            "test_case_manager": test_case_manager,
-            "execution_time": execution_time
-        })
-
-    def apply_pending_operations(self) -> None:
-        for operation in self.pending_operations:
-            self.apply_excel_operation(**operation)
-
-        # Save all workbooks in the cache
-        for file_path, workbook in self.workbook_cache.items():
-            workbook.save(file_path)
-
-    def apply_excel_operation(self, tcid, test_step, file_path: str, actual_status: int,
-                              formatted_results: str, overall_result: str,
-                              formatted_fields_saved: str, test_case_manager,
-                              execution_time: float) -> None:
-        if file_path not in self.workbook_cache:
-            try:
-                self.workbook_cache[file_path] = load_workbook(file_path)
-            except Exception as e:
-                logger.log("ERROR", f"Failed to load workbook: {str(e)}")
-                raise
-        try:
-            workbook = self.workbook_cache[file_path]
-            sheet = workbook.active
-            actual_status_col_idx = self.get_excel_column_index(sheet, "Act Status")
-            actual_result_col_idx = self.get_excel_column_index(sheet, "Act Result")
-            overall_result_col_idx = self.get_excel_column_index(sheet, "Result")
-            fields_saved_col_idx = self.get_excel_column_index(sheet, "Saved Fields")
-            api_execution_time_col_idx = self.get_excel_column_index(sheet, "API Timing")
-
-            row = test_case_manager.get_row_index_by_tsid(test_step["TSID"]) + 2
-            sheet.cell(row=row, column=actual_status_col_idx, value=actual_status)
-            sheet.cell(row=row, column=actual_result_col_idx, value=formatted_results)
-            overall_cell = sheet.cell(row=row, column=overall_result_col_idx, value=overall_result)
-
-            overall_cell.font = Font(color="006400" if overall_result == "PASS" else "8B0000")
-            sheet.cell(row=row, column=fields_saved_col_idx, value=formatted_fields_saved)
-            api_timing_cell = sheet.cell(row=row, column=api_execution_time_col_idx, value=f"{execution_time:.2f}s")
-            if execution_time > 5:
-                api_timing_cell.font = Font(color="8B0000")
-            else:
-                api_timing_cell.font = Font(color="006400")
-
-
-        except Exception as e:
-            logger.log("ERROR", f"An error occurred while writing results to the Excel file: {str(e)}")
-            raise
-
-    def get_excel_column_index(self, sheet, column_name: str) -> int:
-        try:
-            for col in sheet.iter_cols(1, sheet.max_column):
-                if col[0].value == column_name:
-                    return col[0].column
-        except Exception as e:
-            logger.log("ERROR", f"An error occurred while getting the column index for '{column_name}': {str(e)}")
-            return None
-
     def _split_lines(self, lines: str) -> list:
         return lines.strip().split('\n') if pd.notna(lines) else []
 
@@ -229,6 +165,3 @@ class ResponseHandler:
             "field": field_path,
             "actual_value": actual_value
         }
-
-    def generate_html_report(self):
-        self.html_report_generator.generate_html_report(self.pending_operations)
