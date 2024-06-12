@@ -35,6 +35,8 @@ class ExcelOperationManager:
         for file_path, workbook in self.workbook_cache.items():
             workbook.save(file_path)
 
+        return self.pending_operations
+
     def apply_excel_operation(self, tcid, test_step, file_path: str, actual_status: int,
                               formatted_results: str, overall_result: str,
                               formatted_fields_saved: str, test_case_manager,
