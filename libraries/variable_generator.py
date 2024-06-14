@@ -9,7 +9,7 @@ class VariableGenerator:
         handlers: Dict[str, Callable[[str], Any]] = {
             'uetr': VariableGenerator._generate_uuid4,
             'value_date': VariableGenerator._generate_current_day,
-            'msg_id ': VariableGenerator._generate_msg_id,
+            'msg_id': VariableGenerator._generate_msg_id,
             'age': VariableGenerator._generate_age,
             'address.street': VariableGenerator._generate_street,
             'phones.number': VariableGenerator._generate_phone_number,
@@ -26,7 +26,7 @@ class VariableGenerator:
         return str(uuid.uuid4())
 
     @staticmethod
-    def _generate_current_day(date_format: str = "%Y-%m-%d") -> str:
+    def _generate_current_day(date_format: str = "%Y%m%d") -> str:
         current_date = datetime.datetime.now()
         return current_date.strftime(date_format)
 
