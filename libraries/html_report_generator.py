@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from . import logger
@@ -6,6 +7,14 @@ from . import logger
 class HTMLReportGenerator:
     def __init__(self, log_entries):
         self.log_entries = log_entries
+        self.ensure_log_dir_exists()
+
+    def ensure_log_dir_exists(self, log_dir='output') -> None:
+        try:
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+        except OSError as e:
+            raise RuntimeError(f"Failed to create log directory {log_dir}: {str(e)}")
 
     def generate_html_report(self, pending_operations, report_path=None):
         try:

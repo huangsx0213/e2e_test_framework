@@ -91,7 +91,7 @@ class ResponseComparator:
     def create_not_specified_result(self) -> Dict[str, Any]:
         return {
             "field": "Exp Result",
-            "expected_value": "N/A",
+            "actual_value": "N/A",
             "result": "Not specified"
         }
     def create_save_result(self, field_path, actual_value) -> Dict[str, Any]:

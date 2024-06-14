@@ -145,8 +145,7 @@ if __name__ == "__main__":
     # Define files and directories to exclude
     exclude_files = [
         'export_html.py',
-        'export_code.py',
-        'gen_temp_default.py'
+        'export_code.py'
         # Add more file paths as needed
     ]
     exclude_directories = {'venv', '.idea', '__pycache__', '.git', 'output'}
