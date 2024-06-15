@@ -1,13 +1,8 @@
 import json
-import re
-from datetime import datetime
 import pandas as pd
 import requests
-from openpyxl.styles import Font
-from openpyxl import load_workbook
 from typing import Dict, Any, Union
 from libraries import logger
-import xmltodict
 from libraries.excel_operation_manager import ExcelOperationManager
 from libraries.html_report_generator import HTMLReportGenerator
 from libraries.response_comparator import ResponseComparator
@@ -19,7 +14,7 @@ class ResponseHandler:
         self.workbook_cache = {}
         self.pending_operations = []
         self.sfm = SavedFieldsManager()
-        self.html_report_generator = HTMLReportGenerator(logger.html_log_entries)
+        self.html_report_generator = HTMLReportGenerator()
         self.excel_manager = ExcelOperationManager()
         self.comparator = ResponseComparator()
 
@@ -51,11 +46,11 @@ class ResponseHandler:
                                                      overall_result, fields_to_save_for_excel, test_case_manager,
                                                      execution_time)
 
-            logger.log("INFO", json.dumps(results, indent=4))
-            logger.log("INFO", f"The Result is: {overall_result}.")
+            logger.info(json.dumps(results, indent=4))
+            logger.info(f"The Result is: {overall_result}.")
             return overall_result
         except Exception as e:
-            logger.log("ERROR", f"An error occurred while processing and storing results: {str(e)}")
+            logger.error(f"An error occurred while processing and storing results: {str(e)}")
             raise
 
     def apply_pending_operations(self) -> None:

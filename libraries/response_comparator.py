@@ -1,25 +1,30 @@
 import json
 import re
 from typing import Dict, Any, Union
-
 import requests
-
 from libraries import logger
 import xmltodict
 
+from libraries.utility_helpers import UtilityHelpers
+
+
 class ResponseComparator:
     def __init__(self):
-        pass
+        self.format_xml = UtilityHelpers.format_xml
+        self.format_json = UtilityHelpers.format_json
 
     def extract_response_content(self, response: requests.Response) -> Union[Dict[str, Any], str]:
         try:
-            return response.json()
+            response = response.json()
+            logger.debug(f"Response content: \n{self.format_json(response)}")
+            return response
         except json.JSONDecodeError as json_error:
-            logger.log("Warning", f"JSON decode error: {json_error}. Attempting XML parse.")
+            logger.warning(f"JSON decode error: {json_error}. Attempting XML parse.")
             try:
+                logger.debug(f"Response content: \n{self.format_xml(response.text)}")
                 return xmltodict.parse(response.text)
             except Exception as xml_error:
-                logger.log("ERROR", f"XML parse error: {xml_error}. Returning raw response text.")
+                logger.error(f"XML parse error: {xml_error}. Returning raw response text.")
                 return response.text
 
     def compare_response_field(self, actual_response: Union[Dict[str, Any], str], expectation: str) -> Dict[str, Any]:
@@ -69,7 +74,7 @@ class ResponseComparator:
         try:
             return _extract_value(actual_response, parts[1:])
         except (KeyError, IndexError, TypeError) as e:
-            logger.log("ERROR", f"Error retrieving the value for path '{field_path}': {str(e)}")
+            logger.error(f"Error retrieving the value for path '{field_path}': {str(e)}")
             return None
 
     def create_error_comparison_result(self, field_path: str, error_message: str) -> Dict[str, str]:

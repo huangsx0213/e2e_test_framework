@@ -1,12 +1,13 @@
 import os
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
-from . import logger
+
+from libraries import logger
 
 
 class HTMLReportGenerator:
-    def __init__(self, log_entries):
-        self.log_entries = log_entries
+    def __init__(self):
+        #self.html_log_entries = logger_instance.get_html_log_entries()
         self.ensure_log_dir_exists()
 
     def ensure_log_dir_exists(self, log_dir='output') -> None:
@@ -14,7 +15,8 @@ class HTMLReportGenerator:
             if not os.path.exists(log_dir):
                 os.makedirs(log_dir)
         except OSError as e:
-            raise RuntimeError(f"Failed to create log directory {log_dir}: {str(e)}")
+            logger.error(f"Failed to create log directory {log_dir}: {str(e)}")
+            raise
 
     def generate_html_report(self, pending_operations, report_path=None):
         try:
@@ -24,7 +26,7 @@ class HTMLReportGenerator:
             results = []
             for operation in pending_operations:
                 test_step = operation['test_step']
-                log_entries = logger.html_log_entries.get(test_step['TSID'], [])
+                log_entries = self.html_log_entries.get(test_step['TSID'], [])
 
                 formatted_logs = [{
                     'log_id': log['id'],
@@ -54,6 +56,7 @@ class HTMLReportGenerator:
             html_content = template.render(results=results)
             with open(report_path, 'w') as report_file:
                 report_file.write(html_content)
+            logger.info(f"HTML report generated at: {report_path}")
         except Exception as e:
-            logger.log("ERROR", f"Failed to generate HTML report: {str(e)}")
+            logger.error(f"Failed to generate HTML report: {str(e)}")
             raise

@@ -2,32 +2,38 @@ import os
 import re
 import json
 from typing import Dict, Any
-from . import logger
+from libraries import logger
+from .utility_helpers import UtilityHelpers
 from .variable_generator import VariableGenerator
 
 
 class HeadersGenerator:
     def __init__(self, headers_dir: str) -> None:
         self.headers_dir: str = headers_dir
+        self.format_json = UtilityHelpers.format_json
 
     def prepare_headers(self, headers_filename: str, saved_fields: Dict[str, Any], test_step: Dict[str, Any]) -> Dict[
         str, str]:
         try:
-            headers = self._load_headers(headers_filename, test_step)
-            return {k: self._replace_placeholders(v, saved_fields, headers_filename, test_step) for k, v in
-                    headers.items()}
+            original_headers = self._load_headers(headers_filename, test_step)
+            logger.debug(
+                f"Headers for test step '{test_step['TSID']}' loaded from file: \n{self.format_json(original_headers)}")
+            headers = {k: self._replace_placeholders(v, saved_fields, headers_filename, test_step) for k, v in
+                       original_headers.items()}
+            logger.debug(
+                f"Headers for test step '{test_step['TSID']}' replaced placeholders: \n{self.format_json(headers)}")
+            return headers
         except KeyError as e:
-            logger.log("ERROR",
-                       f"Headers file '{headers_filename}' not found in test step '{test_step['TSID']}': {str(e)}")
+            logger.error(f"Headers file '{headers_filename}' not found in test step '{test_step['TSID']}': {str(e)}")
             raise
 
         except json.JSONDecodeError as e:
-            logger.log("ERROR",
-                       f"Invalid JSON format in headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
+            logger.error(
+                f"Invalid JSON format in headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
             raise
         except Exception as e:
-            logger.log("ERROR",
-                       f"Error processing headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
+            logger.error(
+                f"Error processing headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
             raise
 
     def _load_headers(self, headers_filename: str, test_step: Dict[str, Any]) -> Dict[str, str]:
@@ -36,15 +42,15 @@ class HeadersGenerator:
             if not headers_file_path.endswith('.json'):
                 headers_file_path += '.json'
             if not os.path.exists(headers_file_path):
-                logger.log("ERROR",
-                           f"Headers file '{headers_filename}' not found in directory '{self.headers_dir}' for test step '{test_step['TSID']}'")
+                logger.error(
+                    f"Headers file '{headers_filename}' not found in directory '{self.headers_dir}' for test step '{test_step['TSID']}'")
                 raise
             with open(headers_file_path, 'r') as file:
                 headers = json.load(file)
             return headers
         except Exception as e:
-            logger.log("ERROR",
-                       f"Error loading headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
+            logger.error(
+                f"Error loading headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
             raise
 
     def _replace_placeholders(self, value: Any, saved_fields: Dict[str, Any], headers_filename: str,
@@ -57,6 +63,6 @@ class HeadersGenerator:
                 return VariableGenerator.generate_dynamic_value(placeholder)
             return value
         except Exception as e:
-            logger.log("ERROR",
-                       f"Error replacing placeholders in headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
+            logger.error(
+                f"Error replacing placeholders in headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
             raise

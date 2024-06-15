@@ -11,7 +11,8 @@ class TemplateRenderer:
             env = TemplateRenderer._create_environment(template_dir)
             template = TemplateRenderer._load_template(env, template_path)
             rendered_body: str = template.render(modifications)
-            return TemplateRenderer._format_rendered_body(rendered_body, format_type)
+            format_body = TemplateRenderer._format_rendered_body(rendered_body, format_type)
+            return format_body
         except (TemplateNotFound, json.JSONDecodeError) as e:
             raise ValueError(f"Error rendering template: {str(e)}")
         except Exception as e:

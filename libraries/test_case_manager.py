@@ -105,9 +105,9 @@ class TestCaseManager:
 
             if test_step["Save Fields"] and not self._is_valid_save_fields_format(test_step["Save Fields"]):
                 raise ValueError("Save Fields format is invalid")
-            logger.log("DEBUG", f"Validation passed in test step {test_step['TSID']}")
+            logger.info(f"Validation passed in test step {test_step['TSID']}")
         except ValueError as e:
-            logger.log("ERROR", f"Validation error in test step {test_step['TSID']}: {str(e)}")
+            logger.error(f"Validation error in test step {test_step['TSID']}: {str(e)}")
             raise
 
     def _file_exists_in_dir(self, file_name, dir_path, extensions):

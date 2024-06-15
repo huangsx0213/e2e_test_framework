@@ -16,7 +16,8 @@ class SavedFieldsManager:
                 saved_fields: Dict[str, Any] = yaml.safe_load(f) or {}
             return saved_fields
         except Exception as e:
-            raise ValueError(f"Failed to load saved fields from the yaml file: {str(e)}")
+            logger.error(f"Failed to load saved fields from the yaml file: {str(e)}")
+            raise
 
     def save_fields(self, field_data: Dict[str, Any]) -> None:
         saved_fields: Dict[str, Any] = self.load_saved_fields()
@@ -25,7 +26,8 @@ class SavedFieldsManager:
             with open(self.file_path, 'w') as f:
                 yaml.safe_dump(saved_fields, f, default_flow_style=False)
         except Exception as e:
-            raise ValueError(f"Failed to save fields to the yaml file: {str(e)}")
+            logger.error(f"Failed to save fields to the yaml file: {str(e)}")
+            raise
 
     def apply_saved_fields(self, test_step, saved_fields: Dict, columns: list) -> None:
         try:
@@ -36,5 +38,5 @@ class SavedFieldsManager:
                         replaced_lines = [line.replace(f"${{{key}}}", str(value)) for line in lines]
                         test_step[column] = "\n".join(replaced_lines)
         except Exception as e:
-            logger.log("ERROR", f"Failed to apply saved fields to [Body Modifications], [Exp Result]: {str(e)}")
+            logger.error(f"Failed to apply saved fields to [Body Modifications], [Exp Result]: {str(e)}")
             raise

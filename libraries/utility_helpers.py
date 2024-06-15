@@ -1,33 +1,58 @@
-import os
+import json
 import time
 from functools import wraps
 from lxml import etree
-
+from libraries import logger
 
 class UtilityHelpers:
     @staticmethod
     def get_file_format(file_path: str) -> str:
-        _, file_extension = os.path.splitext(file_path)
-        return file_extension.lower().strip('.')
+        """
+        Determine the format of the file based on its extension.
+        """
+        if file_path.endswith('.json'):
+            return 'json'
+        elif file_path.endswith('.xml'):
+            return 'xml'
+        else:
+            logger.error(f"Unsupported file format for file: {file_path}")
+            raise ValueError("Unsupported file format")
+
+    @staticmethod
+    def format_json(data):
+        """
+        Formats a given dictionary as a pretty-printed JSON string.
+
+        :param data: Dictionary to format.
+        :return: Pretty-printed JSON string.
+        """
+        return json.dumps(data, indent=4)
 
     @staticmethod
     def format_xml(xml_string: str) -> str:
-        parser = etree.XMLParser(remove_blank_text=True)
-        xml_element = etree.fromstring(xml_string, parser)
-        formatted_xml = etree.tostring(xml_element, pretty_print=False, encoding='unicode')
-        return formatted_xml.strip()
+        """
+        Formats a given XML string as a pretty-printed XML string without extra newlines.
 
+        :param xml_string: XML string to format.
+        :return: Pretty-printed XML string.
+        """
+        try:
+            parser = etree.XMLParser(remove_blank_text=True)
+            xml_element = etree.fromstring(xml_string, parser)
+            formatted_xml = etree.tostring(xml_element, pretty_print=True, encoding='unicode')
+            return formatted_xml.strip()
+        except Exception as e:
+            raise ValueError(f"Invalid XML data: {str(e)}")
     @staticmethod
     def time_calculation():
         def decorator(func):
             @wraps(func)
             def wrapper(*args, **kwargs):
-                from libraries import logger
                 start_time = time.time()
                 result = func(*args, **kwargs)
                 end_time = time.time()
                 execution_time = end_time - start_time
-                logger.log("INFO", f"Function '{func.__name__}' executed in {execution_time:.2f} seconds")
+                logger.info(f"Function {func.__name__} executed in {execution_time:.4f} seconds")
                 return result
 
             return wrapper
