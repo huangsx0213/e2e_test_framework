@@ -2,12 +2,11 @@ import json
 import os
 import re
 from typing import Any, Dict, Union
-from libraries import logger
 from .config_manager import ConfigManager
 from .utility_helpers import UtilityHelpers
 from .variable_generator import VariableGenerator
 from .template_renderer import TemplateRenderer
-
+from libraries.log_manager import logger_instance, logger
 
 class BodyGenerator:
     def __init__(self, template_dir: str, body_defaults_dir: str) -> None:
@@ -23,30 +22,30 @@ class BodyGenerator:
 
             template_name = test_step['Template']
             body_modifications = self._validate_and_load_json(test_step['Body Modifications'], test_step)
-            logger.debug(f"Body modifications for test step {test_step['TSID']}: \n{self.format_json(body_modifications)}")
+            logger.debug(f"[TSID:{test_step['TSID']}] Body modifications for test step {test_step['TSID']}: \n{self.format_json(body_modifications)}")
             template_path = self._resolve_template_path(template_name, test_step)
             format_type = UtilityHelpers.get_file_format(template_path)
 
             # Prepare all required request data
             request_data = self._prepare_request_data(default_values_file, body_modifications, test_step)
-            logger.debug(f"Request data for test step {test_step['TSID']}: \n{self.format_json(request_data)}")
+            logger.debug(f"[TSID:{test_step['TSID']}] Request data for test step {test_step['TSID']}: \n{self.format_json(request_data)}")
 
             # Generate request body
             body = TemplateRenderer.render_template(self.template_dir, template_path, request_data, format_type)
             if format_type == 'json':
-                logger.debug(f"Request body for test step {test_step['TSID']}: \n{self.format_json(body)}")
+                logger.debug(f"[TSID:{test_step['TSID']}] Request body for test step {test_step['TSID']}: \n{self.format_json(body)}")
             else:
-                logger.debug(f"Request body for test step {test_step['TSID']}: \n{self.format_xml(body)}")
+                logger.debug(f"[TSID:{test_step['TSID']}] Request body for test step {test_step['TSID']}: \n{self.format_xml(body)}")
             return body, format_type
         except Exception as e:
-            logger.error(f"Error in generate_request_body for test step {test_step['TSID']}: {str(e)}")
+            logger.error(f"[TSID:{test_step['TSID']}] Error in generate_request_body for test step {test_step['TSID']}: {str(e)}")
             raise
 
     def _validate_and_load_json(self, json_string: str, test_step: Dict[str, Any]) -> Dict[str, Any]:
         try:
             return json.loads(json_string)
         except json.JSONDecodeError:
-            logger.error(f"Invalid JSON format in test step {test_step['TSID']}: {json_string}")
+            logger.error(f"[TSID:{test_step['TSID']}] Invalid JSON format in test step {test_step['TSID']}: {json_string}")
             raise
 
     def _resolve_template_path(self, template_name: str, test_step: Dict[str, Any]) -> str:
@@ -54,7 +53,7 @@ class BodyGenerator:
         if not os.path.exists(template_path):
             template_path = os.path.join(self.template_dir, f"{template_name}.xml")
         if not os.path.exists(template_path):
-            logger.error(f"Template '{template_name}' not found for test step {test_step['TSID']} in {self.template_dir}")
+            logger.error(f"[TSID:{test_step['TSID']}] Template '{template_name}' not found for test step {test_step['TSID']} in {self.template_dir}")
             raise
         return template_path
 
@@ -69,7 +68,7 @@ class BodyGenerator:
         if not file_path.endswith('.json'):
             file_path += '.json'
         if not os.path.exists(file_path):
-            logger.error(f"Default values file '{default_values_file}' not found for test step {test_step['TSID']} in {self.body_defaults_dir}")
+            logger.error(f"[TSID:{test_step['TSID']}] Default values file '{default_values_file}' not found for test step {test_step['TSID']} in {self.body_defaults_dir}")
             raise
         return ConfigManager.load_json(file_path)
 
@@ -83,7 +82,7 @@ class BodyGenerator:
                     base_values[key] = value
             return base_values
         except Exception as e:
-            logger.error(f"Error merging default values and custom values in test step {test_step['TSID']} : {str(e)}")
+            logger.error(f"[TSID:{test_step['TSID']}] Error merging default values and custom values in test step {test_step['TSID']} : {str(e)}")
             raise
 
     def _generate_dynamic_values(self, data: Union[Dict[str, Any], list], test_step: Dict[str, Any]) -> Union[
@@ -97,7 +96,7 @@ class BodyGenerator:
                         else self._replace_placeholders(item, test_step) for item in data]
             return data
         except Exception as e:
-            logger.error(f"Error generating dynamic values in test step {test_step['TSID']} : {str(e)}")
+            logger.error(f"[TSID:{test_step['TSID']}] Error generating dynamic values in test step {test_step['TSID']} : {str(e)}")
             raise
 
     def _replace_placeholders(self, value: Any, test_step: Dict[str, Any]) -> Any:
@@ -108,5 +107,5 @@ class BodyGenerator:
             return value
         except Exception as e:
             logger.log("ERROR",
-                       f"Error replacing placeholders in test step {test_step['TSID']} : {str(e)}")
+                       f"[TSID:{test_step['TSID']}] Error replacing placeholders in test step {test_step['TSID']} : {str(e)}")
             raise

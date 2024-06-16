@@ -2,7 +2,7 @@ import json
 import pandas as pd
 import requests
 from typing import Dict, Any, Union
-from libraries import logger
+from libraries.log_manager import logger_instance, logger
 from libraries.excel_operation_manager import ExcelOperationManager
 from libraries.html_report_generator import HTMLReportGenerator
 from libraries.response_comparator import ResponseComparator
@@ -22,7 +22,7 @@ class ResponseHandler:
                                   test_case_manager, execution_time: float) -> None:
         try:
             actual_status: int = response.status_code
-            actual_response: Union[Dict[str, Any], str] = self.comparator.extract_response_content(response)
+            actual_response: Union[Dict[str, Any], str] = self.comparator.extract_response_content(response,test_step)
 
             # actual_results
             expected_lines = self._split_lines(test_step['Exp Result'])

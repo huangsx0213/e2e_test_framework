@@ -1,8 +1,34 @@
 import logging
 import logging.config
-import yaml
 import os
+import re
+import yaml
+import uuid
 from datetime import datetime
+
+
+class HTMLLogHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.html_log_entries = {}
+
+    def emit(self, record):
+        msg = record.getMessage()
+        match = re.match(r'\[TSID:(.*?)\]\s*(.*)', msg, re.DOTALL)
+        if match:
+            ts_id = match.group(1)
+            message = match.group(2)
+        else:
+            ts_id = 'default_tsid'
+            message = msg
+
+        log_entry = {
+            'id': str(uuid.uuid4()),
+            'timestamp': datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S'),
+            'level': record.levelname,
+            'message': message
+        }
+        self.html_log_entries.setdefault(ts_id, []).append(log_entry)
 
 
 class Logger:
@@ -16,6 +42,7 @@ class Logger:
     def __init__(self, config_path='configs/logging_config.yaml'):
         if not hasattr(self, 'initialized'):
             self.config_path = config_path
+            self.log_file_name = ''
             self.logger = None
             self.load_config()
             self.initialized = True
@@ -24,9 +51,9 @@ class Logger:
         if os.path.exists(self.config_path):
             with open(self.config_path, 'r', encoding='utf-8') as file:
                 config = yaml.safe_load(file)
-
+                self.log_file_name = f"e2e_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 # Generate dynamic log file name with timestamp
-                log_file_name = f"logs/e2e_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+                log_file_name = f"logs/{self.log_file_name}.log"
 
                 # Ensure the directory for the log file exists
                 log_dir = os.path.dirname(log_file_name)
@@ -38,6 +65,10 @@ class Logger:
 
                 logging.config.dictConfig(config)
                 self.logger = logging.getLogger('e2e_testing')
+
+                # Add custom HTML report log handler
+                self.html_handler = HTMLLogHandler()
+                self.logger.addHandler(self.html_handler)
         else:
             logging.basicConfig(level=logging.DEBUG)
             self.logger = logging.getLogger('e2e_testing')
@@ -45,4 +76,13 @@ class Logger:
     def get_logger(self):
         return self.logger
 
+    def get_html_log_entries(self):
+        return self.html_handler.html_log_entries
 
+
+# 创建并配置 logger 实例
+logger_instance = Logger()
+logger = logger_instance.get_logger()
+
+# 导出 logger
+__all__ = ['logger', 'logger_instance']

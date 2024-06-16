@@ -2,8 +2,7 @@ import json
 import time
 from functools import wraps
 from lxml import etree
-from libraries import logger
-
+from libraries.log_manager import logger_instance, logger
 class UtilityHelpers:
     @staticmethod
     def get_file_format(file_path: str) -> str:
@@ -17,6 +16,16 @@ class UtilityHelpers:
         else:
             logger.error(f"Unsupported file format for file: {file_path}")
             raise ValueError("Unsupported file format")
+    @staticmethod
+    def escape_xml(value):
+        """Escape XML characters."""
+        return (
+            value.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&apos;")
+        )
 
     @staticmethod
     def format_json(data):

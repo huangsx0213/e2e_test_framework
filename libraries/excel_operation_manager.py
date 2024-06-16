@@ -1,6 +1,6 @@
 from openpyxl.styles import Font
 from openpyxl import load_workbook
-from libraries import logger
+from libraries.log_manager import logger_instance, logger
 
 
 class ExcelOperationManager:

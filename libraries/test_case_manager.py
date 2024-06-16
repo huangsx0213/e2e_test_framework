@@ -3,7 +3,7 @@ import re
 import json
 import pandas as pd
 from collections import defaultdict
-from libraries import logger
+from libraries.log_manager import logger_instance, logger
 
 
 class TestCaseManager:
@@ -107,7 +107,7 @@ class TestCaseManager:
                 raise ValueError("Save Fields format is invalid")
             logger.info(f"Validation passed in test step {test_step['TSID']}")
         except ValueError as e:
-            logger.error(f"Validation error in test step {test_step['TSID']}: {str(e)}")
+            logger.error(f"[TSID:{test_step['TSID']}]: Validation error in test step {test_step['TSID']}: {str(e)}")
             raise
 
     def _file_exists_in_dir(self, file_name, dir_path, extensions):

@@ -2,7 +2,7 @@ import os
 import re
 import json
 from typing import Dict, Any
-from libraries import logger
+from libraries.log_manager import logger_instance, logger
 from .utility_helpers import UtilityHelpers
 from .variable_generator import VariableGenerator
 
@@ -17,23 +17,23 @@ class HeadersGenerator:
         try:
             original_headers = self._load_headers(headers_filename, test_step)
             logger.debug(
-                f"Headers for test step '{test_step['TSID']}' loaded from file: \n{self.format_json(original_headers)}")
+                f"[TSID:{test_step['TSID']}] Headers for test step '{test_step['TSID']}' loaded from file: \n{self.format_json(original_headers)}")
             headers = {k: self._replace_placeholders(v, saved_fields, headers_filename, test_step) for k, v in
                        original_headers.items()}
             logger.debug(
-                f"Headers for test step '{test_step['TSID']}' replaced placeholders: \n{self.format_json(headers)}")
+                f"[TSID:{test_step['TSID']}] Headers for test step '{test_step['TSID']}' replaced placeholders: \n{self.format_json(headers)}")
             return headers
         except KeyError as e:
-            logger.error(f"Headers file '{headers_filename}' not found in test step '{test_step['TSID']}': {str(e)}")
+            logger.error(f"[TSID:{test_step['TSID']}] Headers file '{headers_filename}' not found in test step '{test_step['TSID']}': {str(e)}")
             raise
 
         except json.JSONDecodeError as e:
             logger.error(
-                f"Invalid JSON format in headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
+                f"[TSID:{test_step['TSID']}] Invalid JSON format in headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
             raise
         except Exception as e:
             logger.error(
-                f"Error processing headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
+                f"[TSID:{test_step['TSID']}] Error processing headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
             raise
 
     def _load_headers(self, headers_filename: str, test_step: Dict[str, Any]) -> Dict[str, str]:
@@ -43,14 +43,14 @@ class HeadersGenerator:
                 headers_file_path += '.json'
             if not os.path.exists(headers_file_path):
                 logger.error(
-                    f"Headers file '{headers_filename}' not found in directory '{self.headers_dir}' for test step '{test_step['TSID']}'")
+                    f"[TSID:{test_step['TSID']}] Headers file '{headers_filename}' not found in directory '{self.headers_dir}' for test step '{test_step['TSID']}'")
                 raise
             with open(headers_file_path, 'r') as file:
                 headers = json.load(file)
             return headers
         except Exception as e:
             logger.error(
-                f"Error loading headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
+                f"[TSID:{test_step['TSID']}] Error loading headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
             raise
 
     def _replace_placeholders(self, value: Any, saved_fields: Dict[str, Any], headers_filename: str,
@@ -64,5 +64,5 @@ class HeadersGenerator:
             return value
         except Exception as e:
             logger.error(
-                f"Error replacing placeholders in headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
+                f"[TSID:{test_step['TSID']}] Error replacing placeholders in headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
             raise

@@ -74,16 +74,12 @@
             font-weight: bold;
             font-size: 14px;
         }
-        .log-entry-header.pass {
-            background-color: #e6ffee;
-        }
-        .log-entry-header.fail {
-            background-color: #ffe6e6;
-        }
         code {
             background-color: #f5f5f5;
-            padding: 2px 4px;
-            border-radius: 3px;
+            padding: 5px;
+            border-radius: 5px;
+            display: block;
+            white-space: pre-wrap;
             font-family: 'Courier New', Courier, monospace;
         }
     </style>
@@ -116,7 +112,7 @@
                 <td style="color: {{ 'green' if result.result == 'PASS' else 'red' }}">{{ result.result }}</td>
                 <td>{{ result.execution_time }}</td>
                 <td>
-                    {% if result.logs|selectattr('details')|reject('equalto', '')|list %}
+                    {% if result.logs|list %}
                         <span class="toggle-indicator" onclick="toggleLogContent('{{ result.tsid }}')">[+]</span>
                     {% endif %}
                 </td>
@@ -126,19 +122,9 @@
                     <ul>
                         {% for log in result.logs %}
                         <li class="log-entry">
-                            <div class="log-entry-header {{ log.result }}" onclick="toggleContent('{{ log.log_id }}')">
-                                [{{ log.timestamp }}] {{ log.level }}: {{ log.message }}
-                                {% if log.details %}
-                                    <span class="toggle-indicator" id="indicator-{{ log.log_id }}">[-]</span>
-                                {% endif %}
+                            <div class="log-entry-header {{ log.result }}">
+                                [{{ log.timestamp }}] {{ log.level }}<pre><code>{{ log.message | escape_xml }}</code></pre>
                             </div>
-                            {% if log.details %}
-                                <ul class="log-entry-content" id="content-{{ log.log_id }}">
-                                    <li>
-                                        <pre><code>{{ log.details | escape }}</code></pre>
-                                    </li>
-                                </ul>
-                            {% endif %}
                         </li>
                         {% endfor %}
                     </ul>
@@ -154,19 +140,6 @@
             var indicator = content.previousElementSibling.querySelector('.toggle-indicator');
             if (content.style.display === "none" || content.style.display === "") {
                 content.style.display = "table-row";
-                indicator.textContent = "[-]";
-            } else {
-                content.style.display = "none";
-                indicator.textContent = "[+]";
-            }
-        }
-
-        // Function to toggle the visibility of individual log entries
-        function toggleContent(log_id) {
-            var content = document.getElementById('content-' + log_id);
-            var indicator = document.getElementById('indicator-' + log_id);
-            if (content.style.display === "none" || content.style.display === "") {
-                content.style.display = "block";
                 indicator.textContent = "[-]";
             } else {
                 content.style.display = "none";

@@ -2,7 +2,7 @@ import json
 import re
 from typing import Dict, Any, Union
 import requests
-from libraries import logger
+from libraries.log_manager import logger_instance, logger
 import xmltodict
 
 from libraries.utility_helpers import UtilityHelpers
@@ -13,18 +13,18 @@ class ResponseComparator:
         self.format_xml = UtilityHelpers.format_xml
         self.format_json = UtilityHelpers.format_json
 
-    def extract_response_content(self, response: requests.Response) -> Union[Dict[str, Any], str]:
+    def extract_response_content(self, response: requests.Response, test_step) -> Union[Dict[str, Any], str]:
         try:
             response = response.json()
-            logger.debug(f"Response content: \n{self.format_json(response)}")
+            logger.debug(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_json(response)}")
             return response
         except json.JSONDecodeError as json_error:
-            logger.warning(f"JSON decode error: {json_error}. Attempting XML parse.")
+            logger.warning(f"[TSID:{test_step['TSID']}] JSON decode error: {json_error}. Attempting XML parse.")
             try:
-                logger.debug(f"Response content: \n{self.format_xml(response.text)}")
+                logger.debug(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_xml(response.text)}")
                 return xmltodict.parse(response.text)
             except Exception as xml_error:
-                logger.error(f"XML parse error: {xml_error}. Returning raw response text.")
+                logger.error(f"[TSID:{test_step['TSID']}] XML parse error: {xml_error}. Returning raw response text.")
                 return response.text
 
     def compare_response_field(self, actual_response: Union[Dict[str, Any], str], expectation: str) -> Dict[str, Any]:

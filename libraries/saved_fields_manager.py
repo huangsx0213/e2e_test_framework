@@ -1,7 +1,7 @@
 import yaml
 import os
 from typing import Dict, Any
-from libraries import logger
+from libraries.log_manager import logger_instance, logger
 
 
 class SavedFieldsManager:

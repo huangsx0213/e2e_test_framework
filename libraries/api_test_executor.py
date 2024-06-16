@@ -8,7 +8,7 @@ from libraries.response_handler import ResponseHandler
 from libraries.saved_fields_manager import SavedFieldsManager
 from libraries.test_case_manager import TestCaseManager
 from libraries.utility_helpers import UtilityHelpers
-from libraries import logger
+from libraries.log_manager import logger_instance, logger
 
 
 class APITestExecutor:
@@ -56,7 +56,6 @@ class APITestExecutor:
             for tc_id, test_case in filtered_cases.items():
                 # Run test-level setup if defined
                 self.run_test_setup(test_case)
-
                 logger.info(f"Running test case {tc_id}")
 
                 self.run_test_case(test_case, tc_id)
@@ -74,7 +73,7 @@ class APITestExecutor:
         finally:
             # Perform delayed Excel operations after all test cases are executed or an error is encountered
             self.response_handler.apply_pending_operations()
-            # self.response_handler.generate_html_report()
+            self.response_handler.generate_html_report()
 
     def run_suite_setup(self, filtered_cases) -> None:
         for tc_id, test_case in filtered_cases.items():
@@ -148,7 +147,6 @@ class APITestExecutor:
             ex_body_modifications: str = test_step['Body Modifications']
             ex_exp_result: str = test_step['Exp Result']
             ex_fields_to_save: str = test_step['Save Fields']
-
             logger.info(f"Starting execution of test step {ex_ts_id}")
             current_endpoint: Union[Dict[str, Any], None] = self.endpoints.get(ex_endpoint, None)
             if current_endpoint is None:
