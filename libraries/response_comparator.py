@@ -21,7 +21,7 @@ class ResponseComparator:
         except json.JSONDecodeError as json_error:
             logger.warning(f"[TSID:{test_step['TSID']}] JSON decode error: {json_error}. Attempting XML parse.")
             try:
-                logger.debug(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_xml(response.text)}")
+                logger.debug(f"[TSID:{test_step['TSID']}] Response content: \n{response.text}")
                 return xmltodict.parse(response.text)
             except Exception as xml_error:
                 logger.error(f"[TSID:{test_step['TSID']}] XML parse error: {xml_error}. Returning raw response text.")
