@@ -34,20 +34,24 @@ class ResponseComparator:
             except ValueError:
                 return self.create_error_comparison_result(expectation, "Invalid [Exp Result] format")
 
-            expected_value = expected_value.strip().strip('""').strip("''")
-            actual_value = self.extract_actual_value(actual_response, field_path)
+            if field_path.startswith("response"):
+                expected_value = expected_value.strip().strip('""').strip("''")
+                actual_value = self.extract_actual_value(actual_response, field_path)
 
-            if actual_value is None:
-                return self.create_error_comparison_result(field_path, "Field not found")
-            return self.create_comparison_result(field_path, actual_value, expected_value)
+                if actual_value is None:
+                    return self.create_error_comparison_result(field_path, "Field not found")
+                return self.create_comparison_result(field_path, actual_value, expected_value)
+            return self.create_not_specified_result()
         else:
             return self.create_not_specified_result()
+
     def get_save_result(self, actual_response: Union[Dict[str, Any], str], field_path: str):
         actual_value = self.extract_actual_value(actual_response, field_path)
         if actual_value is None:
             return self.create_error_comparison_result(field_path, "Field not found")
         else:
             return self.create_save_result(field_path, actual_value)
+
     def extract_actual_value(self, actual_response: Union[Dict[str, Any], str], field_path: str) -> str:
         def _extract_value(data, parts):
             if not parts:
@@ -67,9 +71,9 @@ class ResponseComparator:
 
         parts = field_path.split('.')
 
-        if isinstance(actual_response, list) and 'response[' in parts[0]:
-            match = re.match(r'response\[(\d+)\]', parts[0])
-            array_index = int(match.group(1))
+        if isinstance(actual_response, list) and '[' in parts[0] and ']' in parts[0]:
+            match = re.match(r'([a-zA-Z_][a-zA-Z0-9_]*)(\[\d+\])?', parts[0])
+            array_index = int(match.group(2)[1:-1])
             actual_response = actual_response[array_index]
         try:
             return _extract_value(actual_response, parts[1:])
@@ -99,6 +103,7 @@ class ResponseComparator:
             "actual_value": "N/A",
             "result": "Not specified"
         }
+
     def create_save_result(self, field_path, actual_value) -> Dict[str, Any]:
         return {
             "field": field_path,

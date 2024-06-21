@@ -19,10 +19,10 @@ class ResponseHandler:
         self.comparator = ResponseComparator()
 
     def process_and_store_results(self, response: requests.Response, test_step, test_cases_path: str,
-                                  test_case_manager, execution_time: float) -> None:
+                                  test_case_manager, execution_time: float) -> str:
         try:
             actual_status: int = response.status_code
-            actual_response: Union[Dict[str, Any], str] = self.comparator.extract_response_content(response,test_step)
+            actual_response: Union[Dict[str, Any], str] = self.comparator.extract_response_content(response, test_step)
 
             # actual_results
             expected_lines = self._split_lines(test_step['Exp Result'])
@@ -56,8 +56,7 @@ class ResponseHandler:
     def apply_pending_operations(self) -> None:
         self.pending_operations = self.excel_manager.apply_pending_operations()
 
-
-    def generate_html_report(self):
+    def generate_html_report(self) -> None:
         self.html_report_generator.generate_html_report(self.pending_operations)
 
     def format_comparison_results(self, results: list) -> str:
@@ -66,10 +65,13 @@ class ResponseHandler:
     def format_fields_to_save(self, fields_saved_results: list) -> str:
         return '\n'.join(f"{res['field']}={res['actual_value']}" for res in fields_saved_results)
 
-    def format_fields_to_save_yaml(self, test_step, fields_saved_results: list) -> str:
+    def format_fields_to_save_yaml(self, test_step, fields_saved_results: list) -> Dict[str, Any]:
         return {
             f"{test_step['TSID']}.{res['field']}": res['actual_value'] for res in fields_saved_results
         }
 
     def _split_lines(self, lines: str) -> list:
         return lines.strip().split('\n') if pd.notna(lines) else []
+
+    def extract_response_content(self, response: requests.Response, test_step) -> Union[Dict[str, Any], str]:
+        return self.comparator.extract_response_content(response, test_step)

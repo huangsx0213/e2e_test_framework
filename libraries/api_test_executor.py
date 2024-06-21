@@ -130,17 +130,18 @@ class APITestExecutor:
                     raise Exception(f"Condition {tc_id} failed, skipping to the next case.")
 
     def run_test_case(self, test_case: List[Dict[str, Union[str, Any]]], tc_id: str) -> None:
+        test_step_result = False
         for test_step in test_case:
-            test_step_result = self.execute_test_step(test_step)
+            test_step_result = self.handle_check_with_conditions(test_step)
+            #test_step_result = self.execute_test_step(test_step)
             if not test_step_result:
                 logger.info(f"Test case {tc_id} failed, skipping to next case.")
                 break
 
-    @UtilityHelpers.time_calculation()
-    def execute_test_step(self, test_step: Dict[str, Union[str, Any]]) -> bool:
+    def execute_test_step(self, test_step: Dict[str, Union[str, Any]], save_response: bool = False) -> Union[
+        Dict[str, Any], str, None]:
         try:
             ex_ts_id: str = test_step['TSID']
-            # logger_instance.set_context(ts_id=ex_ts_id, result='Pending')
             ex_endpoint: str = test_step['Endpoint']
             ex_headers: str = test_step['Headers']
             ex_defaults_body: str = test_step['Defaults']
@@ -176,7 +177,72 @@ class APITestExecutor:
 
             logger.info(f"Finished execution of test step {ex_ts_id}")
             logger.info("============================================")
+
+            if save_response:
+                return self.response_handler.extract_response_content(response, test_step)
+
             return True
         except Exception as e:
             logger.error(f"Failed to execute test step {ex_ts_id}: {str(e)}")
+            return False
+
+    def handle_check_with_conditions(self, test_step: Dict[str, Union[str, Any]]) -> bool:
+        try:
+            conditions = test_step['Conditions'].splitlines() if test_step.get('Conditions') else []
+            check_tc_ids = set()  # 使用集合来存储唯一的 check_tc_id
+
+            # 解析所有 [check with] 的条件，并获取相应的 tc_id
+            for condition in conditions:
+                if "[check with]" in condition:
+                    check_tc_id = condition.split("[check with]")[1].strip()
+                    check_tc_ids.add(check_tc_id)
+
+            # 在执行当前 test step 之前分别执行所有的 check_tc_id
+            pre_check_responses = {}
+            for check_tc_id in check_tc_ids:
+                check_step = self.test_case_manager.get_conditions_by_tc_id(check_tc_id)
+                pre_check_responses[check_tc_id] = self.execute_test_step(check_step[0], save_response=True)
+
+            # 执行当前 test step
+            target_response = self.execute_test_step(test_step, save_response=True)
+
+            # 在执行当前 test step 之后再次执行所有的 check_tc_id
+            post_check_responses = {}
+            for check_tc_id in check_tc_ids:
+                check_step = self.test_case_manager.get_conditions_by_tc_id(check_tc_id)
+                post_check_responses[check_tc_id] = self.execute_test_step(check_step[0], save_response=True)
+
+            # 检查预期结果
+            for expectation in test_step['Exp Result'].splitlines():
+                field_path, expected_value = expectation.split('=')
+                field_path = field_path.strip()
+                expected_value = expected_value.strip()
+                if field_path.startswith(tuple(check_tc_ids)):
+                    # 需要检查的行
+                    check_tc_id, _ = field_path.split('.', 1)
+                    check_tc_id, _ = check_tc_id.split('[', 1)
+                    expected_delta = int(expected_value)  # 直接转换为整数以支持正负号
+
+                    # 获取 pre 和 post 的值
+                    pre_value = self.response_handler.comparator.extract_actual_value(pre_check_responses[check_tc_id],
+                                                                                      field_path)
+                    post_value = self.response_handler.comparator.extract_actual_value(post_check_responses[check_tc_id],
+                                                                                       field_path)
+
+                    delta = post_value - pre_value
+                    if delta == expected_delta:
+                        logger.info(f"Check-with condition passed for {field_path}: {delta} == {expected_delta}")
+                    else:
+                        raise AssertionError(f"Check-with condition failed for {field_path}: {delta} != {expected_delta}")
+                else:
+                    # 非检查行（当前步骤的响应检查行）
+                    actual_value = self.response_handler.comparator.extract_actual_value(target_response, field_path)
+                    if str(actual_value) == expected_value:
+                        logger.info(f"Expectation passed for {field_path}: {actual_value} == {expected_value}")
+                    else:
+                        logger.info(f"Expectation failed for {field_path}: {actual_value} != {expected_value}")
+
+            return True
+        except Exception as e:
+            logger.error(f"Failed to execute test step {test_step['TCID']}: {str(e)}")
             return False

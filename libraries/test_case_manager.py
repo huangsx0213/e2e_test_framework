@@ -66,7 +66,7 @@ class TestCaseManager:
                 conditions = test_step["Conditions"].splitlines()
                 for condition in conditions:
                     if not any(x in condition for x in
-                               ["[suite setup]", "[test setup]", "[suite teardown]", "[test teardown]"]):
+                               ["[suite setup]", "[test setup]", "[suite teardown]", "[test teardown]", "[check with]"]):
                         raise ValueError(f"Condition '{condition}' is invalid")
                     referenced_tcid = condition.split("]")[1].strip()
                     if referenced_tcid not in test_cases:
