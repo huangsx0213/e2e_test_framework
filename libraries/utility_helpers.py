@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from functools import wraps
 from lxml import etree
@@ -67,3 +68,13 @@ class UtilityHelpers:
             return wrapper
 
         return decorator
+
+    @staticmethod
+    def find_project_root(current_dir=os.getcwd()):
+        while True:
+            if os.path.exists(os.path.join(current_dir, '.project_root')):
+                return current_dir
+            parent = os.path.dirname(current_dir)
+            if parent == current_dir:
+                raise FileNotFoundError("Project root not found")
+            current_dir = parent

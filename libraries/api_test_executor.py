@@ -10,10 +10,10 @@ from libraries.test_case_manager import TestCaseManager
 from libraries.utility_helpers import UtilityHelpers
 from libraries.log_manager import logger_instance, logger
 
-
+PROJECT_ROOT = UtilityHelpers.find_project_root()
 class APITestExecutor:
-    def __init__(self, config_path: str = 'configs/config.yaml',
-                 test_config_path: str = 'configs/test_config.yaml') -> None:
+    def __init__(self, config_path: str = os.path.join(PROJECT_ROOT, 'configs', 'config.yaml'),
+                 test_config_path: str = os.path.join(PROJECT_ROOT, 'configs', 'test_config.yaml')) -> None:
         self.test_cases_path: Union[str, None] = None
         self.test_case_manager: Union[TestCaseManager, None] = None
 
@@ -24,9 +24,9 @@ class APITestExecutor:
         self.endpoints: Dict = self.active_environment['endpoints']
 
         # Load other configurations
-        self.template_dir: str = 'configs/body_templates'
-        self.headers_dir: str = 'configs/headers'
-        self.body_defaults_dir: str = 'configs/body_defaults'
+        self.template_dir: str = os.path.join(PROJECT_ROOT, 'configs', 'body_templates')
+        self.headers_dir: str = os.path.join(PROJECT_ROOT, 'configs', 'headers')
+        self.body_defaults_dir: str = os.path.join(PROJECT_ROOT, 'configs', 'body_defaults')
 
         # Initialize other components
         self.saved_fields_manager: SavedFieldsManager = SavedFieldsManager()
@@ -40,13 +40,13 @@ class APITestExecutor:
 
     @UtilityHelpers.time_calculation()
     def run_test_suite(self, test_cases_path: str = None, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
-        test_cases_path = test_cases_path or self.test_config.get('test_cases_path', 'test_cases/test_cases.xlsx')
+        test_cases_path = test_cases_path or self.test_config.get('test_cases_path', os.path.join(PROJECT_ROOT, 'test_cases', 'test_cases.xlsx'))
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
-        self.test_cases_path = test_cases_path
+        self.test_cases_path = os.path.join(PROJECT_ROOT, test_cases_path)
 
         try:
-            self.test_case_manager = TestCaseManager(test_cases_path, self.endpoints, self.headers_dir,
+            self.test_case_manager = TestCaseManager(self.test_cases_path, self.endpoints, self.headers_dir,
                                                      self.template_dir, self.body_defaults_dir)
             filtered_cases = self.test_case_manager.filter_test_cases(tcid_list=tc_id_list, tags=tags)
             logger.debug(f"Successfully loaded test cases from {test_cases_path}")
