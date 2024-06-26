@@ -1,12 +1,14 @@
 import yaml
 import os
 from typing import Dict, Any
-from libraries.log_manager import logger_instance, logger
+from libraries.log_manager import logger
+from libraries.utility_helpers import PROJECT_ROOT
 
 
 class SavedFieldsManager:
-    def __init__(self, file_path: str = 'configs/saved_fields.yaml') -> None:
-        self.file_path: str = file_path
+    def __init__(self, file_path: str = None) -> None:
+        self.project_root: str = PROJECT_ROOT
+        self.file_path: str = file_path or os.path.join(self.project_root, 'configs', 'saved_fields.yaml')
 
     def load_saved_fields(self) -> Dict[str, Any]:
         if not os.path.exists(self.file_path):

@@ -3,7 +3,8 @@ import os
 import time
 from functools import wraps
 from lxml import etree
-from libraries.log_manager import logger_instance, logger
+
+
 class UtilityHelpers:
     @staticmethod
     def get_file_format(file_path: str) -> str:
@@ -15,8 +16,8 @@ class UtilityHelpers:
         elif file_path.endswith('.xml'):
             return 'xml'
         else:
-            logger.error(f"Unsupported file format for file: {file_path}")
-            raise ValueError("Unsupported file format")
+            raise ValueError(f"Unsupported file format for file: {file_path}")
+
     @staticmethod
     def escape_xml(value):
         """Escape XML characters."""
@@ -53,6 +54,7 @@ class UtilityHelpers:
             return formatted_xml.strip()
         except Exception as e:
             raise ValueError(f"Invalid XML data: {str(e)}")
+
     @staticmethod
     def time_calculation():
         def decorator(func):
@@ -62,6 +64,7 @@ class UtilityHelpers:
                 result = func(*args, **kwargs)
                 end_time = time.time()
                 execution_time = end_time - start_time
+                from libraries.log_manager import logger
                 logger.info(f"Function {func.__name__} executed in {execution_time:.4f} seconds")
                 return result
 
@@ -70,7 +73,7 @@ class UtilityHelpers:
         return decorator
 
     @staticmethod
-    def find_project_root(current_dir=os.getcwd()):
+    def _find_project_root(current_dir=os.getcwd()):
         while True:
             if os.path.exists(os.path.join(current_dir, '.project_root')):
                 return current_dir
@@ -78,3 +81,21 @@ class UtilityHelpers:
             if parent == current_dir:
                 raise FileNotFoundError("Project root not found")
             current_dir = parent
+
+    @staticmethod
+    def get_project_root():
+        # 尝试从脚本所在目录查找
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = UtilityHelpers._find_project_root(script_dir)
+
+        if project_root is None:
+            # 如果失败，尝试从当前工作目录查找
+            current_dir = os.getcwd()
+            project_root = UtilityHelpers._find_project_root(current_dir)
+
+        if project_root is None:
+            raise FileNotFoundError("Project root not found")
+
+        return project_root
+
+PROJECT_ROOT = UtilityHelpers.get_project_root()

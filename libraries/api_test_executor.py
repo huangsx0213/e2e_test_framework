@@ -7,13 +7,17 @@ from libraries.headers_generator import HeadersGenerator
 from libraries.response_handler import ResponseHandler
 from libraries.saved_fields_manager import SavedFieldsManager
 from libraries.test_case_manager import TestCaseManager
-from libraries.utility_helpers import UtilityHelpers
-from libraries.log_manager import logger_instance, logger
+from libraries.utility_helpers import UtilityHelpers, PROJECT_ROOT
+from libraries.log_manager import logger
 
-PROJECT_ROOT = UtilityHelpers.find_project_root()
+
 class APITestExecutor:
-    def __init__(self, config_path: str = os.path.join(PROJECT_ROOT, 'configs', 'config.yaml'),
-                 test_config_path: str = os.path.join(PROJECT_ROOT, 'configs', 'test_config.yaml')) -> None:
+    def __init__(self, config_path: str = None, test_config_path: str = None) -> None:
+        self.project_root: str = PROJECT_ROOT
+        config_path = os.path.join(self.project_root, 'configs',
+                                   'config.yaml') if config_path is None else config_path
+        test_config_path = os.path.join(self.project_root, 'configs',
+                                        'test_config.yaml') if test_config_path is None else test_config_path
         self.test_cases_path: Union[str, None] = None
         self.test_case_manager: Union[TestCaseManager, None] = None
 
@@ -24,9 +28,9 @@ class APITestExecutor:
         self.endpoints: Dict = self.active_environment['endpoints']
 
         # Load other configurations
-        self.template_dir: str = os.path.join(PROJECT_ROOT, 'configs', 'body_templates')
-        self.headers_dir: str = os.path.join(PROJECT_ROOT, 'configs', 'headers')
-        self.body_defaults_dir: str = os.path.join(PROJECT_ROOT, 'configs', 'body_defaults')
+        self.template_dir: str = os.path.join(self.project_root, 'configs', 'body_templates')
+        self.headers_dir: str = os.path.join(self.project_root, 'configs', 'headers')
+        self.body_defaults_dir: str = os.path.join(self.project_root, 'configs', 'body_defaults')
 
         # Initialize other components
         self.saved_fields_manager: SavedFieldsManager = SavedFieldsManager()
@@ -40,16 +44,18 @@ class APITestExecutor:
 
     @UtilityHelpers.time_calculation()
     def run_test_suite(self, test_cases_path: str = None, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
-        test_cases_path = test_cases_path or self.test_config.get('test_cases_path', os.path.join(PROJECT_ROOT, 'test_cases', 'test_cases.xlsx'))
+        if not test_cases_path:
+            test_cases_path = os.path.join(self.project_root,  self.test_config.get('test_cases_path',
+                                                                       os.path.join('test_cases', 'test_cases.xlsx')))
+        self.test_cases_path = test_cases_path
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
-        self.test_cases_path = os.path.join(PROJECT_ROOT, test_cases_path)
 
         try:
             self.test_case_manager = TestCaseManager(self.test_cases_path, self.endpoints, self.headers_dir,
                                                      self.template_dir, self.body_defaults_dir)
             filtered_cases = self.test_case_manager.filter_test_cases(tcid_list=tc_id_list, tags=tags)
-            logger.debug(f"Successfully loaded test cases from {test_cases_path}")
+            logger.debug(f"Successfully loaded test cases from {self.test_cases_path}")
             # Run suite-level setup if defined
             self.run_suite_setup(filtered_cases)
 
@@ -133,7 +139,7 @@ class APITestExecutor:
         test_step_result = False
         for test_step in test_case:
             test_step_result = self.handle_check_with_conditions(test_step)
-            #test_step_result = self.execute_test_step(test_step)
+            # test_step_result = self.execute_test_step(test_step)
             if not test_step_result:
                 logger.info(f"Test case {tc_id} failed, skipping to next case.")
                 break
@@ -226,14 +232,16 @@ class APITestExecutor:
                     # 获取 pre 和 post 的值
                     pre_value = self.response_handler.comparator.extract_actual_value(pre_check_responses[check_tc_id],
                                                                                       field_path)
-                    post_value = self.response_handler.comparator.extract_actual_value(post_check_responses[check_tc_id],
-                                                                                       field_path)
+                    post_value = self.response_handler.comparator.extract_actual_value(
+                        post_check_responses[check_tc_id],
+                        field_path)
 
                     delta = post_value - pre_value
                     if delta == expected_delta:
                         logger.info(f"Check-with condition passed for {field_path}: {delta} == {expected_delta}")
                     else:
-                        raise AssertionError(f"Check-with condition failed for {field_path}: {delta} != {expected_delta}")
+                        raise AssertionError(
+                            f"Check-with condition failed for {field_path}: {delta} != {expected_delta}")
                 else:
                     # 非检查行（当前步骤的响应检查行）
                     actual_value = self.response_handler.comparator.extract_actual_value(target_response, field_path)

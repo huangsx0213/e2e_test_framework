@@ -5,6 +5,7 @@ import re
 import yaml
 import uuid
 from datetime import datetime
+from libraries.utility_helpers import PROJECT_ROOT
 
 
 class HTMLLogHandler(logging.Handler):
@@ -39,9 +40,11 @@ class Logger:
             cls._instance = super(Logger, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self, config_path='configs/logging_config.yaml'):
+    def __init__(self, config_path=None):
+        self.project_root: str = PROJECT_ROOT
+
         if not hasattr(self, 'initialized'):
-            self.config_path = config_path
+            self.config_path: str = config_path or os.path.join(self.project_root, 'configs', 'logging_config.yaml')
             self.log_file_name = ''
             self.logger = None
             self.load_config()
@@ -53,7 +56,7 @@ class Logger:
                 config = yaml.safe_load(file)
                 self.log_file_name = f"e2e_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 # Generate dynamic log file name with timestamp
-                log_file_name = f"logs/{self.log_file_name}.log"
+                log_file_name = os.path.join(self.project_root, 'logs', f"{self.log_file_name}.log")
 
                 # Ensure the directory for the log file exists
                 log_dir = os.path.dirname(log_file_name)
