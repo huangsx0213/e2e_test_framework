@@ -1,8 +1,8 @@
 import yaml
 import os
 from typing import Dict, Any
-from libraries.log_manager import logger
-from libraries.utility_helpers import PROJECT_ROOT
+from libraries.api.log_manager import logger
+from libraries.api.utility_helpers import PROJECT_ROOT
 
 
 class SavedFieldsManager:

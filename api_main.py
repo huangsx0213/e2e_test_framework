@@ -1,4 +1,4 @@
-from libraries.api_test_executor import APITestExecutor
+from libraries.api.api_test_executor import APITestExecutor
 
 if __name__ == "__main__":
     api_requester = APITestExecutor()

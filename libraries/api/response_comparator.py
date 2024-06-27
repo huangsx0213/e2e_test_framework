@@ -2,10 +2,10 @@ import json
 import re
 from typing import Dict, Any, Union
 import requests
-from libraries.log_manager import logger_instance, logger
+from libraries.api.log_manager import logger
 import xmltodict
 
-from libraries.utility_helpers import UtilityHelpers
+from libraries.api.utility_helpers import UtilityHelpers
 
 
 class ResponseComparator:

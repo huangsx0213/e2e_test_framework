@@ -2,11 +2,11 @@ import json
 import pandas as pd
 import requests
 from typing import Dict, Any, Union
-from libraries.log_manager import logger_instance, logger
-from libraries.excel_operation_manager import ExcelOperationManager
-from libraries.html_report_generator import HTMLReportGenerator
-from libraries.response_comparator import ResponseComparator
-from libraries.saved_fields_manager import SavedFieldsManager
+from libraries.api.log_manager import logger
+from libraries.api.excel_operation_manager import ExcelOperationManager
+from libraries.api.html_report_generator import HTMLReportGenerator
+from libraries.api.response_comparator import ResponseComparator
+from libraries.api.saved_fields_manager import SavedFieldsManager
 
 
 class ResponseHandler:

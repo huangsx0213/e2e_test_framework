@@ -2,7 +2,7 @@ import os
 import re
 import json
 from typing import Dict, Any
-from libraries.log_manager import logger_instance, logger
+from libraries.api.log_manager import logger
 from .utility_helpers import UtilityHelpers
 from .variable_generator import VariableGenerator
 

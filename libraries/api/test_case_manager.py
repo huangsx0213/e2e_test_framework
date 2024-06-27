@@ -3,7 +3,7 @@ import re
 import json
 import pandas as pd
 from collections import defaultdict
-from libraries.log_manager import logger_instance, logger
+from libraries.api.log_manager import logger
 
 
 class TestCaseManager:

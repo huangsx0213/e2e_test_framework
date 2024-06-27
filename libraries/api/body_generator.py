@@ -6,7 +6,7 @@ from .config_manager import ConfigManager
 from .utility_helpers import UtilityHelpers
 from .variable_generator import VariableGenerator
 from .template_renderer import TemplateRenderer
-from libraries.log_manager import logger_instance, logger
+from libraries.api.log_manager import logger
 
 class BodyGenerator:
     def __init__(self, template_dir: str, body_defaults_dir: str) -> None:

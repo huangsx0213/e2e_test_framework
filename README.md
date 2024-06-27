@@ -39,7 +39,7 @@ The API Test Framework is designed to facilitate automated testing of various AP
 To execute the tests, run the main script:
 
 ```sh
-python main.py
+python api_main.py
 ```
 
 This will run the test suite based on the configurations provided in `configs/test_config.yaml`.
@@ -77,7 +77,7 @@ TC001_01.response.amount: 100
 Specifies the path to the test cases, test case IDs to run, tags for filtering, and log level.
 
 ```yaml
-test_cases_path: 'test_cases/test_cases.xlsx'
+test_cases_path: 'test_cases/web_test_cases.xlsx'
 tc_id_list:
   - 'TC001'
 tags:

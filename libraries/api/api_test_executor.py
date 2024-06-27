@@ -1,14 +1,14 @@
 import os
 from typing import Dict, List, Union, Any
-from libraries.config_manager import ConfigManager
-from libraries.request_sender import RequestSender
-from libraries.body_generator import BodyGenerator
-from libraries.headers_generator import HeadersGenerator
-from libraries.response_handler import ResponseHandler
-from libraries.saved_fields_manager import SavedFieldsManager
-from libraries.test_case_manager import TestCaseManager
-from libraries.utility_helpers import UtilityHelpers, PROJECT_ROOT
-from libraries.log_manager import logger
+from libraries.api.config_manager import ConfigManager
+from libraries.api.request_sender import RequestSender
+from libraries.api.body_generator import BodyGenerator
+from libraries.api.headers_generator import HeadersGenerator
+from libraries.api.response_handler import ResponseHandler
+from libraries.api.saved_fields_manager import SavedFieldsManager
+from libraries.api.test_case_manager import TestCaseManager
+from libraries.api.utility_helpers import UtilityHelpers, PROJECT_ROOT
+from libraries.api.log_manager import logger
 
 
 class APITestExecutor:
@@ -46,7 +46,7 @@ class APITestExecutor:
     def run_test_suite(self, test_cases_path: str = None, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
         if not test_cases_path:
             test_cases_path = os.path.join(self.project_root,  self.test_config.get('test_cases_path',
-                                                                       os.path.join('test_cases', 'test_cases.xlsx')))
+                                                                       os.path.join('test_cases', 'web_test_cases.xlsx')))
         self.test_cases_path = test_cases_path
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
