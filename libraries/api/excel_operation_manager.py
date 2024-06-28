@@ -46,7 +46,7 @@ class ExcelOperationManager:
                 raise
         try:
             workbook = self.workbook_cache[file_path]
-            sheet = workbook.active
+            sheet = workbook["API"]
             actual_status_col_idx = self.get_excel_column_index(sheet, "Act Status")
             actual_result_col_idx = self.get_excel_column_index(sheet, "Act Result")
             overall_result_col_idx = self.get_excel_column_index(sheet, "Result")

@@ -17,7 +17,7 @@ class TestCaseManager:
         self.test_cases = self._read_test_cases()
 
     def _read_test_cases(self):
-        test_cases_df = pd.read_excel(self.file_path, sheet_name='Active')
+        test_cases_df = pd.read_excel(self.file_path, sheet_name='API')
         test_cases_df = test_cases_df.fillna("")
         self.test_cases_df = test_cases_df
         test_cases = defaultdict(list)
