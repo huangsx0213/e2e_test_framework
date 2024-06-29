@@ -1,6 +1,6 @@
 import os
 from typing import Dict, List, Union, Any
-from libraries.api.config_manager import ConfigManager
+from libraries.common.config_manager import ConfigManager
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
 from libraries.api.headers_generator import HeadersGenerator
@@ -8,7 +8,7 @@ from libraries.api.response_handler import ResponseHandler
 from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.api.test_case_manager import TestCaseManager
 from libraries.api.utility_helpers import UtilityHelpers, PROJECT_ROOT
-from libraries.api.log_manager import logger
+from libraries.common.log_manager import logger
 
 
 class APITestExecutor:

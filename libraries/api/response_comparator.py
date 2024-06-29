@@ -2,7 +2,7 @@ import json
 import re
 from typing import Dict, Any, Union
 import requests
-from libraries.api.log_manager import logger
+from libraries.common.log_manager import logger
 import xmltodict
 
 from libraries.api.utility_helpers import UtilityHelpers

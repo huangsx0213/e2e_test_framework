@@ -1,7 +1,7 @@
 import yaml
 import os
 from typing import Dict, Any
-from libraries.api.log_manager import logger
+from libraries.common.log_manager import logger
 from libraries.api.utility_helpers import PROJECT_ROOT
 
 

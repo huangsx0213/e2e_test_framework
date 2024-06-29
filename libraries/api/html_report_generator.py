@@ -1,6 +1,6 @@
 import os
 from jinja2 import Environment, FileSystemLoader
-from libraries.api.log_manager import logger_instance
+from libraries.common.log_manager import logger_instance
 from libraries.api.utility_helpers import UtilityHelpers, PROJECT_ROOT
 
 

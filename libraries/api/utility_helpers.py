@@ -64,7 +64,7 @@ class UtilityHelpers:
                 result = func(*args, **kwargs)
                 end_time = time.time()
                 execution_time = end_time - start_time
-                from libraries.api.log_manager import logger
+                from libraries.common.log_manager import logger
                 logger.info(f"Function {func.__name__} executed in {execution_time:.4f} seconds")
                 return result
 

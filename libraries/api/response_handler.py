@@ -2,7 +2,7 @@ import json
 import pandas as pd
 import requests
 from typing import Dict, Any, Union
-from libraries.api.log_manager import logger
+from libraries.common.log_manager import logger
 from libraries.api.excel_operation_manager import ExcelOperationManager
 from libraries.api.html_report_generator import HTMLReportGenerator
 from libraries.api.response_comparator import ResponseComparator
