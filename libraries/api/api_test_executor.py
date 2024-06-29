@@ -12,7 +12,7 @@ from libraries.api.log_manager import logger
 
 
 class APITestExecutor:
-    def __init__(self, config_path: str = None, test_config_path: str = None) -> None:
+    def __init__(self, config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
         config_path = os.path.join(self.project_root, 'configs',
                                    'config.yaml') if config_path is None else config_path
@@ -38,22 +38,29 @@ class APITestExecutor:
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.headers_dir)
         self.response_handler: ResponseHandler = ResponseHandler()
 
+        # Initialize test_cases_path
+        if test_cases_path is None:
+            default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
+            self.test_cases_path: str = os.path.join(self.project_root, self.test_config.get('test_cases_path',
+                                                                                             default_test_cases_path))
+        else:
+            self.test_cases_path: str = test_cases_path
+
+        # Initialize test_case_manager
+        self.test_case_manager: TestCaseManager = TestCaseManager(self.test_cases_path, self.endpoints,
+                                                                  self.headers_dir,
+                                                                  self.template_dir, self.body_defaults_dir)
+
         # Flags to track if suite-level setup and teardown have been run
         self.suite_setup_run = False
         self.suite_teardown_run = False
 
     @UtilityHelpers.time_calculation()
-    def run_test_suite(self, test_cases_path: str = None, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
-        if not test_cases_path:
-            test_cases_path = os.path.join(self.project_root,  self.test_config.get('test_cases_path',
-                                                                       os.path.join('test_cases', 'web_test_cases.xlsx')))
-        self.test_cases_path = test_cases_path
+    def run_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
 
         try:
-            self.test_case_manager = TestCaseManager(self.test_cases_path, self.endpoints, self.headers_dir,
-                                                     self.template_dir, self.body_defaults_dir)
             filtered_cases = self.test_case_manager.filter_test_cases(tcid_list=tc_id_list, tags=tags)
             logger.debug(f"Successfully loaded test cases from {self.test_cases_path}")
             # Run suite-level setup if defined

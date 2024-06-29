@@ -14,8 +14,9 @@ class E2ETestExecutor:
             excel_reader.get_locators(),
             excel_reader.get_page_objects()
         )
-        self.api_test_executor = APITestExecutor()
         self.project_root: str = PROJECT_ROOT
+        e2e_test_cases_path = os.path.join(self.project_root, 'test_cases', 'e2e_test_cases.xlsx')
+        self.api_test_executor = APITestExecutor(test_cases_path=e2e_test_cases_path)
 
     def run_tests(self):
         test_cases = self.excel_reader.get_test_cases()
@@ -36,8 +37,7 @@ class E2ETestExecutor:
                 method_name = step['Method Name']
                 parameters = self._get_parameters(data_set, step['Parameter Name'])
                 if page_name == 'API' and method_name:
-                    test_cases_path = os.path.join(self.project_root, 'test_cases', 'e2e_test_cases.xlsx')
-                    self.api_test_executor.run_test_suite(test_cases_path=test_cases_path, tc_id_list=[method_name])
+                    self.api_test_executor.run_test_suite(tc_id_list=[method_name])
                 else:
                     self.page_object.execute_method(page_name, method_name, parameters)
 
