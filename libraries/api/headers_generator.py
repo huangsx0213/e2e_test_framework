@@ -3,7 +3,7 @@ import re
 import json
 from typing import Dict, Any
 from libraries.common.log_manager import logger
-from .utility_helpers import UtilityHelpers
+from libraries.common.utility_helpers import UtilityHelpers
 from .variable_generator import VariableGenerator
 
 

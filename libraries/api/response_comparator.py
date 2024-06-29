@@ -5,7 +5,7 @@ import requests
 from libraries.common.log_manager import logger
 import xmltodict
 
-from libraries.api.utility_helpers import UtilityHelpers
+from libraries.common.utility_helpers import UtilityHelpers
 
 
 class ResponseComparator:

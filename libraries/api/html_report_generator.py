@@ -1,7 +1,7 @@
 import os
 from jinja2 import Environment, FileSystemLoader
 from libraries.common.log_manager import logger_instance
-from libraries.api.utility_helpers import UtilityHelpers, PROJECT_ROOT
+from libraries.common.utility_helpers import UtilityHelpers, PROJECT_ROOT
 
 
 class HTMLReportGenerator:

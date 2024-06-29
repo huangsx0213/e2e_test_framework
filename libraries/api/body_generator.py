@@ -3,7 +3,7 @@ import os
 import re
 from typing import Any, Dict, Union
 from libraries.common.config_manager import ConfigManager
-from .utility_helpers import UtilityHelpers
+from libraries.common.utility_helpers import UtilityHelpers
 from .variable_generator import VariableGenerator
 from .template_renderer import TemplateRenderer
 from libraries.common.log_manager import logger

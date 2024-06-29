@@ -17,12 +17,10 @@ class TestCaseManager:
         self.test_cases = self._read_test_cases()
 
     def _read_test_cases(self):
-        test_cases_df = pd.read_excel(self.file_path, sheet_name='API')
-        test_cases_df = test_cases_df.fillna("")
-        self.test_cases_df = test_cases_df
+        self.test_cases_df = pd.read_excel(self.file_path, sheet_name='API').fillna("")
         test_cases = defaultdict(list)
 
-        for _, row in test_cases_df.iterrows():
+        for _, row in self.test_cases_df.iterrows():
             tcid = row.get('TCID', "")
             test_step = {
                 "TCID": tcid,
@@ -46,9 +44,7 @@ class TestCaseManager:
             }
             # Validation
             self._validate_test_step(test_step, test_cases)
-
             test_cases[tcid].append(test_step)
-
         return test_cases
 
     def _validate_test_step(self, test_step, test_cases):

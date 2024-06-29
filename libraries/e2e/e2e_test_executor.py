@@ -2,7 +2,7 @@ import os
 from time import sleep
 from libraries.web.page_object import PageObject
 from libraries.api.api_test_executor import APITestExecutor
-from libraries.api.utility_helpers import PROJECT_ROOT
+from libraries.common.utility_helpers import PROJECT_ROOT
 
 
 class E2ETestExecutor:

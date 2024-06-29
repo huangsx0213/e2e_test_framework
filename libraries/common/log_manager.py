@@ -5,7 +5,7 @@ import re
 import yaml
 import uuid
 from datetime import datetime
-from libraries.api.utility_helpers import PROJECT_ROOT
+from libraries.common.utility_helpers import PROJECT_ROOT
 
 
 class HTMLLogHandler(logging.Handler):

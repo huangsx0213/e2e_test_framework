@@ -7,19 +7,15 @@ from libraries.api.headers_generator import HeadersGenerator
 from libraries.api.response_handler import ResponseHandler
 from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.api.test_case_manager import TestCaseManager
-from libraries.api.utility_helpers import UtilityHelpers, PROJECT_ROOT
+from libraries.common.utility_helpers import UtilityHelpers, PROJECT_ROOT
 from libraries.common.log_manager import logger
 
 
 class APITestExecutor:
     def __init__(self, config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
-        config_path = os.path.join(self.project_root, 'configs',
-                                   'config.yaml') if config_path is None else config_path
-        test_config_path = os.path.join(self.project_root, 'configs',
-                                        'test_config.yaml') if test_config_path is None else test_config_path
-        self.test_cases_path: Union[str, None] = None
-        self.test_case_manager: Union[TestCaseManager, None] = None
+        config_path = os.path.join(self.project_root, 'configs', 'config.yaml') if config_path is None else config_path
+        test_config_path = os.path.join(self.project_root, 'configs', 'test_config.yaml') if test_config_path is None else test_config_path
 
         # Load configuration
         self.config: Dict = ConfigManager.load_yaml(config_path)
@@ -41,15 +37,12 @@ class APITestExecutor:
         # Initialize test_cases_path
         if test_cases_path is None:
             default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
-            self.test_cases_path: str = os.path.join(self.project_root, self.test_config.get('test_cases_path',
-                                                                                             default_test_cases_path))
+            self.test_cases_path: str = os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
         else:
             self.test_cases_path: str = test_cases_path
 
         # Initialize test_case_manager
-        self.test_case_manager: TestCaseManager = TestCaseManager(self.test_cases_path, self.endpoints,
-                                                                  self.headers_dir,
-                                                                  self.template_dir, self.body_defaults_dir)
+        self.test_case_manager: TestCaseManager = TestCaseManager(self.test_cases_path, self.endpoints, self.headers_dir, self.template_dir, self.body_defaults_dir)
 
         # Flags to track if suite-level setup and teardown have been run
         self.suite_setup_run = False
@@ -151,8 +144,7 @@ class APITestExecutor:
                 logger.info(f"Test case {tc_id} failed, skipping to next case.")
                 break
 
-    def execute_test_step(self, test_step: Dict[str, Union[str, Any]], save_response: bool = False) -> Union[
-        Dict[str, Any], str, None]:
+    def execute_test_step(self, test_step: Dict[str, Union[str, Any]], save_response: bool = False) -> Union[Dict[str, Any], str, None]:
         try:
             ex_ts_id: str = test_step['TSID']
             ex_endpoint: str = test_step['Endpoint']
@@ -177,23 +169,15 @@ class APITestExecutor:
             self.saved_fields_manager.apply_saved_fields(test_step, saved_fields, ['Body Modifications', 'Exp Result'])
             # Prepare request body
             body, format_type = self.body_generator.generate_request_body(test_step, ex_defaults_body, method)
-            # Log request
-
             # Send request and log response
             response, execution_time = RequestSender.send_request(url, method, headers, body, format_type)
-
             # Process response
-            result = self.response_handler.process_and_store_results(response, test_step, self.test_cases_path,
-                                                                     self.test_case_manager, execution_time)
-
+            result = self.response_handler.process_and_store_results(response, test_step, self.test_cases_path, self.test_case_manager, execution_time)
             test_result = 'pass' if result == 'PASS' else 'fail'
-
             logger.info(f"Finished execution of test step {ex_ts_id}")
             logger.info("============================================")
-
             if save_response:
                 return self.response_handler.extract_response_content(response, test_step)
-
             return True
         except Exception as e:
             logger.error(f"Failed to execute test step {ex_ts_id}: {str(e)}")
