@@ -1,4 +1,4 @@
-from e2e_test_executor import E2ETestExecutor
+from libraries.e2e.e2e_test_executor import E2ETestExecutor
 from libraries.web.excel_reader import ExcelReader
 from libraries.web.webdriver_factory import WebDriverFactory
 

@@ -3,8 +3,8 @@ import re
 import json
 from collections import defaultdict
 
-TEMPLATE_DIR = 'configs/body_templates'
-OUTPUT_DIR = 'output'
+TEMPLATE_DIR = '../../configs/body_templates'
+OUTPUT_DIR = '../../output'
 
 
 def extract_placeholders(template_content):

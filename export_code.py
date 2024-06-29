@@ -29,7 +29,7 @@ def write_contents_to_file(files_list, output_file):
 
 
 if __name__ == '__main__':
-    exclude_scripts = ['export_code.py', 'export_html.py', 'gen_temp_default.py', 'web_main.py', 'web_test_executor.py',
+    exclude_scripts = ['__init__.py', 'export_code.py', 'export_html.py', 'gen_temp_default.py', 'web_main.py', 'web_test_executor.py',
                        'api_main.py']  # Replace with your actual script names
     directory_to_search = '.'
     extensions = ('.py', '.json', '.xml', '.yaml', '.html')

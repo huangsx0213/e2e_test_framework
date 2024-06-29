@@ -15,7 +15,7 @@ class E2ETestExecutor:
             excel_reader.get_page_objects()
         )
         self.project_root: str = PROJECT_ROOT
-        e2e_test_cases_path = os.path.join(self.project_root, 'test_cases', 'e2e_test_cases.xlsx')
+        e2e_test_cases_path = os.path.join(self.project_root, '../../test_cases', 'e2e_test_cases.xlsx')
         self.api_test_executor = APITestExecutor(test_cases_path=e2e_test_cases_path)
 
     def run_tests(self):
