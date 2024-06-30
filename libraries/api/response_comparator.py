@@ -109,3 +109,32 @@ class ResponseComparator:
             "field": field_path,
             "actual_value": actual_value
         }
+
+    def validate_expectations(self, test_step: Dict[str, Union[str, Any]], check_tc_ids: set, pre_check_responses: Dict[str, Dict[str, Any]],
+                              post_check_responses: Dict[str, Dict[str, Any]], target_response: Dict[str, Any]) -> bool:
+        try:
+            for expectation in test_step['Exp Result'].splitlines():
+                field_path, expected_value = expectation.split('=')
+                field_path = field_path.strip()
+                expected_value = expected_value.strip()
+
+                if field_path.startswith(tuple(check_tc_ids)):
+                    check_tc_id, _ = field_path.split('.', 1)
+                    check_tc_id, _ = check_tc_id.split('[', 1)
+                    expected_delta = int(expected_value)
+
+                    pre_value = self.extract_actual_value(pre_check_responses[check_tc_id], field_path)
+                    post_value = self.extract_actual_value(post_check_responses[check_tc_id], field_path)
+
+                    delta = post_value - pre_value
+                    if delta != expected_delta:
+                        raise AssertionError(f"Check-with condition failed for {field_path}: {delta} != {expected_delta}")
+                else:
+                    actual_value = self.extract_actual_value(target_response, field_path)
+                    if str(actual_value) != expected_value:
+                        logger.error(f"Expectation failed for {field_path}: {actual_value} != {expected_value}")
+                        return False
+            return True
+        except Exception as e:
+            logger.error(f"Validation of expectations failed: {str(e)}")
+            return False

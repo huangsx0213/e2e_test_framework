@@ -52,7 +52,19 @@ class ResponseHandler:
         except Exception as e:
             logger.error(f"An error occurred while processing and storing results: {str(e)}")
             raise
+    def handle_validate_expectations_result(self, test_step, test_cases_path, test_case_manager, execution_time, validate_result) -> None:
+        try:
+            actual_status = "200"  # Assuming 200 as a placeholder, replace with actual status if available
+            overall_result = "PASS" if all(result['result'] == "PASS" for result in validate_result) else "FAIL"
+            actual_results = self.format_comparison_results(validate_result)
 
+            # Cache the operation for writing to Excel
+            self.excel_manager.cache_excel_operation(test_step, test_cases_path, actual_status, actual_results,
+                                                     overall_result, actual_results, test_case_manager,
+                                                     execution_time)
+        except Exception as e:
+            logger.error(f"An error occurred while handling validate expectations result: {str(e)}")
+            raise
     def apply_pending_operations(self) -> None:
         self.pending_operations = self.excel_manager.apply_pending_operations()
 
