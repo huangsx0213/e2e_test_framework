@@ -1,31 +1,12 @@
-import json
 import re
 from typing import Dict, Any, Union, List
-import requests
 from libraries.common.log_manager import logger
-import xmltodict
-from decimal import Decimal, getcontext
-from libraries.common.utility_helpers import UtilityHelpers
+
 
 
 class ResponseComparator:
     def __init__(self):
-        self.format_xml = UtilityHelpers.format_xml
-        self.format_json = UtilityHelpers.format_json
-
-    def extract_response_content(self, response: requests.Response, test_step):
-        try:
-            response = response.json()
-            logger.debug(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_json(response)}")
-            return response
-        except json.JSONDecodeError as json_error:
-            logger.warning(f"[TSID:{test_step['TSID']}] JSON decode error: {json_error}. Attempting XML parse.")
-            try:
-                logger.debug(f"[TSID:{test_step['TSID']}] Response content: \n{response.text}")
-                return xmltodict.parse(response.text)
-            except Exception as xml_error:
-                logger.error(f"[TSID:{test_step['TSID']}] XML parse error: {xml_error}. Returning raw response text.")
-                return response.text
+        pass
 
     def compare_response_field(self, actual_response: Union[Dict[str, Any], str], expectation: str) -> Dict[str, Any]:
         if expectation:
@@ -44,43 +25,6 @@ class ResponseComparator:
             return self.create_not_specified_result()
         else:
             return self.create_not_specified_result()
-
-    def compare_response_field_with_dynamic_checks(self, test_step: Dict[str, Union[str, Any]], check_tc_ids: set, pre_check_responses,
-                                                   post_check_responses, target_response) -> Union[list[dict[str, Any]], bool]:
-        try:
-            validate_results = []
-            for expectation in test_step['Exp Result'].splitlines():
-                field_path, expected_value = expectation.split('=')
-                field_path = field_path.strip()
-                expected_value = expected_value.strip()
-                getcontext().prec = 5
-                if field_path.startswith(tuple(check_tc_ids)):
-                    check_tc_id, _ = field_path.split('.', 1)
-                    check_tc_id, _ = check_tc_id.split('[', 1)
-                    expected_delta = Decimal(expected_value)
-                    pre_check_response = self.extract_response_content(pre_check_responses[check_tc_id], test_step)
-                    post_check_response = self.extract_response_content(post_check_responses[check_tc_id], test_step)
-                    pre_value = Decimal(self.extract_actual_value(pre_check_response, field_path))
-                    post_value = Decimal(self.extract_actual_value(post_check_response, field_path))
-
-                    delta = post_value - pre_value
-                    if delta != expected_delta:
-                        validate_results.append(self.create_comparison_result2(field_path, delta, expected_delta))
-                        logger.error(f"Check-with condition failed for {field_path}: {delta} != {expected_delta}")
-                    else:
-                        validate_results.append(self.create_comparison_result2(field_path, delta, expected_delta))
-                else:
-                    target_response = self.extract_response_content(target_response, test_step)
-                    actual_value = self.extract_actual_value(target_response, field_path)
-                    if str(actual_value) != expected_value:
-                        validate_results.append(self.create_comparison_result(field_path, actual_value, expected_value))
-                        logger.error(f"Expectation failed for {field_path}: {actual_value} != {expected_value}")
-                    else:
-                        validate_results.append(self.create_comparison_result(field_path, actual_value, expected_value))
-            return validate_results
-        except Exception as e:
-            logger.error(f"Validation of expectations failed: {str(e)}")
-            return False
 
     def get_save_result(self, actual_response: Union[Dict[str, Any], str], field_path: str):
         actual_value = self.extract_actual_value(actual_response, field_path)

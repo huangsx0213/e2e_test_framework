@@ -1,7 +1,5 @@
 import os
 from typing import Dict, List, Union, Any, Tuple
-
-from libraries.api.response_comparator import ResponseComparator
 from libraries.common.config_manager import ConfigManager
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
@@ -38,7 +36,6 @@ class APITestExecutor:
         self.body_generator: BodyGenerator = BodyGenerator(self.template_dir, self.body_defaults_dir)
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.headers_dir)
         self.response_handler: ResponseHandler = ResponseHandler()
-        self.response_comparator: ResponseComparator = ResponseComparator()
 
         default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
@@ -101,11 +98,11 @@ class APITestExecutor:
 
     def _execute_test_step_with_dynamic_checks(self, test_step: Dict[str, Union[str, Any]]) -> bool:
         try:
-            check_tc_ids = self._extract_check_tc_ids(test_step)
-            pre_check_responses = self._execute_pre_check_steps(check_tc_ids)
+            check_with_tc_ids = self._extract_check_with_tc_ids(test_step)
+            pre_check_responses = self._execute_pre_check_steps(check_with_tc_ids)
             target_response, execution_time = self._execute_test_step(test_step, is_dynamic_check=True)
-            post_check_responses = self._execute_post_check_steps(check_tc_ids)
-            self.response_handler.process_step_results_with_dynamic_checks(check_tc_ids, target_response, pre_check_responses, post_check_responses, test_step,
+            post_check_responses = self._execute_post_check_steps(check_with_tc_ids)
+            self.response_handler.process_step_results_with_dynamic_checks(check_with_tc_ids, target_response, pre_check_responses, post_check_responses, test_step,
                                                                            self.test_cases_path, self.test_case_manager, execution_time)
             return True
         except Exception as e:
@@ -128,22 +125,22 @@ class APITestExecutor:
         response, execution_time = RequestSender.send_request(url, method, headers, body, format_type)
         return response, execution_time
 
-    def _extract_check_tc_ids(self, test_step: Dict[str, Union[str, Any]]) -> set:
+    def _extract_check_with_tc_ids(self, test_step: Dict[str, Union[str, Any]]) -> set:
         conditions = test_step.get('Conditions', '').splitlines()
         return {condition.split("[check with]")[1].strip() for condition in conditions if "[check with]" in condition}
 
-    def _execute_pre_check_steps(self, check_tc_ids: set) -> dict[Any, Union[tuple[Union[bool, Any], Any], bool]]:
+    def _execute_pre_check_steps(self, check_with_tc_ids: set) -> dict[Any, Union[tuple[Union[bool, Any], Any], bool]]:
         pre_check_responses = {}
-        for check_tc_id in check_tc_ids:
-            check_step = self.test_case_manager.get_conditions_by_tc_id(check_tc_id)[0]
-            pre_check_responses[check_tc_id], _ = self._execute_test_step(check_step, is_dynamic_check=True)
+        for tc_id in check_with_tc_ids:
+            check_step = self.test_case_manager.get_conditions_by_tc_id(tc_id)[0]
+            pre_check_responses[tc_id], _ = self._execute_test_step(check_step, is_dynamic_check=True)
         return pre_check_responses
 
-    def _execute_post_check_steps(self, check_tc_ids: set) -> dict[Any, Union[tuple[Union[bool, Any], Any], bool]]:
+    def _execute_post_check_steps(self, check_with_tc_ids: set) -> dict[Any, Union[tuple[Union[bool, Any], Any], bool]]:
         post_check_responses = {}
-        for check_tc_id in check_tc_ids:
-            check_step = self.test_case_manager.get_conditions_by_tc_id(check_tc_id)[0]
-            post_check_responses[check_tc_id], _ = self._execute_test_step(check_step, is_dynamic_check=True)
+        for tc_id in check_with_tc_ids:
+            check_step = self.test_case_manager.get_conditions_by_tc_id(tc_id)[0]
+            post_check_responses[tc_id], _ = self._execute_test_step(check_step, is_dynamic_check=True)
         return post_check_responses
 
     def _run_suite_setup(self, filtered_cases) -> None:
