@@ -16,18 +16,18 @@ class ResponseHandler:
         self.sfm = SavedFieldsManager()
         self.html_report_generator = HTMLReportGenerator()
         self.excel_manager = ExcelOperationManager()
-        self.comparator = ResponseComparator()
+        self.response_comparator = ResponseComparator()
 
-    def process_and_store_results(self, response: requests.Response, test_step, test_cases_path: str,
-                                  test_case_manager, execution_time: float, is_dynamic_check: bool) -> str:
+    def process_step_results(self, response: requests.Response, test_step, test_cases_path: str,
+                             test_case_manager, execution_time: float, is_dynamic_check: bool) -> str:
         try:
             fields_to_save_for_excel = ''
             actual_status: int = response.status_code
-            actual_response: Union[Dict[str, Any], str] = self.comparator.extract_response_content(response, test_step)
+            actual_response: Union[Dict[str, Any], str] = self.response_comparator.extract_response_content(response, test_step)
 
             # actual_results
             expected_lines = self._split_lines(test_step['Exp Result'])
-            results = [self.comparator.compare_response_field(actual_response, expectation) for expectation in
+            results = [self.response_comparator.compare_response_field(actual_response, expectation) for expectation in
                        expected_lines]
             actual_results = self.format_comparison_results(results)
 
@@ -37,7 +37,7 @@ class ResponseHandler:
             # fields to save to excel and yaml
             fields_to_save_lines = self._split_lines(test_step['Save Fields'])
             if fields_to_save_lines != ['']:
-                fields_saved_results = [self.comparator.get_save_result(actual_response, field) for field in fields_to_save_lines]
+                fields_saved_results = [self.response_comparator.get_save_result(actual_response, field) for field in fields_to_save_lines]
                 fields_to_save_for_excel = self.format_fields_to_save(fields_saved_results)
                 fields_to_save_for_yaml = self.format_fields_to_save_yaml(test_step, fields_saved_results)
                 self.sfm.save_fields(fields_to_save_for_yaml)
@@ -55,12 +55,14 @@ class ResponseHandler:
             logger.error(f"An error occurred while processing and storing results: {str(e)}")
             raise
 
-    def handle_validate_expectations_result(self, test_step, test_cases_path, test_case_manager, response, execution_time, validate_result) -> None:
+    def process_step_results_with_dynamic_checks(self, check_tc_ids, target_response, pre_check_responses, post_check_responses, test_step, test_cases_path, test_case_manager,
+                                                 execution_time) -> None:
         try:
-            actual_status: int = response.status_code
+            actual_status: int = target_response.status_code
+            validate_result = self.response_comparator.compare_response_field_with_dynamic_checks(test_step, check_tc_ids, pre_check_responses, post_check_responses,
+                                                                                                  target_response)
             overall_result = "FAIL" if any(res['result'] == "FAIL" for res in validate_result) else "PASS"
-            actual_results = self.format_comparison_results2(validate_result)
-
+            actual_results = self.format_comparison_results_with_dynamic_checks(validate_result)
             # Cache the operation for writing to Excel
             self.excel_manager.cache_excel_operation(test_step, test_cases_path, actual_status, actual_results,
                                                      overall_result, actual_results, test_case_manager,
@@ -78,7 +80,7 @@ class ResponseHandler:
     def format_comparison_results(self, results: list) -> str:
         return '\n'.join(f"{res['field']}={res['actual_value']}:{res['result']}" for res in results)
 
-    def format_comparison_results2(self, results: list) -> str:
+    def format_comparison_results_with_dynamic_checks(self, results: list) -> str:
         formatted_results = []
         for res in results:
             if res['field'].startswith('response'):
