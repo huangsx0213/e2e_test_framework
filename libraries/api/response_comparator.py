@@ -1,10 +1,10 @@
 import json
 import re
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, List
 import requests
 from libraries.common.log_manager import logger
 import xmltodict
-
+from decimal import Decimal, getcontext
 from libraries.common.utility_helpers import UtilityHelpers
 
 
@@ -13,7 +13,7 @@ class ResponseComparator:
         self.format_xml = UtilityHelpers.format_xml
         self.format_json = UtilityHelpers.format_json
 
-    def extract_response_content(self, response: requests.Response, test_step) -> Union[Dict[str, Any], str]:
+    def extract_response_content(self, response: requests.Response, test_step):
         try:
             response = response.json()
             logger.debug(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_json(response)}")
@@ -97,6 +97,14 @@ class ResponseComparator:
             "result": "PASS" if str(actual_value) == expected_value else "FAIL"
         }
 
+    def create_comparison_result2(self, field_path: str, actual_value: Any, expected_value) -> Dict[str, Any]:
+        return {
+            "field": field_path,
+            "expected_value": expected_value,
+            "actual_value": actual_value,
+            "result": "PASS" if actual_value == expected_value else "FAIL"
+        }
+
     def create_not_specified_result(self) -> Dict[str, Any]:
         return {
             "field": "Exp Result",
@@ -110,31 +118,39 @@ class ResponseComparator:
             "actual_value": actual_value
         }
 
-    def validate_expectations(self, test_step: Dict[str, Union[str, Any]], check_tc_ids: set, pre_check_responses: Dict[str, Dict[str, Any]],
-                              post_check_responses: Dict[str, Dict[str, Any]], target_response: Dict[str, Any]) -> bool:
+    def validate_expectations(self, test_step: Dict[str, Union[str, Any]], check_tc_ids: set, pre_check_responses,
+                              post_check_responses, target_response) -> Union[list[dict[str, Any]], bool]:
         try:
+            validate_results = []
             for expectation in test_step['Exp Result'].splitlines():
                 field_path, expected_value = expectation.split('=')
                 field_path = field_path.strip()
                 expected_value = expected_value.strip()
-
+                getcontext().prec = 5
                 if field_path.startswith(tuple(check_tc_ids)):
                     check_tc_id, _ = field_path.split('.', 1)
                     check_tc_id, _ = check_tc_id.split('[', 1)
-                    expected_delta = int(expected_value)
-
-                    pre_value = self.extract_actual_value(pre_check_responses[check_tc_id], field_path)
-                    post_value = self.extract_actual_value(post_check_responses[check_tc_id], field_path)
+                    expected_delta = Decimal(expected_value)
+                    pre_check_response = self.extract_response_content(pre_check_responses[check_tc_id], test_step)
+                    post_check_response = self.extract_response_content(post_check_responses[check_tc_id], test_step)
+                    pre_value = Decimal(self.extract_actual_value(pre_check_response, field_path))
+                    post_value = Decimal(self.extract_actual_value(post_check_response, field_path))
 
                     delta = post_value - pre_value
                     if delta != expected_delta:
-                        raise AssertionError(f"Check-with condition failed for {field_path}: {delta} != {expected_delta}")
+                        validate_results.append(self.create_comparison_result2(field_path, delta, expected_delta))
+                        logger.error(f"Check-with condition failed for {field_path}: {delta} != {expected_delta}")
+                    else:
+                        validate_results.append(self.create_comparison_result2(field_path, delta, expected_delta))
                 else:
+                    target_response = self.extract_response_content(target_response, test_step)
                     actual_value = self.extract_actual_value(target_response, field_path)
                     if str(actual_value) != expected_value:
+                        validate_results.append(self.create_comparison_result(field_path, actual_value, expected_value))
                         logger.error(f"Expectation failed for {field_path}: {actual_value} != {expected_value}")
-                        return False
-            return True
+                    else:
+                        validate_results.append(self.create_comparison_result(field_path, actual_value, expected_value))
+            return validate_results
         except Exception as e:
             logger.error(f"Validation of expectations failed: {str(e)}")
             return False
