@@ -11,12 +11,10 @@ def main():
     config_path = os.path.join(project_root,  'configs', 'web', 'web_config.yaml')
     test_config = ConfigManager.load_yaml(config_path)
 
-    chrome_path = test_config.get("chrome_path", None)
-    chromedriver_path = test_config.get("chromedriver_path", None)
     test_case_path = test_config.get("test_case_path", None)
 
     excel_data_manager = ExcelReader(test_case_path)
-    driver = WebDriverFactory.create_chrome_driver(chrome_path, chromedriver_path)
+    driver = WebDriverFactory.create_driver(config_path)
 
     try:
         test_executor = E2ETestExecutor(driver, excel_data_manager)
