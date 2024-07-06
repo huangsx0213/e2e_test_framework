@@ -1,3 +1,3 @@
-test_case_path : 'test_cases/e2e_test_cases.xlsx'
-chrome_path: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-chromedriver_path: "C:\\path\\to\\chromedriver.exe"
+test_case_path : 'test_cases/web_test_cases.xlsx'
+chrome_path: 'E:\Downloads\my files\chrome-win64\chrome.exe'
+chromedriver_path: 'E:\Downloads\my files\chromedriver-win64\chromedriver.exe'
