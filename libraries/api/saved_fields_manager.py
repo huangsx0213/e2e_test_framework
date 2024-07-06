@@ -8,7 +8,11 @@ from libraries.common.utility_helpers import PROJECT_ROOT
 class SavedFieldsManager:
     def __init__(self, file_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
-        self.file_path: str = file_path or os.path.join(self.project_root, 'configs', 'saved_fields.yaml')
+        self.file_path: str = file_path or os.path.join(self.project_root, 'configs', 'api', 'saved_fields.yaml')
+
+    def clear_saved_fields(self):
+        with open(self.file_path, 'w') as f:
+            f.write('')
 
     def load_saved_fields(self) -> Dict[str, Any]:
         if not os.path.exists(self.file_path):

@@ -3,7 +3,7 @@ import re
 import json
 from collections import defaultdict
 
-TEMPLATE_DIR = '../../configs/body_templates'
+TEMPLATE_DIR = '../../configs/api/body_templates'
 OUTPUT_DIR = '../../output'
 
 

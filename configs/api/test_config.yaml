@@ -1,7 +1,7 @@
 # Path to the excel file containing the test cases.
 # Make sure the file exists at this path.
 test_cases_path: 'test_cases/api_test_cases.xlsx'
-
+clear_saved_fields_on_init: true
 # List of Test Case IDs to run.
 # Specify one or more Test Case IDs here.
 tc_id_list:

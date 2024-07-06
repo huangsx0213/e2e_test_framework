@@ -1,0 +1,3 @@
+test_case_path : 'test_cases/e2e_test_cases.xlsx'
+chrome_path: "/home/vhuang1/TOOLS/chrome-linux64/chrome"
+chromedriver_path: "/home/vhuang1/TOOLS/chromedriver-linux64/chromedriver"

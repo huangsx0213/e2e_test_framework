@@ -21,7 +21,7 @@ class HTMLReportGenerator:
 
     def generate_html_report(self, pending_operations, report_path=None):
         try:
-            env = Environment(loader=FileSystemLoader(os.path.join(self.project_root, 'configs', 'report_template')))
+            env = Environment(loader=FileSystemLoader(os.path.join(self.project_root, 'configs', 'api', 'report_template')))
             env.filters['escape_xml'] = UtilityHelpers.escape_xml
             template = env.get_template('report_template.html')
             self.html_log_entries = logger_instance.get_html_log_entries()

@@ -14,8 +14,8 @@ from libraries.common.log_manager import logger
 class APITestExecutor:
     def __init__(self, config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
-        self.config_path = config_path or os.path.join(self.project_root, 'configs', 'config.yaml')
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'test_config.yaml')
+        self.config_path = config_path or os.path.join(self.project_root,  'configs', 'api','config.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api','test_config.yaml')
 
         self._load_configuration()
         self._initialize_components(test_cases_path)
@@ -28,9 +28,9 @@ class APITestExecutor:
         self.endpoints: Dict = self.active_environment['endpoints']
 
     def _initialize_components(self, test_cases_path: str):
-        self.template_dir: str = os.path.join(self.project_root, 'configs', 'body_templates')
-        self.headers_dir: str = os.path.join(self.project_root, 'configs', 'headers')
-        self.body_defaults_dir: str = os.path.join(self.project_root, 'configs', 'body_defaults')
+        self.template_dir: str = os.path.join(self.project_root, 'configs', 'api','body_templates')
+        self.headers_dir: str = os.path.join(self.project_root, 'configs', 'api','headers')
+        self.body_defaults_dir: str = os.path.join(self.project_root, 'configs', 'api','body_defaults')
 
         self.saved_fields_manager: SavedFieldsManager = SavedFieldsManager()
         self.body_generator: BodyGenerator = BodyGenerator(self.template_dir, self.body_defaults_dir)
@@ -40,6 +40,8 @@ class APITestExecutor:
         default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
         self.test_case_manager: TestCaseManager = TestCaseManager(self.test_cases_path, self.endpoints, self.headers_dir, self.template_dir, self.body_defaults_dir)
+        if self.test_config.get('clear_saved_fields_on_init', False):
+            self.saved_fields_manager.clear_saved_fields()
 
     def _initialize_flags(self):
         self.suite_setup_run = False

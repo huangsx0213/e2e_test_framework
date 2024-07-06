@@ -1,0 +1,3 @@
+test_case_path : 'test_cases/e2e_test_cases.xlsx'
+chrome_path: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+chromedriver_path: "C:\\path\\to\\chromedriver.exe"
