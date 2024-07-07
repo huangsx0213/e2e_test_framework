@@ -1,10 +1,9 @@
 import os
-
 from libraries.common.config_manager import ConfigManager
-from libraries.e2e.e2e_test_executor import E2ETestExecutor
+from libraries.web.e2e_test_executor import E2ETestExecutor
 from libraries.web.excel_reader import ExcelReader
 from libraries.web.webdriver_factory import WebDriverFactory
-from libraries.common.utility_helpers import UtilityHelpers, PROJECT_ROOT
+from libraries.common.utility_helpers import PROJECT_ROOT
 
 def main():
     project_root: str = PROJECT_ROOT

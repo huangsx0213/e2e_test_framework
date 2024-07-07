@@ -55,7 +55,7 @@ class APITestExecutor:
         tags = tags or self.test_config.get('tags', [])
         try:
             filtered_cases = self.test_case_manager.filter_test_cases(tcid_list=tc_id_list, tags=tags)
-            logger.debug(f"Successfully loaded test cases from {self.test_cases_path}")
+            logger.info(f"Successfully loaded test cases from {self.test_cases_path}")
 
             self._run_suite_setup(filtered_cases)
             self._run_test_cases(filtered_cases)

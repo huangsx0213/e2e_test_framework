@@ -16,11 +16,11 @@ class HeadersGenerator:
         str, str]:
         try:
             original_headers = self._load_headers(headers_filename, test_step)
-            logger.debug(
+            logger.info(
                 f"[TSID:{test_step['TSID']}] Headers for test step '{test_step['TSID']}' loaded from file: \n{self.format_json(original_headers)}")
             headers = {k: self._replace_placeholders(v, saved_fields, headers_filename, test_step) for k, v in
                        original_headers.items()}
-            logger.debug(
+            logger.info(
                 f"[TSID:{test_step['TSID']}] Headers for test step '{test_step['TSID']}' replaced placeholders: \n{self.format_json(headers)}")
             return headers
         except KeyError as e:

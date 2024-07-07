@@ -12,6 +12,3 @@ tc_id_list:
 # Only test cases which contain any of these tags will be run.
 tags:
   - 'tag1'
-
-# Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-log_level: 'DEBUG'

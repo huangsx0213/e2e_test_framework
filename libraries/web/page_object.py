@@ -1,4 +1,5 @@
 from libraries.web.web_element_actions import WebElementActions
+from libraries.common.log_manager import logger
 
 
 class PageObject:
@@ -54,7 +55,7 @@ class PageObject:
         else:
             if element_name:
                 locator = self.page_elements[page_name][element_name]
-                element = self.web_actions.wait_for_element(locator)
+                element = self._get_element_with_appropriate_condition(locator, action)
             else:
                 element = None
 
@@ -86,3 +87,15 @@ class PageObject:
                 self.web_actions.execute_script(parameters[method_info['parameter_name'][0]], element)
             else:
                 raise ValueError(f"Unsupported action: {action}")
+
+    def _get_element_with_appropriate_condition(self, locator, action):
+        if action in ['click', 'select_by_value', 'select_by_visible_text', 'select_by_index']:
+            element = self.web_actions.wait_for_element(locator, condition="clickable")
+        elif action in ['send_keys', 'clear']:
+            element = self.web_actions.wait_for_element(locator, condition="visibility")
+        elif action in ['switch_to_frame']:
+            element = self.web_actions.wait_for_element(locator, condition="presence")
+        else:
+            element = self.web_actions.wait_for_element(locator)
+        logger.debug(f"Located element {locator} for action: {action}")
+        return element

@@ -22,20 +22,20 @@ class BodyGenerator:
 
             template_name = test_step['Template']
             body_modifications = self._validate_and_load_json(test_step['Body Modifications'], test_step)
-            logger.debug(f"[TSID:{test_step['TSID']}] Body modifications for test step {test_step['TSID']}: \n{self.format_json(body_modifications)}")
+            logger.info(f"[TSID:{test_step['TSID']}] Body modifications for test step {test_step['TSID']}: \n{self.format_json(body_modifications)}")
             template_path = self._resolve_template_path(template_name, test_step)
             format_type = UtilityHelpers.get_file_format(template_path)
 
             # Prepare all required request data
             request_data = self._prepare_request_data(default_values_file, body_modifications, test_step)
-            logger.debug(f"[TSID:{test_step['TSID']}] Request data for test step {test_step['TSID']}: \n{self.format_json(request_data)}")
+            logger.info(f"[TSID:{test_step['TSID']}] Request data for test step {test_step['TSID']}: \n{self.format_json(request_data)}")
 
             # Generate request body
             body = TemplateRenderer.render_template(self.template_dir, template_path, request_data, format_type)
             if format_type == 'json':
-                logger.debug(f"[TSID:{test_step['TSID']}] Request body for test step {test_step['TSID']}: \n{self.format_json(body)}")
+                logger.info(f"[TSID:{test_step['TSID']}] Request body for test step {test_step['TSID']}: \n{self.format_json(body)}")
             else:
-                logger.debug(f"[TSID:{test_step['TSID']}] Request body for test step {test_step['TSID']}: \n{self.format_xml(body)}")
+                logger.info(f"[TSID:{test_step['TSID']}] Request body for test step {test_step['TSID']}: \n{self.format_xml(body)}")
             return body, format_type
         except Exception as e:
             logger.error(f"[TSID:{test_step['TSID']}] Error in generate_request_body for test step {test_step['TSID']}: {str(e)}")
