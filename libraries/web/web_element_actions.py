@@ -1,4 +1,7 @@
+import time
+
 from selenium.common import NoSuchElementException, TimeoutException
+from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
@@ -11,7 +14,7 @@ class WebElementActions:
         self.driver = driver
         self.default_timeout = default_timeout
 
-    def wait_for_element(self, locator, condition="presence", timeout=None, element=None):
+    def wait_for_element(self, locator, condition="presence", timeout=None):
         if timeout is None:
             timeout = self.default_timeout
 
@@ -77,6 +80,36 @@ class WebElementActions:
         logger.info(f"Selecting option by index: {index} for element: {element_desc}")
         Select(element).select_by_index(int(index))
         logger.info(f"Option selected successfully at index: {index} for element: {element_desc}")
+
+    def hover(self, element):
+        element_desc = self._get_element_description(element)
+        logger.info(f"Hovering over element: {element_desc}")
+        ActionChains(self.driver).move_to_element(element).perform()
+        logger.info(f"Hovered over element successfully: {element_desc}")
+
+    def double_click(self, element):
+        element_desc = self._get_element_description(element)
+        logger.info(f"Double clicking element: {element_desc}")
+        ActionChains(self.driver).double_click(element).perform()
+        logger.info(f"Double clicked element successfully: {element_desc}")
+
+    def right_click(self, element):
+        element_desc = self._get_element_description(element)
+        logger.info(f"Right clicking element: {element_desc}")
+        ActionChains(self.driver).context_click(element).perform()
+        logger.info(f"Right clicked element successfully: {element_desc}")
+
+    def scroll_into_view(self, element):
+        element_desc = self._get_element_description(element)
+        logger.info(f"Scrolling element into view: {element_desc}")
+        self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
+        logger.info(f"Scrolled element into view successfully: {element_desc}")
+
+    def scroll_to_element(self, element):
+        element_desc = self._get_element_description(element)
+        logger.info(f"Scrolling to element: {element_desc}")
+        self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center', inline: 'nearest'});", element)
+        logger.info(f"Scrolled to element successfully: {element_desc}")
 
     def get_text(self, element):
         element_desc = self._get_element_description(element)
@@ -166,6 +199,32 @@ class WebElementActions:
         logger.info(f"Title contain result: {result}, Actual title: {actual_title}")
         return result
 
+    def wait_for_text_to_be_present(self, locator, text, timeout=None):
+        if timeout is None:
+            timeout = self.default_timeout
+        logger.info(f"Waiting for text '{text}' to be present in element: {locator}, timeout: {timeout}")
+        try:
+            WebDriverWait(self.driver, timeout).until(
+                EC.text_to_be_present_in_element(locator, text)
+            )
+            logger.info(f"Text '{text}' is present in element: {locator}")
+            return True
+        except TimeoutException:
+            logger.warning(f"Text '{text}' is not present in element: {locator} after {timeout} seconds")
+            return False
+
+    def wait_for_element_to_disappear(self, locator, timeout=None):
+        if timeout is None:
+            timeout = self.default_timeout
+        logger.info(f"Waiting for element to disappear: {locator}, timeout: {timeout}")
+        try:
+            self.wait_for_element(locator, condition="invisibility", timeout=timeout)
+            logger.info(f"Element disappeared: {locator}")
+            return True
+        except TimeoutException:
+            logger.warning(f"Element did not disappear: {locator} after {timeout} seconds")
+            return False
+
     def switch_to_frame(self, element):
         element_desc = self._get_element_description(element)
         logger.info(f"Switching to frame: {element_desc}")
@@ -199,6 +258,21 @@ class WebElementActions:
         logger.info(f"Alert text retrieved: {alert_text}")
         return alert_text
 
+    def highlight_element(self, element, duration=2, color="lightgreen", border="3px solid red"):
+        element_desc = self._get_element_description(element)
+        logger.info(f"Highlighting element: {element_desc}")
+        def apply_style(s):
+            self.driver.execute_script("arguments[0].setAttribute('style', arguments[1]);", element, s)
+
+        original_style = element.get_attribute('style')
+
+        for _ in range(int(duration)):
+            apply_style(f"background: {color}; border: {border};")
+            time.sleep(0.25)
+            apply_style(original_style)
+            time.sleep(0.25)
+
+        logger.info(f"Finished highlighting element: {element_desc}")
     def _get_element_description(self, element):
         if isinstance(element, WebElement):
             tag_name = element.tag_name

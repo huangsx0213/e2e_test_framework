@@ -1,4 +1,4 @@
-test_case_path : test_cases/e2e_test_cases.xlsx
+test_case_path : test_cases/web_test_cases.xlsx
 browser: chrome
 is_remote: false
 remote_url: http://localhost:4444/wd/hub
