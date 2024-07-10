@@ -53,16 +53,19 @@ class HeadersGenerator:
                 f"[TSID:{test_step['TSID']}] Error loading headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
             raise
 
-    def _replace_placeholders(self, value: Any, saved_fields: Dict[str, Any], headers_filename: str,
-                              test_step: Dict[str, Any]) -> Any:
+    def _replace_placeholders(self, value: Any, saved_fields: Dict[str, Any], headers_filename: str, test_step: Dict[str, Any]) -> Any:
         try:
-            if isinstance(value, str) and re.match(r'\{\{\s*[^}]+?\s*\}\}', value):
-                placeholder = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', value)[0]
-                if placeholder in saved_fields:
-                    return saved_fields[placeholder]
-                return VariableGenerator.generate_dynamic_value(placeholder)
+            if isinstance(value, str):
+                matches = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', value)
+                for match in matches:
+                    if match in saved_fields:
+                        value = value.replace(f'{{{{ {match} }}}}', str(saved_fields[match]))
+                    else:
+                        dynamic_value = VariableGenerator.generate_dynamic_value(match)
+                        value = value.replace(f'{{{{ {match} }}}}', str(dynamic_value))
             return value
         except Exception as e:
             logger.error(
-                f"[TSID:{test_step['TSID']}] Error replacing placeholders in headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}")
+                f"[TSID:{test_step['TSID']}] Error replacing placeholders in headers file '{headers_filename}' for test step '{test_step['TSID']}': {str(e)}"
+            )
             raise
