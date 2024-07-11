@@ -1,4 +1,3 @@
-import os
 import yaml
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -40,7 +39,7 @@ class WebDriverFactory:
             raise ValueError(f"Unsupported browser: {browser}")
 
         # 设置浏览器路径
-        if browser_path:
+        if browser_path and not is_remote:
             options.binary_location = browser_path
             logger.info(f"Set browser binary location: {browser_path}")
 
