@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-class ExcelReader:
+class WebTestLoader:
     def __init__(self, excel_path):
         self.excel_path = excel_path
         self.data = self._load_excel_data()

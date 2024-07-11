@@ -2,27 +2,28 @@ import os
 from time import sleep
 
 from libraries.common.log_manager import logger
+from libraries.web.web_test_loader import WebTestLoader
 from libraries.web.page_object import PageObject
 from libraries.api.api_test_executor import APITestExecutor
 from libraries.common.utility_helpers import PROJECT_ROOT
 
 
 class E2ETestExecutor:
-    def __init__(self, driver, excel_reader):
+    def __init__(self, driver, test_case_path):
         self.driver = driver
-        self.excel_reader = excel_reader
+        self.web_test_loader = WebTestLoader(test_case_path)
         self.page_object = PageObject(
             driver,
-            excel_reader.get_locators(),
-            excel_reader.get_page_objects()
+            self.web_test_loader.get_locators(),
+            self.web_test_loader.get_page_objects()
         )
         self.project_root: str = PROJECT_ROOT
-        e2e_test_cases_path = os.path.join(self.project_root, 'test_cases', 'e2e_test_cases.xlsx')
-        self.api_test_executor = APITestExecutor(test_cases_path=e2e_test_cases_path)
+        api_test_cases_path = os.path.join(self.project_root, test_case_path)
+        self.api_test_executor = APITestExecutor(test_cases_path=api_test_cases_path)
 
 
     def run_tests(self):
-        test_cases = self.excel_reader.get_test_cases()
+        test_cases = self.web_test_loader.get_test_cases()
         for _, test_case in test_cases.iterrows():
             case_id = test_case['Case ID']
             if test_case['Run'] == 'Y':
@@ -34,8 +35,8 @@ class E2ETestExecutor:
 
     def run_test_case(self, case_id):
         logger.info(f"Starting E2E test case {case_id}")
-        test_steps = self.excel_reader.get_test_steps(case_id)
-        test_data_sets = self.excel_reader.get_test_data(case_id)
+        test_steps = self.web_test_loader.get_test_steps(case_id)
+        test_data_sets = self.web_test_loader.get_test_data(case_id)
 
         for data_set_index, data_set in enumerate(test_data_sets, 1):
             logger.info(f"Running E2E test case {case_id} with data set {data_set_index}")
