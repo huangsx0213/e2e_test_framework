@@ -59,10 +59,10 @@ class HeadersGenerator:
                 matches = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', value)
                 for match in matches:
                     if match in saved_fields:
-                        value = value.replace(f'{{{{ {match} }}}}', str(saved_fields[match]))
+                        value = value.replace(f'{{{{{match}}}}}', str([match]))
                     else:
                         dynamic_value = VariableGenerator.generate_dynamic_value(match)
-                        value = value.replace(f'{{{{ {match} }}}}', str(dynamic_value))
+                        value = value.replace(f'{{{{{match}}}}}', str(dynamic_value))
             return value
         except Exception as e:
             logger.error(
