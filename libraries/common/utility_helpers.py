@@ -48,8 +48,19 @@ class UtilityHelpers:
         :return: Pretty-printed XML string.
         """
         try:
-            parser = etree.XMLParser(remove_blank_text=True)
+            parser = etree.XMLParser(remove_blank_text=True, strip_cdata=False)
             xml_element = etree.fromstring(xml_string, parser)
+
+            # Ensure CDATA sections are preserved
+            def _preserve_cdata(element):
+                if element.text and isinstance(element.text, etree.CDATA):
+                    element.text = etree.CDATA(element.text)
+                for child in element:
+                    _preserve_cdata(child)
+                    if child.tail and isinstance(child.tail, etree.CDATA):
+                        child.tail = etree.CDATA(child.tail)
+
+            _preserve_cdata(xml_element)
             formatted_xml = etree.tostring(xml_element, pretty_print=True, encoding='unicode')
             return formatted_xml.strip()
         except Exception as e:
