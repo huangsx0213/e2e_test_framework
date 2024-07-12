@@ -1,3 +1,5 @@
+import random
+import string
 import uuid
 import datetime
 from typing import Any, Dict, Callable
@@ -10,6 +12,7 @@ class VariableGenerator:
             'uetr': VariableGenerator._generate_uuid4,
             'value_date': VariableGenerator._generate_current_day,
             'msg_id': VariableGenerator._generate_msg_id,
+            'timestamp': VariableGenerator._generate_timestamp,
             'age': VariableGenerator._generate_age,
             'address.street': VariableGenerator._generate_street,
             'phones.number': VariableGenerator._generate_phone_number,
@@ -32,10 +35,16 @@ class VariableGenerator:
 
     @staticmethod
     def _generate_msg_id() -> str:
-        uuid_part = str(uuid.uuid4())
-        timestamp_part = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        return f"{uuid_part}-{timestamp_part}"
-
+        prefix = 'msg'
+        suffix = ''.join(random.choices(string.ascii_lowercase, k=5))
+        timestamp = VariableGenerator._generate_timestamp()
+        msg_id = f'{prefix}{timestamp}{suffix}'
+        return msg_id
+    @staticmethod
+    def _generate_timestamp() -> str:
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%m%d%H%M%S") + str(now.microsecond)[:3]
+        return timestamp
     @staticmethod
     def _generate_age() -> int:
         return 25
