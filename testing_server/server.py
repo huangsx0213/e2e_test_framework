@@ -91,6 +91,7 @@ def dict_to_xml(tag, d):
         elem.append(child)
     return elem
 
+
 @app.route('/api/outbound_payment.xml', methods=['POST'])
 def outbound_payment_xml():
     xml_data = request.data
@@ -124,11 +125,15 @@ def outbound_payment_xml():
     response = {
         **parsed_data,
         "status": "Outbound Processed",
-        "new_position": data['balances'][currency]
+        "new_position": data['balances'][currency],
+        "cdata_content": f"<![CDATA[This is a CDATA section for currency {currency}]]>"
     }
 
-    response_xml = ET.tostring(dict_to_xml('result', response))
-    return Response(response_xml, content_type='application/xml')
+    response_xml = dict_to_xml('result', response)
+    xml_str = ET.tostring(response_xml, encoding='unicode', method='xml')
+    xml_str = xml_str.replace('&lt;![CDATA[', '<![CDATA[').replace(']]&gt;', ']]>')
+
+    return Response(xml_str, content_type='application/xml')
 
 
 @app.route('/api/inbound_payment.xml', methods=['POST'])
@@ -164,10 +169,15 @@ def inbound_payment_xml():
     response = {
         **parsed_data,
         "status": "Inbound Processed",
-        "new_position": data['balances'][currency]
+        "new_position": data['balances'][currency],
+        "cdata_content": f"<![CDATA[This is a CDATA section for currency {currency}]]>"
     }
-    response_xml = ET.tostring(dict_to_xml('result', response))
-    return Response(response_xml, content_type='application/xml')
+
+    response_xml = dict_to_xml('result', response)
+    xml_str = ET.tostring(response_xml, encoding='unicode', method='xml')
+    xml_str = xml_str.replace('&lt;![CDATA[', '<![CDATA[').replace(']]&gt;', ']]>')
+
+    return Response(xml_str, content_type='application/xml')
 
 
 @app.route('/api/outbound_payment.json', methods=['POST'])
@@ -295,6 +305,7 @@ def get_positions():
             })
 
     return jsonify(results), 200
+
 
 @app.route('/api/positions2', methods=['GET'])
 def get_all_positions():

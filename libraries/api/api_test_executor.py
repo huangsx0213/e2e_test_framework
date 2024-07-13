@@ -124,7 +124,9 @@ class APITestExecutor:
         self.saved_fields_manager.apply_saved_fields(test_step, saved_fields, ['Body Modifications', 'Exp Result'])
         body, format_type = self.body_generator.generate_request_body(test_step, test_step['Defaults'], method)
 
+        logger.info(f"Sending request to {url} with method: {method} for test step {test_step['TSID']}.")
         response, execution_time = RequestSender.send_request(url, method, headers, body, format_type)
+
         return response, execution_time
 
     def _extract_check_with_tc_ids(self, test_step: Dict[str, Union[str, Any]]) -> set:

@@ -8,10 +8,10 @@ environments:
     # Define API endpoints for the DEV environment.
     endpoints:
       pacs.008_inbound:
-        path: "http://localhost:5000/api/inbound_payment_json"
+        path: "http://localhost:5000/api/inbound_payment.json"
         method: "POST"
       pacs.008_outbound:
-        path: "http://localhost:5000/api/outbound_payment_xml"
+        path: "http://localhost:5000/api/outbound_payment.xml"
         method: "POST"
       positions:
         path: "http://localhost:5000/api/positions2"
@@ -20,10 +20,10 @@ environments:
     # Define API endpoints for the SIT (System Integration Testing) environment.
     endpoints:
       pacs.008_inbound:
-        path: "https://vhuang2.free.beeceptor.com/api/outbound_payment_json"
+        path: "https://vhuang2.free.beeceptor.com/api/outbound_payment.json"
         method: "POST"
       pacs.008_outbound:
-        path: "https://vhuang2.free.beeceptor.com/api/outbound_payment_xml"
+        path: "https://vhuang2.free.beeceptor.com/api/outbound_payment.xml"
         method: "POST"
       positions:
         path: "https://vhuang2.free.beeceptor.com/api/positions"
@@ -32,10 +32,10 @@ environments:
     # Define API endpoints for the UAT (User Acceptance Testing) environment.
     endpoints:
       pacs.008_inbound:
-        path: "https://vhuang1.free.beeceptor.com/api/outbound_payment_json"
+        path: "https://vhuang1.free.beeceptor.com/api/outbound_payment.json"
         method: "POST"
       pacs.008_outbound:
-        path: "https://vhuang1.free.beeceptor.com/api/outbound_payment_xml"
+        path: "https://vhuang1.free.beeceptor.com/api/outbound_payment.xml"
         method: "POST"
       positions:
         path: "https://vhuang1.free.beeceptor.com/api/positions"
