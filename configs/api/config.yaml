@@ -1,0 +1,42 @@
+# The active environment to be used for the tests.
+# This should match one of the environment keys defined below in 'environments'.
+active_environment: DEV
+
+# Definition of different environments and their respective endpoints.
+environments:
+  DEV:
+    # Define API endpoints for the DEV environment.
+    endpoints:
+      pacs.008_inbound:
+        path: "http://localhost:5000/api/inbound_payment.json"
+        method: "POST"
+      pacs.008_outbound:
+        path: "http://localhost:5000/api/outbound_payment.xml"
+        method: "POST"
+      positions:
+        path: "http://localhost:5000/api/positions2"
+        method: "GET"
+  SIT:
+    # Define API endpoints for the SIT (System Integration Testing) environment.
+    endpoints:
+      pacs.008_inbound:
+        path: "https://vhuang2.free.beeceptor.com/api/outbound_payment.json"
+        method: "POST"
+      pacs.008_outbound:
+        path: "https://vhuang2.free.beeceptor.com/api/outbound_payment.xml"
+        method: "POST"
+      positions:
+        path: "https://vhuang2.free.beeceptor.com/api/positions"
+        method: "GET"
+  UAT:
+    # Define API endpoints for the UAT (User Acceptance Testing) environment.
+    endpoints:
+      pacs.008_inbound:
+        path: "https://vhuang1.free.beeceptor.com/api/outbound_payment.json"
+        method: "POST"
+      pacs.008_outbound:
+        path: "https://vhuang1.free.beeceptor.com/api/outbound_payment.xml"
+        method: "POST"
+      positions:
+        path: "https://vhuang1.free.beeceptor.com/api/positions"
+        method: "GET"
