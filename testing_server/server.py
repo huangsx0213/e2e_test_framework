@@ -5,6 +5,8 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+def round_to_two_decimals(value):
+    return round(float(value), 2)
 
 def load_positions():
     try:
@@ -16,7 +18,6 @@ def load_positions():
             "transactions": {}
         }
 
-    # 确保总是存在 balances 和 transactions 键
     if 'balances' not in data:
         data['balances'] = {}
     if 'transactions' not in data:
@@ -24,11 +25,9 @@ def load_positions():
 
     return data
 
-
 def save_positions(data):
     with open('positions.json', 'w') as file:
         json.dump(data, file, indent=4)
-
 
 def clear_old_positions():
     data = load_positions()
@@ -40,34 +39,25 @@ def clear_old_positions():
 
     save_positions(data)
 
-
 def parse_iso20022_pacs008(xml_data):
     try:
         root = ET.fromstring(xml_data)
         transaction_id = root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}InstrId').text
-        amount = float(root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}IntrBkSttlmAmt').text)
+        amount = round_to_two_decimals(float(root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}IntrBkSttlmAmt').text))
         currency = root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}IntrBkSttlmAmt').attrib['Ccy']
 
         debtor = {
-            "name": root.find(
-                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Nm').text,
-            "phones": [phone.text for phone in root.findall(
-                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Phne')],
-            "email": root.find(
-                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}CtctDtls/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}EmailAdr').text,
-            "address": root.find(
-                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}StrtNm').text
+            "name": root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Nm').text,
+            "phones": [phone.text for phone in root.findall('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Phne')],
+            "email": root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}CtctDtls/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}EmailAdr').text,
+            "address": root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Dbtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}StrtNm').text
         }
 
         creditor = {
-            "name": root.find(
-                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Nm').text,
-            "phones": [phone.text for phone in root.findall(
-                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Phne')],
-            "email": root.find(
-                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}CtctDtls/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}EmailAdr').text,
-            "address": root.find(
-                './/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}StrtNm').text
+            "name": root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Nm').text,
+            "phones": [phone.text for phone in root.findall('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Phne')],
+            "email": root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}CtctDtls/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}EmailAdr').text,
+            "address": root.find('.//{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}Cdtr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}PstlAdr/{urn:iso:std:iso:20022:tech:xsd:pacs.008.001.02}StrtNm').text
         }
         return {
             "transaction_id": transaction_id,
@@ -79,7 +69,6 @@ def parse_iso20022_pacs008(xml_data):
     except Exception as e:
         return {"error": str(e)}
 
-
 def dict_to_xml(tag, d):
     elem = ET.Element(tag)
     for key, val in d.items():
@@ -90,7 +79,6 @@ def dict_to_xml(tag, d):
             child.text = str(val)
         elem.append(child)
     return elem
-
 
 @app.route('/api/outbound_payment.xml', methods=['POST'])
 def outbound_payment_xml():
@@ -104,11 +92,10 @@ def outbound_payment_xml():
     amount = parsed_data['amount']
 
     if currency in data['balances']:
-        data['balances'][currency] -= amount
+        data['balances'][currency] = round_to_two_decimals(data['balances'][currency] - amount)
     else:
         return jsonify({"error": f"Currency {currency} not found"}), 400
 
-    # 记录当天出站支付信息
     today = datetime.today().strftime('%Y-%m-%d')
     if currency not in data['transactions']:
         data['transactions'][currency] = {}
@@ -118,14 +105,16 @@ def outbound_payment_xml():
                                                  "outbound": {"count": 0, "total_amount": 0.0}}
 
     data['transactions'][currency][today]["outbound"]["count"] += 1
-    data['transactions'][currency][today]["outbound"]["total_amount"] += amount
+    data['transactions'][currency][today]["outbound"]["total_amount"] = round_to_two_decimals(
+        data['transactions'][currency][today]["outbound"]["total_amount"] + amount
+    )
 
     save_positions(data)
 
     response = {
         **parsed_data,
         "status": "Outbound Processed",
-        "new_position": data['balances'][currency],
+        "new_position": round_to_two_decimals(data['balances'][currency]),
         "cdata_content": f"<![CDATA[This is a CDATA section for currency {currency}]]>"
     }
 
@@ -134,7 +123,6 @@ def outbound_payment_xml():
     xml_str = xml_str.replace('&lt;![CDATA[', '<![CDATA[').replace(']]&gt;', ']]>')
 
     return Response(xml_str, content_type='application/xml')
-
 
 @app.route('/api/inbound_payment.xml', methods=['POST'])
 def inbound_payment_xml():
@@ -148,11 +136,10 @@ def inbound_payment_xml():
     amount = parsed_data['amount']
 
     if currency in data['balances']:
-        data['balances'][currency] += amount
+        data['balances'][currency] = round_to_two_decimals(data['balances'][currency] + amount)
     else:
-        data['balances'][currency] = amount
+        data['balances'][currency] = round_to_two_decimals(amount)
 
-    # 记录当天入站支付信息
     today = datetime.today().strftime('%Y-%m-%d')
     if currency not in data['transactions']:
         data['transactions'][currency] = {}
@@ -162,14 +149,16 @@ def inbound_payment_xml():
                                                  "outbound": {"count": 0, "total_amount": 0.0}}
 
     data['transactions'][currency][today]["inbound"]["count"] += 1
-    data['transactions'][currency][today]["inbound"]["total_amount"] += amount
+    data['transactions'][currency][today]["inbound"]["total_amount"] = round_to_two_decimals(
+        data['transactions'][currency][today]["inbound"]["total_amount"] + amount
+    )
 
     save_positions(data)
 
     response = {
         **parsed_data,
         "status": "Inbound Processed",
-        "new_position": data['balances'][currency],
+        "new_position": round_to_two_decimals(data['balances'][currency]),
         "cdata_content": f"<![CDATA[This is a CDATA section for currency {currency}]]>"
     }
 
@@ -179,14 +168,13 @@ def inbound_payment_xml():
 
     return Response(xml_str, content_type='application/xml')
 
-
 @app.route('/api/outbound_payment.json', methods=['POST'])
 def outbound_payment_json():
     request_data = request.json
 
     try:
         transaction_id = request_data['transaction_id']
-        amount = request_data['amount']
+        amount = round_to_two_decimals(request_data['amount'])
         currency = request_data['currency']
         debtor = request_data['debtor']
         creditor = request_data['creditor']
@@ -196,11 +184,10 @@ def outbound_payment_json():
     data = load_positions()
 
     if currency in data['balances']:
-        data['balances'][currency] -= amount
+        data['balances'][currency] = round_to_two_decimals(data['balances'][currency] - amount)
     else:
         return jsonify({"error": f"Currency {currency} not found"}), 400
 
-    # 记录当天出站支付信息
     today = datetime.today().strftime('%Y-%m-%d')
     if currency not in data['transactions']:
         data['transactions'][currency] = {}
@@ -210,7 +197,9 @@ def outbound_payment_json():
                                                  "outbound": {"count": 0, "total_amount": 0.0}}
 
     data['transactions'][currency][today]["outbound"]["count"] += 1
-    data['transactions'][currency][today]["outbound"]["total_amount"] += amount
+    data['transactions'][currency][today]["outbound"]["total_amount"] = round_to_two_decimals(
+        data['transactions'][currency][today]["outbound"]["total_amount"] + amount
+    )
 
     save_positions(data)
 
@@ -221,18 +210,17 @@ def outbound_payment_json():
         "debtor": debtor,
         "creditor": creditor,
         "status": "Outbound Processed",
-        "new_position": data['balances'][currency]
+        "new_position": round_to_two_decimals(data['balances'][currency])
     }
     return jsonify(response), 200
-
 
 @app.route('/api/inbound_payment.json', methods=['POST'])
 def inbound_payment_json():
     request_data = request.json
 
     try:
-        transaction_id = transaction_id = request_data['transaction_id']
-        amount = request_data['amount']
+        transaction_id = request_data['transaction_id']
+        amount = round_to_two_decimals(request_data['amount'])
         currency = request_data['currency']
         debtor = request_data['debtor']
         creditor = request_data['creditor']
@@ -242,11 +230,10 @@ def inbound_payment_json():
     data = load_positions()
 
     if currency in data['balances']:
-        data['balances'][currency] += amount
+        data['balances'][currency] = round_to_two_decimals(data['balances'][currency] + amount)
     else:
-        data['balances'][currency] = amount
+        data['balances'][currency] = round_to_two_decimals(amount)
 
-    # 记录当天入站支付信息
     today = datetime.today().strftime('%Y-%m-%d')
     if currency not in data['transactions']:
         data['transactions'][currency] = {}
@@ -256,7 +243,9 @@ def inbound_payment_json():
                                                  "outbound": {"count": 0, "total_amount": 0.0}}
 
     data['transactions'][currency][today]["inbound"]["count"] += 1
-    data['transactions'][currency][today]["inbound"]["total_amount"] += amount
+    data['transactions'][currency][today]["inbound"]["total_amount"] = round_to_two_decimals(
+        data['transactions'][currency][today]["inbound"]["total_amount"] + amount
+    )
 
     save_positions(data)
 
@@ -267,10 +256,9 @@ def inbound_payment_json():
         "debtor": debtor,
         "creditor": creditor,
         "status": "Inbound Processed",
-        "new_position": data['balances'][currency]
+        "new_position": round_to_two_decimals(data['balances'][currency])
     }
     return jsonify(response), 200
-
 
 @app.route('/api/positions', methods=['POST'])
 def get_positions():
@@ -290,22 +278,27 @@ def get_positions():
                                                                        "outbound": {"count": 0, "total_amount": 0.0}})
             results.append({
                 "currency": currency,
-                "balance": data['balances'][currency],
+                "balance": round_to_two_decimals(data['balances'][currency]),
                 "value_date": today,
-                "inbound": transactions["inbound"],
-                "outbound": transactions["outbound"]
+                "inbound": {
+                    "count": transactions["inbound"]["count"],
+                    "total_amount": round_to_two_decimals(transactions["inbound"]["total_amount"])
+                },
+                "outbound": {
+                    "count": transactions["outbound"]["count"],
+                    "total_amount": round_to_two_decimals(transactions["outbound"]["total_amount"])
+                }
             })
         else:
             results.append({
                 "currency": currency,
-                "balance": 0,
+                "balance": 0.00,
                 "value_date": today,
-                "inbound": {"count": 0, "total_amount": 0.0},
-                "outbound": {"count": 0, "total_amount": 0.0}
+                "inbound": {"count": 0, "total_amount": 0.00},
+                "outbound": {"count": 0, "total_amount": 0.00}
             })
 
     return jsonify(results), 200
-
 
 @app.route('/api/positions2', methods=['GET'])
 def get_all_positions():
@@ -320,14 +313,19 @@ def get_all_positions():
                                                                    "outbound": {"count": 0, "total_amount": 0.0}})
         results.append({
             "currency": currency,
-            "balance": data['balances'][currency],
+            "balance": round_to_two_decimals(data['balances'][currency]),
             "value_date": today,
-            "inbound": transactions["inbound"],
-            "outbound": transactions["outbound"]
+            "inbound": {
+                "count": transactions["inbound"]["count"],
+                "total_amount": round_to_two_decimals(transactions["inbound"]["total_amount"])
+            },
+            "outbound": {
+                "count": transactions["outbound"]["count"],
+                "total_amount": round_to_two_decimals(transactions["outbound"]["total_amount"])
+            }
         })
 
     return jsonify(results), 200
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
