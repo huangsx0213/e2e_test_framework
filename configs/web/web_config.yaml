@@ -1,5 +1,5 @@
 test_case_path : test_cases/web_test_cases.xlsx
-browser: chrome
+browser: edge
 is_remote: true
 remote_url: http://www.sg1.findhere.org:8044/wd/hub
 chrome_path: E:\Downloads\my files\chrome-win64\chrome.exe
