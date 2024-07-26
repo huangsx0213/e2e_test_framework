@@ -1,22 +1,15 @@
 import logging
 import os
-from typing import Dict, List, Union, Any, Tuple
-
+from typing import Dict, List
 import pandas as pd
-
-
 from libraries.common.config_manager import ConfigManager
-from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
 from libraries.api.headers_generator import HeadersGenerator
-from libraries.api.response_handler import ResponseHandler
 from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.api.api_test_loader import APITestLoader
-from libraries.common.utility_helpers import UtilityHelpers, PROJECT_ROOT
-from robot.api.deco import keyword
+from libraries.common.utility_helpers import PROJECT_ROOT
 from robot.api import TestSuite, ResultWriter
-from RequestsLibrary import RequestsLibrary
-
+from libraries.common.log_manager import logger_instance
 
 class APITestExecutor:
     def __init__(self, config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
@@ -41,7 +34,7 @@ class APITestExecutor:
         self.saved_fields_manager: SavedFieldsManager = SavedFieldsManager()
         self.body_generator: BodyGenerator = BodyGenerator(self.template_dir, self.body_defaults_dir)
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.headers_dir)
-        self.response_handler: ResponseHandler = ResponseHandler()
+
 
         default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))

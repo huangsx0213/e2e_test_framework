@@ -8,7 +8,7 @@ from libraries.common.config_manager import ConfigManager
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
 from libraries.api.headers_generator import HeadersGenerator
-from libraries.api.response_handler import ResponseHandler
+
 from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.api.api_test_loader import APITestLoader
 from libraries.common.utility_helpers import UtilityHelpers, PROJECT_ROOT
