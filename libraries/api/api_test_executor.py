@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Dict, List, Union, Any, Tuple
 from libraries.common.config_manager import ConfigManager
@@ -6,9 +7,8 @@ from libraries.api.body_generator import BodyGenerator
 from libraries.api.headers_generator import HeadersGenerator
 from libraries.api.response_handler import ResponseHandler
 from libraries.api.saved_fields_manager import SavedFieldsManager
-from libraries.api.test_case_manager import TestCaseManager
 from libraries.common.utility_helpers import UtilityHelpers, PROJECT_ROOT
-from libraries.common.log_manager import logger
+
 
 
 class APITestExecutor:
@@ -39,7 +39,6 @@ class APITestExecutor:
 
         default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
-        self.test_case_manager: TestCaseManager = TestCaseManager(self.test_cases_path, self.endpoints, self.headers_dir, self.template_dir, self.body_defaults_dir)
         if self.test_config.get('clear_saved_fields_on_init', False):
             self.saved_fields_manager.clear_saved_fields()
 
@@ -55,13 +54,13 @@ class APITestExecutor:
         tags = tags or self.test_config.get('tags', [])
         try:
             filtered_cases = self.test_case_manager.filter_test_cases(tcid_list=tc_id_list, tags=tags)
-            logger.info(f"Successfully loaded test cases from {self.test_cases_path}")
+            logging.info(f"Successfully loaded test cases from {self.test_cases_path}")
 
             self._run_suite_setup(filtered_cases)
             self._run_test_cases(filtered_cases)
             self._run_suite_teardown(filtered_cases)
         except Exception as e:
-            logger.info(f"Failed to run test suite: {str(e)}")
+            logging.info(f"Failed to run test suite: {str(e)}")
         finally:
             self.response_handler.apply_pending_operations()
             self.response_handler.generate_html_report()
@@ -69,21 +68,20 @@ class APITestExecutor:
     def _run_test_cases(self, filtered_cases) -> None:
         for tc_id, test_case in filtered_cases.items():
             self._run_test_setup(test_case)
-            logger.info(f"Running test case {tc_id}")
+            logging.info(f"Running test case {tc_id}")
             self._run_test_case(test_case, tc_id)
-            logger.info(f"Test case {tc_id} ran successfully.")
-            logger.info(f"********************************************\n")
+            logging.info(f"Test case {tc_id} ran successfully.")
             self._run_test_teardown(test_case)
 
     def _run_test_case(self, test_case: List[Dict[str, Union[str, Any]]], tc_id: str) -> None:
         for test_step in test_case:
             if self._requires_condition(test_step, "[check with]"):
                 if not self._execute_test_step_with_dynamic_checks(test_step):
-                    logger.info(f"Test case {tc_id} failed, skipping to next case.")
+                    logging.info(f"Test case {tc_id} failed, skipping to next case.")
                     break
             else:
                 if not self._execute_test_step(test_step):
-                    logger.info(f"Test case {tc_id} failed, skipping to next case.")
+                    logging.info(f"Test case {tc_id} failed, skipping to next case.")
                     break
 
     def _execute_test_step(self, test_step: Dict[str, Union[str, Any]], is_dynamic_check: bool = False):
@@ -91,11 +89,10 @@ class APITestExecutor:
             ex_ts_id: str = test_step['TSID']
             response, execution_time = self._send_request(test_step)
             self.response_handler.process_step_results(response, test_step, self.test_cases_path, self.test_case_manager, execution_time, is_dynamic_check)
-            logger.info(f"Finished execution of test step {ex_ts_id}")
-            logger.info("============================================")
+            logging.info(f"Finished execution of test step {ex_ts_id}")
             return True if not is_dynamic_check else response, execution_time
         except Exception as e:
-            logger.error(f"Failed to execute test step {test_step['TSID']}: {str(e)}")
+            logging.error(f"Failed to execute test step {test_step['TSID']}: {str(e)}")
             return False
 
     def _execute_test_step_with_dynamic_checks(self, test_step: Dict[str, Union[str, Any]]) -> bool:
@@ -108,7 +105,7 @@ class APITestExecutor:
                                                                            self.test_cases_path, self.test_case_manager, execution_time)
             return True
         except Exception as e:
-            logger.error(f"Failed to execute test step {test_step['TSID']}: {str(e)}")
+            logging.error(f"Failed to execute test step {test_step['TSID']}: {str(e)}")
             return False
 
     def _send_request(self, test_step: Dict[str, Union[str, Any]]):
@@ -124,7 +121,7 @@ class APITestExecutor:
         self.saved_fields_manager.apply_saved_fields(test_step, saved_fields, ['Body Modifications', 'Exp Result'])
         body, format_type = self.body_generator.generate_request_body(test_step, test_step['Defaults'], method)
 
-        logger.info(f"Sending request to {url} with method: {method} for test step {test_step['TSID']}.")
+        logging.info(f"Sending request to {url} with method: {method} for test step {test_step['TSID']}.")
         response, execution_time = RequestSender.send_request(url, method, headers, body, format_type)
 
         return response, execution_time
@@ -186,9 +183,9 @@ class APITestExecutor:
         for condition in conditions:
             if condition_tag in condition:
                 condition_id = condition.split(condition_tag)[1].strip()
-                logger.info(f"Running {condition_tag.strip('[]')} {condition_id}")
+                logging.info(f"Running {condition_tag.strip('[]')} {condition_id}")
                 execution_func(condition_id)
-                logger.info(f"{condition_tag.strip('[]')} {condition_id} ran successfully.")
+                logging.info(f"{condition_tag.strip('[]')} {condition_id} ran successfully.")
 
     def _execute_setup_teardown(self, tc_id: str) -> None:
         conditions = self.test_case_manager.get_conditions_by_tc_id(tc_id)

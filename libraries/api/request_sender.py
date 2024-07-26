@@ -1,7 +1,7 @@
 import requests
 from typing import Dict, Union, Optional
 import time
-
+from RequestsLibrary import RequestsLibrary
 
 class RequestSender:
     @staticmethod

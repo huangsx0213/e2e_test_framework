@@ -1,7 +1,6 @@
+import logging
 import re
 from typing import Dict, Any, Union, List
-from libraries.common.log_manager import logger
-
 
 
 class ResponseComparator:
@@ -59,7 +58,7 @@ class ResponseComparator:
         try:
             return _extract_value(actual_response, parts[1:])
         except (KeyError, IndexError, TypeError) as e:
-            logger.error(f"Error retrieving the value for path '{field_path}': {str(e)}")
+            logging.error(f"Error retrieving the value for path '{field_path}': {str(e)}")
             return None
 
     def create_error_comparison_result(self, field_path: str, error_message: str) -> Dict[str, str]:

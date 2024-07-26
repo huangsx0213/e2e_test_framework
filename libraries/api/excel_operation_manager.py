@@ -1,6 +1,7 @@
+import logging
 from openpyxl.styles import Font
 from openpyxl import load_workbook
-from libraries.common.log_manager import logger
+
 
 
 class ExcelOperationManager:
@@ -42,7 +43,7 @@ class ExcelOperationManager:
             try:
                 self.workbook_cache[file_path] = load_workbook(file_path)
             except Exception as e:
-                logger.error(f"Failed to load workbook: {str(e)}")
+                logging.error(f"Failed to load workbook: {str(e)}")
                 raise
         try:
             workbook = self.workbook_cache[file_path]
@@ -67,7 +68,7 @@ class ExcelOperationManager:
                 api_timing_cell.font = Font(color="006400")
 
         except Exception as e:
-            logger.error(f"An error occurred while writing results to the Excel file: {str(e)}")
+            logging.error(f"An error occurred while writing results to the Excel file: {str(e)}")
             raise
 
     def get_excel_column_index(self, sheet, column_name: str) -> int:
@@ -76,5 +77,5 @@ class ExcelOperationManager:
                 if col[0].value == column_name:
                     return col[0].column
         except Exception as e:
-            logger.error(f"An error occurred while getting the column index for '{column_name}': {str(e)}")
+            logging.error(f"An error occurred while getting the column index for '{column_name}': {str(e)}")
             return None

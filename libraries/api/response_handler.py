@@ -1,10 +1,10 @@
 import json
+import logging
 import pandas as pd
 import requests
 import xmltodict
 from typing import Dict, Any, Union
 from decimal import Decimal, getcontext
-from libraries.common.log_manager import logger
 from libraries.api.excel_operation_manager import ExcelOperationManager
 from libraries.api.html_report_generator import HTMLReportGenerator
 from libraries.api.response_comparator import ResponseComparator
@@ -52,11 +52,11 @@ class ResponseHandler:
                                                          overall_result, fields_to_save_for_excel, test_case_manager,
                                                          execution_time)
 
-            logger.info(json.dumps(results, indent=4))
-            logger.info(f"The Result is: {overall_result}.")
+            logging.info(json.dumps(results, indent=4))
+            logging.info(f"The Result is: {overall_result}.")
             return overall_result
         except Exception as e:
-            logger.error(f"An error occurred while processing and storing results: {str(e)}")
+            logging.error(f"An error occurred while processing and storing results: {str(e)}")
             raise
 
     def process_step_results_with_dynamic_checks(self, check_with_tc_ids, target_response, pre_check_responses, post_check_responses, test_step, test_cases_path, test_case_manager,
@@ -84,7 +84,7 @@ class ResponseHandler:
             self.excel_manager.cache_excel_operation(test_step, test_cases_path, actual_status, actual_results, overall_result, fields_to_save_for_excel, test_case_manager,
                                                      execution_time)
         except Exception as e:
-            logger.error(f"An error occurred while handling validate expectations result: {str(e)}")
+            logging.error(f"An error occurred while handling validate expectations result: {str(e)}")
             raise
 
     def get_validate_results_with_dynamic_checks(self, check_with_tc_ids, expected_lines, post_check_responses, pre_check_responses, target_response, test_step):
@@ -105,7 +105,7 @@ class ResponseHandler:
                 delta = post_value - pre_value
                 if delta != expected_delta:
                     validate_results.append(self.response_comparator.create_comparison_result2(field_path, delta, expected_delta))
-                    logger.error(f"Check-with condition failed for {field_path}: {delta} != {expected_delta}")
+                    logging.error(f"Check-with condition failed for {field_path}: {delta} != {expected_delta}")
                 else:
                     validate_results.append(self.response_comparator.create_comparison_result2(field_path, delta, expected_delta))
             else:
@@ -113,7 +113,7 @@ class ResponseHandler:
                 actual_value = self.response_comparator.extract_actual_value(target_response_content, field_path)
                 if str(actual_value) != expected_value:
                     validate_results.append(self.response_comparator.create_comparison_result(field_path, actual_value, expected_value))
-                    logger.error(f"Expectation failed for {field_path}: {actual_value} != {expected_value}")
+                    logging.error(f"Expectation failed for {field_path}: {actual_value} != {expected_value}")
                 else:
                     validate_results.append(self.response_comparator.create_comparison_result(field_path, actual_value, expected_value))
         return validate_results
@@ -121,15 +121,15 @@ class ResponseHandler:
     def extract_response_content(self, response: requests.Response, test_step):
         try:
             response = response.json()
-            logger.info(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_json(response)}")
+            logging.info(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_json(response)}")
             return response
         except json.JSONDecodeError as json_error:
-            logger.warning(f"[TSID:{test_step['TSID']}] JSON decode error: {json_error}. Attempting XML parse.")
+            logging.warning(f"[TSID:{test_step['TSID']}] JSON decode error: {json_error}. Attempting XML parse.")
             try:
-                logger.info(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_xml(response.text)}")
+                logging.info(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_xml(response.text)}")
                 return xmltodict.parse(response.text)
             except Exception as xml_error:
-                logger.error(f"[TSID:{test_step['TSID']}] XML parse error: {xml_error}. Returning raw response text.")
+                logging.error(f"[TSID:{test_step['TSID']}] XML parse error: {xml_error}. Returning raw response text.")
                 return response.text
 
     def apply_pending_operations(self) -> None:
