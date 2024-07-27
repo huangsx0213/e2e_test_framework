@@ -1,6 +1,6 @@
 from robot.reporting import ResultWriter
 
-from libraries.api.api_test_executor_robot import APITestExecutor
+from libraries.api.robot_cases_generator import APITestExecutor
 
 
 def run_test_suite(suite):
@@ -17,5 +17,5 @@ def run_test_suite(suite):
 if __name__ == "__main__":
     te = APITestExecutor()
     # Create and run the test suite
-    suite = te.create_test_suite(['TC001', 'TC002'], ['tag1'])
+    suite = te.create_test_suite(['TC001', 'TC002','TC003'], ['tag1'])
     run_test_suite(suite)

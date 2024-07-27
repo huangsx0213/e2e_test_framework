@@ -1,6 +1,9 @@
 import logging
 import os
 from typing import Dict, List, Union, Any
+
+import pandas as pd
+
 from libraries.common.config_manager import ConfigManager
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
@@ -10,11 +13,11 @@ from libraries.api.api_test_loader import APITestLoader
 from libraries.common.utility_helpers import UtilityHelpers, PROJECT_ROOT
 from robot.api.deco import keyword, library
 from robot.api import TestSuite, ResultWriter
-from RequestsLibrary import RequestsLibrary
-from libraries.api.api_response_asserter import APIResponseAsserter
+
+from libraries.api.response_handler import APIResponseAsserter, APIResponseExtractor
 from robot.libraries.BuiltIn import BuiltIn
 # 初始化 RequestsLibrary 实例
-requests_lib = RequestsLibrary()
+
 builtin_lib = BuiltIn()
 @library
 class APITestRunner:
@@ -42,6 +45,7 @@ class APITestRunner:
         self.body_generator: BodyGenerator = BodyGenerator(self.template_dir, self.body_defaults_dir)
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.headers_dir)
         self.api_response_asserter: APIResponseAsserter = APIResponseAsserter()
+        self.api_response_extractor: APIResponseExtractor = APIResponseExtractor()
 
         default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
@@ -97,6 +101,8 @@ class APITestRunner:
 
             response, execution_time = self.send_request(test_case)
             self.api_response_asserter.assert_response(test_case['Exp Result'], response)
+            self.api_response_extractor.extract_value(response,test_case)
+
             logging.info(f"Finished execution of test case {test_case_id}")
             logging.info("============================================")
             return True if not is_dynamic_check else (response, execution_time)
