@@ -1,18 +1,13 @@
 import logging
 import os
-from typing import Dict, List, Union, Any, Tuple
-
-import pandas as pd
-
+from typing import Dict, List, Union, Any
 from libraries.common.config_manager import ConfigManager
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
 from libraries.api.headers_generator import HeadersGenerator
-
 from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.api.api_test_loader import APITestLoader
 from libraries.common.utility_helpers import UtilityHelpers, PROJECT_ROOT
-
 from robot.api.deco import keyword, library
 from robot.api import TestSuite, ResultWriter
 from RequestsLibrary import RequestsLibrary
@@ -123,7 +118,7 @@ class APITestRunner:
             logging.error(f"Failed to execute test step {test_step['TSID']}: {str(e)}")
             raise e
             return False
-    @keyword
+
     def send_request(self, test_case):
         ex_endpoint = test_case['Endpoint']
         current_endpoint = self.endpoints.get(ex_endpoint, None)

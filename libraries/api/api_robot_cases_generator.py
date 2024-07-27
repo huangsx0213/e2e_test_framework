@@ -44,7 +44,7 @@ class APITestExecutor:
 
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
         self.robot_suite = TestSuite('API Test Suite')
-        self.robot_suite.resource.imports.library('libraries.api.api_test_runner.APITestRunner')  # Update as needed
+        self.robot_suite.resource.imports.library('libraries.api.api_test_keywords.APITestRunner')  # Update as needed
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
         try:
