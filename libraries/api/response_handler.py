@@ -105,4 +105,4 @@ class APIResponseExtractor(APIResponseProcessor):
                 raise ValueError("Unsupported response format. Use 'xml' or 'json'.")
             field = f'{test_case["TCID"]}.{field.strip()}'
 
-            builtin_lib.set_suite_variable('${%s}' % field, value)
+            builtin_lib.set_suite_variable(f'${{{field}}}', value)
