@@ -5,6 +5,9 @@ import json
 from typing import Dict, Any
 from libraries.common.utility_helpers import UtilityHelpers
 from .variable_generator import VariableGenerator
+from robot.libraries.BuiltIn import BuiltIn
+
+builtin_lib = BuiltIn()
 
 
 class HeadersGenerator:
@@ -60,9 +63,18 @@ class HeadersGenerator:
                 for match in matches:
                     if match in saved_fields:
                         value = value.replace(f'{{{{{match}}}}}', str([match]))
+                        logging.info(f"[Headers] Replaced {match} with saved field '{saved_fields[match]}'")
                     else:
                         dynamic_value = VariableGenerator.generate_dynamic_value(match)
                         value = value.replace(f'{{{{{match}}}}}', str(dynamic_value))
+                        logging.info(f"[Headers] Replaced {match} with dynamic value '{dynamic_value}'")
+
+                matches = re.findall(r'\$\{[^}]+\}', value)
+                for match in matches:
+                    replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
+                    value = value.replace(match, str(replacement_value))
+                    logging.info(f"[Headers] Replaced {match} with variable value '{replacement_value}'")
+
             return value
         except Exception as e:
             logging.error(

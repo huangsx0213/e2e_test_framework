@@ -1,9 +1,14 @@
 import logging
+import re
 
 import yaml
 import os
 from typing import Dict, Any
 from libraries.common.utility_helpers import PROJECT_ROOT
+from robot.libraries.BuiltIn import BuiltIn
+
+
+builtin_lib = BuiltIn()
 
 
 class SavedFieldsManager:
@@ -36,14 +41,27 @@ class SavedFieldsManager:
             logging.error(f"Failed to save fields to the yaml file: {str(e)}")
             raise
 
-    def apply_saved_fields(self, test_case, saved_fields: Dict, columns: list) -> None:
+    def apply_saved_fields(self, test_case, saved_fields: Dict) -> None:
         try:
             for key, value in saved_fields.items():
-                for column in columns:
+                for column in ['Body Modifications', 'Exp Result']:
                     if column in test_case and test_case[column] != '':
                         lines = test_case[column].splitlines()
                         replaced_lines = [line.replace(f"${{{key}}}", str(value)) for line in lines]
                         test_case[column] = "\n".join(replaced_lines)
         except Exception as e:
             logging.error(f"Failed to apply saved fields to [Body Modifications], [Exp Result]: {str(e)}")
+            raise
+
+    def apply_suite_variables(self, test_case) -> None:
+        try:
+            for key in ['Body Modifications', 'Exp Result']:
+                matches = re.findall(r'\$\{[^}]+\}', test_case[key])
+                for match in matches:
+                    replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
+                    test_case[key] = test_case[key].replace(match, str(replacement_value))
+                    logging.info(f"[{key}] Replaced {match} variable value {replacement_value}")
+
+        except Exception as e:
+            logging.error(f"[{key}] Replaced {match} with {replacement_value} failed: {str(e)}")
             raise

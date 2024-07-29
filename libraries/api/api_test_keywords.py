@@ -16,12 +16,16 @@ from robot.api import TestSuite, ResultWriter
 
 from libraries.api.response_handler import APIResponseAsserter, APIResponseExtractor
 from robot.libraries.BuiltIn import BuiltIn
+
 # 初始化 RequestsLibrary 实例
 
 builtin_lib = BuiltIn()
+
+
 @library
 class APITestRunner:
     ROBOT_LIBRARY_SCOPE = 'TEST SUITE'
+
     def __init__(self, config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
         self.config_path = config_path or os.path.join(self.project_root, 'configs', 'api', 'config.yaml')
@@ -100,8 +104,9 @@ class APITestRunner:
                 raise ValueError(f"Test case with ID {test_case_id} not found.")
 
             response, execution_time = self.send_request(test_case)
+            logging.info(f"time taken to execute test case {test_case_id}: {execution_time}")
             self.api_response_asserter.assert_response(test_case['Exp Result'], response)
-            self.api_response_extractor.extract_value(response,test_case)
+            self.api_response_extractor.extract_value(response, test_case)
 
             logging.info(f"Finished execution of test case {test_case_id}")
             logging.info("============================================")
@@ -135,7 +140,8 @@ class APITestRunner:
 
         saved_fields = self.saved_fields_manager.load_saved_fields()
         headers = self.headers_generator.prepare_headers(test_case, saved_fields)
-        self.saved_fields_manager.apply_saved_fields(test_case, saved_fields, ['Body Modifications', 'Exp Result'])
+        self.saved_fields_manager.apply_saved_fields(test_case, saved_fields)
+        self.saved_fields_manager.apply_suite_variables(test_case)
         body, format_type = self.body_generator.generate_request_body(test_case, method)
 
         logging.info(f"Sending request to {url} with method: {method} for test step {test_case['TCID']}.")
