@@ -16,7 +16,7 @@ builtin_lib = BuiltIn()
 
 
 @library
-class APITestRunner:
+class ApiTestKeywords:
     ROBOT_LIBRARY_SCOPE = 'TEST SUITE'
 
     def __init__(self, config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:

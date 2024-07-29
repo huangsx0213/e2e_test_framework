@@ -9,7 +9,8 @@ from libraries.common.utility_helpers import PROJECT_ROOT
 from robot.api import TestSuite, ResultWriter
 from libraries.common.log_manager import logger_instance
 
-class APITestExecutor:
+
+class RobotCasesGenerator:
     def __init__(self, config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
         self.config_path = config_path or os.path.join(self.project_root, 'configs', 'api', 'config.yaml')
@@ -29,7 +30,7 @@ class APITestExecutor:
 
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
         self.robot_suite = TestSuite('API Test Suite')
-        self.robot_suite.resource.imports.library('libraries.api.api_test_keywords.APITestRunner')  # Update as needed
+        self.robot_suite.resource.imports.library('libraries.api.api_test_keywords.ApiTestKeywords')  # Update as needed
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
         try:
@@ -67,4 +68,3 @@ class APITestExecutor:
                 elif '[SuiteTeardown]' in condition:
                     case_ids = condition.strip('[SuiteTeardown]').split(',')
                     self.robot_suite.teardown.config(name='execute_multiple_api_test_cases', args=[case_ids])
-
