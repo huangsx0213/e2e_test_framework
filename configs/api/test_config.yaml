@@ -7,6 +7,7 @@ clear_saved_fields_on_init: true
 tc_id_list:
   - 'TC001'
   - 'TC002'
+  - 'TC003'
 
 # List of tags to filter test cases.
 # Only test cases which contain any of these tags will be run.

@@ -60,6 +60,11 @@ class APITestExecutor:
     def create_test_cases(self, filtered_cases) -> None:
         for _, test_case in filtered_cases.iterrows():
             robot_test = self.robot_suite.tests.create(name=test_case['TCID'] + '.' + test_case['Name'], doc=test_case['Descriptions'])
+            # Add tags
+            if 'Tags' in test_case and pd.notna(test_case['Tags']):
+                tags = [tag.strip() for tag in test_case['Tags'].split(',')]
+                for tag in tags:
+                    robot_test.tags.add(tag)
 
             robot_test.body.create_keyword(name='execute_api_test_case', args=[test_case['TCID']])
 
