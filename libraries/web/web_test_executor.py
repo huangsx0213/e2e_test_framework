@@ -37,14 +37,14 @@ class WebTestExecutor:
             logger.info(f"Running E2E test case {case_id} with data set {data_set_index}")
             for _, step in test_steps.iterrows():
                 page_name = step['Page Name']
-                method_name = step['Method Name']
+                module_name = step['Module Name']
                 parameters = self._get_parameters(data_set, step['Parameter Name'])
 
                 try:
-                    logger.info(f"Executing web step: {page_name}.{method_name}")
-                    self.page_object.execute_method(page_name, method_name, parameters)
+                    logger.info(f"Executing web step: {page_name}.{module_name}")
+                    self.page_object.execute_module(page_name, module_name, parameters)
                 except Exception as e:
-                    logger.error(f"Error executing step {page_name}.{method_name}: {str(e)}")
+                    logger.error(f"Error executing step {page_name}.{module_name}: {str(e)}")
                     raise
 
             logger.info(f"Completed E2E test case {case_id} with data set {data_set_index}")

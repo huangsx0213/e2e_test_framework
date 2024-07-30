@@ -51,7 +51,7 @@ class E2ETestExecutor:
                         self.api_test_executor.run_test_suite(tc_id_list=[method_name])
                     else:
                         logger.info(f"Executing web step: {page_name}.{method_name}")
-                        self.page_object.execute_method(page_name, method_name, parameters)
+                        self.page_object.execute_module(page_name, method_name, parameters)
                 except Exception as e:
                     logger.error(f"Error executing step {page_name}.{method_name}: {str(e)}")
                     raise
