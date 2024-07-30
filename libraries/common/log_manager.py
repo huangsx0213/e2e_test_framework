@@ -54,17 +54,18 @@ class Logger:
         if os.path.exists(self.config_path):
             with open(self.config_path, 'r', encoding='utf-8') as file:
                 config = yaml.safe_load(file)
-                self.log_file_name = f"e2e_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                # Generate dynamic log file name with timestamp
-                log_file_name = os.path.join(self.project_root, 'logs', f"{self.log_file_name}.log")
+                if 'file' in config['handlers']:
+                    self.log_file_name = f"e2e_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                    # Generate dynamic log file name with timestamp
+                    log_file_name = os.path.join(self.project_root, 'logs', f"{self.log_file_name}.log")
 
-                # Ensure the directory for the log file exists
-                log_dir = os.path.dirname(log_file_name)
-                if not os.path.exists(log_dir):
-                    os.makedirs(log_dir)
+                    # Ensure the directory for the log file exists
+                    log_dir = os.path.dirname(log_file_name)
+                    if not os.path.exists(log_dir):
+                        os.makedirs(log_dir)
 
-                # Update the log file name in the configuration
-                config['handlers']['file']['filename'] = log_file_name
+                    # Update the log file name in the configuration
+                    config['handlers']['file']['filename'] = log_file_name
 
                 logging.config.dictConfig(config)
                 self.logger = logging.getLogger('e2e_testing')
