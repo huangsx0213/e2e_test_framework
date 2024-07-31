@@ -7,7 +7,7 @@ class WebTestLoader:
         self.data = self._load_excel_data()
 
     def _load_excel_data(self):
-        sheets = ['Locators', 'PageObject', 'TestCases', 'TestSteps', 'TestData']
+        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData']
         return {sheet: pd.read_excel(self.excel_path, sheet_name=sheet).fillna("") for sheet in sheets}
 
     def get_data(self, sheet_name):
@@ -38,7 +38,7 @@ class WebTestLoader:
         return data_sets
 
     def get_page_objects(self):
-        return self.get_data('PageObject')
+        return self.get_data('PageModules')
 
     def get_locators(self):
         return self.get_data('Locators')
