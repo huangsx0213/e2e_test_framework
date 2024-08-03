@@ -2,7 +2,6 @@ import logging
 import os
 from typing import Dict, List
 import pandas as pd
-from robot.api import TestSuite, ResultWriter
 from libraries.api.api_test_loader import APITestLoader
 from libraries.common.config_manager import ConfigManager
 from libraries.common.utility_helpers import PROJECT_ROOT
@@ -10,7 +9,7 @@ from robot.api import TestSuite, ResultWriter
 from libraries.common.log_manager import logger_instance
 
 
-class RobotCasesGenerator:
+class APIRobotCasesGenerator:
     def __init__(self, config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
         self.config_path = config_path or os.path.join(self.project_root, 'configs', 'api', 'config.yaml')

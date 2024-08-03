@@ -1,6 +1,6 @@
 from robot.reporting import ResultWriter
 
-from libraries.api.robot_cases_generator import RobotCasesGenerator
+from libraries.api.api_robot_generator import APIRobotCasesGenerator
 
 
 def run_test_suite(suite):
@@ -15,7 +15,7 @@ def run_test_suite(suite):
 
 
 if __name__ == "__main__":
-    rcg = RobotCasesGenerator()
+    rcg = APIRobotCasesGenerator()
     # Create and run the test suite
     suite = rcg.create_test_suite()
     run_test_suite(suite)
