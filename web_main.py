@@ -1,5 +1,4 @@
 from robot.reporting import ResultWriter
-
 from libraries.web.web_robot_generator import WebUIRobotCasesGenerator
 
 
@@ -18,6 +17,6 @@ def run_test_suite(suite):
 if __name__ == "__main__":
     rcg = WebUIRobotCasesGenerator()
     # Create and run the test suite
-    suite = rcg.run_tests()
+    suite = rcg.create_test_suite()
     run_test_suite(suite)
 

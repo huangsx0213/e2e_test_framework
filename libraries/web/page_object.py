@@ -8,10 +8,30 @@ from libraries.common.config_manager import ConfigManager
 from libraries.web.web_test_loader import WebTestLoader
 from libraries.web.webdriver_factory import WebDriverFactory
 
+
+class WebDriverSingleton:
+    _instance = None
+
+    @classmethod
+    def get_instance(cls, config_path=None):
+        if cls._instance is None:
+            if config_path is None:
+                raise ValueError("Config path must be provided when creating the first instance")
+            cls._instance = WebDriverFactory.create_driver(config_path)
+        return cls._instance
+
+    @classmethod
+    def quit(cls):
+        if cls._instance:
+            cls._instance.quit()
+            cls._instance = None
+
+
 @library
 class PageObject:
     CONFIG_FILE = 'web_config.yaml'
     CONFIG_DIR = os.path.join(PROJECT_ROOT, 'configs', 'web')
+
     def __init__(self):
         self.config = self.load_config()
         self.web_test_loader = WebTestLoader(self.config['test_case_path'])
@@ -29,7 +49,7 @@ class PageObject:
 
     def _load_webdriver(self):
         config_path = os.path.join(self.CONFIG_DIR, self.CONFIG_FILE)
-        return WebDriverFactory.create_driver(config_path)
+        return WebDriverSingleton.get_instance(config_path)
 
     def _load_page_elements(self) -> Dict[str, Dict[str, Tuple[str, str]]]:
         elements = {}
@@ -78,7 +98,7 @@ class PageObject:
                 msg += f" on element: {page_name}.{element_name}"
             logging.info(msg)
             self._execute_action(action, element, *action_params)
-            logging.info("="*80)
+            logging.info("=" * 80)
 
     def _get_element_with_appropriate_condition(self, locator: Tuple[str, str], action: str):
         condition_map = {
@@ -138,3 +158,6 @@ class PageObject:
             raise ValueError(f"Unsupported action: {action}")
 
         return action_map[action](element, *params) if element else action_map[action](*params)
+    @keyword
+    def close_browser(self):
+        WebDriverSingleton.quit()

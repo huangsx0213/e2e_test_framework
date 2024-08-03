@@ -48,10 +48,10 @@ class WebDriverFactory:
         for option, value in browser_options.items():
             if isinstance(value, bool) and value:
                 options.add_argument(f'--{option}')
-                logging.debug(f"Added browser option: --{option}")
+                logging.info(f"Added browser option: --{option}")
             elif isinstance(value, str):
                 options.add_argument(f'--{option}={value}')
-                logging.debug(f"Added browser option: --{option}={value}")
+                logging.info(f"Added browser option: --{option}={value}")
 
         if is_remote:
             if not remote_url:

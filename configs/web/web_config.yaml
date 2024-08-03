@@ -1,6 +1,11 @@
 test_case_path : test_cases/web_test_cases.xlsx
-browser: edge
-is_remote: true
+tc_id_list:
+  - 'TC001'
+  - 'TC002'
+tags:
+  - 'tag1'
+browser: chrome
+is_remote: false
 remote_url: http://www.sg2.findhere.org:8044/wd/hub
 chrome_path: E:\Downloads\my files\chrome-win64\chrome.exe
 chromedriver_path: E:\Downloads\my files\chromedriver-win64\chromedriver.exe
