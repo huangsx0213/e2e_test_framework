@@ -1,5 +1,4 @@
 import logging
-import yaml
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.edge.service import Service as EdgeService
@@ -9,31 +8,25 @@ from selenium.webdriver.edge.options import Options as EdgeOptions
 
 class WebDriverFactory:
     @staticmethod
-    def create_driver(config_path):
-        logging.info(f"Creating WebDriver using config file: {config_path}")
-
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-        logging.debug(f"Loaded configuration: {config}")
-
-        browser = config['browser']
-        is_remote = config.get('is_remote', False)
-        remote_url = config.get('remote_url')
-        browser_options = config.get('browser_options', {})
+    def create_driver(driver_config):
+        browser = driver_config['browser']
+        is_remote = driver_config.get('is_remote', False)
+        remote_url = driver_config.get('remote_url')
+        browser_options = driver_config.get('browser_options', {})
 
         logging.info(f"Configuring for browser: {browser}")
         logging.info(f"Remote execution: {'Yes' if is_remote else 'No'}")
 
         if browser.lower() == 'chrome':
             options = ChromeOptions()
-            service = ChromeService(executable_path=config.get('chromedriver_path'))
-            browser_path = config.get('chrome_path')
-            logging.info(f"Using ChromeDriver path: {config.get('chromedriver_path')}")
+            service = ChromeService(executable_path=driver_config.get('chromedriver_path'))
+            browser_path = driver_config.get('chrome_path')
+            logging.info(f"Using ChromeDriver path: {driver_config.get('chromedriver_path')}")
         elif browser.lower() == 'edge':
             options = EdgeOptions()
-            service = EdgeService(executable_path=config.get('edgedriver_path'))
-            browser_path = config.get('edge_path')
-            logging.info(f"Using EdgeDriver path: {config.get('edgedriver_path')}")
+            service = EdgeService(executable_path=driver_config.get('edgedriver_path'))
+            browser_path = driver_config.get('edge_path')
+            logging.info(f"Using EdgeDriver path: {driver_config.get('edgedriver_path')}")
         else:
             logging.error(f"Unsupported browser: {browser}")
             raise ValueError(f"Unsupported browser: {browser}")

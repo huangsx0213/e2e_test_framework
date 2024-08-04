@@ -25,6 +25,9 @@ class APITestLoader:
         if tags:
             test_cases = test_cases[test_cases['Tags'].apply(lambda x: any(tag in x for tag in tags))]
 
+        # Filter out the test cases where 'Run' column is not equal to 'Y'
+        test_cases = test_cases[test_cases['Run'] == 'Y']
+
         return test_cases
 
     def get_headers(self):

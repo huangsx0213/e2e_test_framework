@@ -13,11 +13,13 @@ class WebDriverSingleton:
     _instance = None
 
     @classmethod
-    def get_instance(cls, config_path=None):
+    def get_instance(cls, driver_config=None):
+        logging.info("Creating WebDriver instance")
         if cls._instance is None:
-            if config_path is None:
+            if driver_config is None:
                 raise ValueError("Config path must be provided when creating the first instance")
-            cls._instance = WebDriverFactory.create_driver(config_path)
+            cls._instance = WebDriverFactory.create_driver(driver_config)
+            logging.info("WebDriver instance created")
         return cls._instance
 
     @classmethod
@@ -29,27 +31,32 @@ class WebDriverSingleton:
 
 @library
 class PageObject:
-    CONFIG_FILE = 'web_config.yaml'
-    CONFIG_DIR = os.path.join(PROJECT_ROOT, 'configs', 'web')
+    def __init__(self, env_config_path: str = None, test_config_path: str = None, test_cases_path: str = None):
+        self.project_root: str = PROJECT_ROOT
+        self.env_config_path = env_config_path or os.path.join(self.project_root, 'configs', 'web', 'environments.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web', 'web_test_config.yaml')
 
-    def __init__(self):
-        self.config = self.load_config()
-        self.web_test_loader = WebTestLoader(self.config['test_case_path'])
-        self.driver = self._load_webdriver()
-        self.web_actions = WebElementActions(self.driver)
+        self._load_configuration(test_cases_path)
+        self._initialize_components()
+
+    def _load_configuration(self, test_cases_path):
+        self.env_config: Dict = ConfigManager.load_yaml(self.env_config_path)
+        self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
+        self.active_driver_config: Dict = self.env_config['environments'][self.test_config['active_environment']]
+        default_test_cases_path: str = os.path.join('test_cases', 'web_test_cases.xlsx')
+        self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
+
+    def _initialize_components(self):
+        self.web_test_loader = WebTestLoader(self.test_config['test_case_path'])
         self.locators_df = self.web_test_loader.get_locators()
         self.page_object_df = self.web_test_loader.get_page_objects()
+        self.driver = self._load_webdriver()
+        self.web_actions = WebElementActions(self.driver)
         self.page_elements = self._load_page_elements()
         self.page_modules = self._load_page_modules()
 
-    @classmethod
-    def load_config(cls) -> Dict:
-        config_path = os.path.join(cls.CONFIG_DIR, cls.CONFIG_FILE)
-        return ConfigManager.load_yaml(config_path)
-
     def _load_webdriver(self):
-        config_path = os.path.join(self.CONFIG_DIR, self.CONFIG_FILE)
-        return WebDriverSingleton.get_instance(config_path)
+        return WebDriverSingleton.get_instance(self.active_driver_config)
 
     def _load_page_elements(self) -> Dict[str, Dict[str, Tuple[str, str]]]:
         elements = {}
@@ -158,6 +165,7 @@ class PageObject:
             raise ValueError(f"Unsupported action: {action}")
 
         return action_map[action](element, *params) if element else action_map[action](*params)
+
     @keyword
     def close_browser(self):
         WebDriverSingleton.quit()

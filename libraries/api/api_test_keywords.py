@@ -19,21 +19,21 @@ builtin_lib = BuiltIn()
 class ApiTestKeywords:
     ROBOT_LIBRARY_SCOPE = 'TEST SUITE'
 
-    def __init__(self, config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
+    def __init__(self, env_config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
-        self.config_path = config_path or os.path.join(self.project_root, 'configs', 'api', 'config.yaml')
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'test_config.yaml')
+        self.env_config_path = env_config_path or os.path.join(self.project_root, 'configs', 'api', 'environments.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'api_test_config.yaml')
 
-        self._load_configuration()
-        self._initialize_components(test_cases_path)
-
-    def _load_configuration(self):
-        self.config: Dict = ConfigManager.load_yaml(self.config_path)
+        self._load_configuration(test_cases_path)
+        self._initialize_components()
+    def _load_configuration(self,test_cases_path):
+        self.env_config: Dict = ConfigManager.load_yaml(self.env_config_path)
         self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
-        self.active_environment: Dict = self.config['environments'][self.config['active_environment']]
+        self.active_environment: Dict = self.env_config['environments'][self.test_config['active_environment']]
         self.endpoints: Dict = self.active_environment['endpoints']
-
-    def _initialize_components(self, test_cases_path: str):
+        default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
+        self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
+    def _initialize_components(self):
         self.template_dir: str = os.path.join(self.project_root, 'configs', 'api', 'body_templates')
         self.headers_dir: str = os.path.join(self.project_root, 'configs', 'api', 'headers')
         self.body_defaults_dir: str = os.path.join(self.project_root, 'configs', 'api', 'body_defaults')
@@ -44,18 +44,14 @@ class ApiTestKeywords:
         self.api_response_asserter: APIResponseAsserter = APIResponseAsserter()
         self.api_response_extractor: APIResponseExtractor = APIResponseExtractor()
 
-        default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
-        self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
 
-        if self.test_config.get('clear_saved_fields_on_init', False):
+
+
+    @keyword
+    def clear_saved_fields(self):
+        if self.test_config.get('clear_saved_fields_after_test', False):
             self.saved_fields_manager.clear_saved_fields()
-
-    def _load_configuration(self):
-        self.config: Dict = ConfigManager.load_yaml(self.config_path)
-        self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
-        self.active_environment: Dict = self.config['environments'][self.config['active_environment']]
-        self.endpoints: Dict = self.active_environment['endpoints']
-
+            logging.info("Cleared saved fields")
     @keyword
     def execute_multiple_api_test_cases(self, test_case_ids: List[str] = None):
         """

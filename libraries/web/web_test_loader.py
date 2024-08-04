@@ -15,7 +15,19 @@ class WebTestLoader:
 
     def get_test_cases(self):
         return self.get_data('TestCases')
+    def filter_cases(self, tcid_list=None, tags=None):
+        test_cases = self.get_test_cases()
 
+        if tcid_list:
+            test_cases = test_cases[test_cases['Case ID'].isin(tcid_list)]
+
+        if tags:
+            test_cases = test_cases[test_cases['Tags'].apply(lambda x: any(tag in x for tag in tags))]
+
+        # Filter out the test cases where 'Run' column is not equal to 'Y'
+        test_cases = test_cases[test_cases['Run'] == 'Y']
+
+        return test_cases
     def get_test_steps(self, case_id):
         test_steps = self.get_data('TestSteps')
         return test_steps[test_steps['Case ID'] == case_id]

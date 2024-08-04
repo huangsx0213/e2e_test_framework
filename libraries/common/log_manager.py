@@ -44,7 +44,7 @@ class Logger:
         self.project_root: str = PROJECT_ROOT
 
         if not hasattr(self, 'initialized'):
-            self.config_path: str = config_path or os.path.join(self.project_root, 'configs', 'api', 'logging_config.yaml')
+            self.config_path: str = config_path or os.path.join(self.project_root, 'configs', 'logging_config.yaml')
             self.log_file_name = ''
             self.logger = None
             self.load_config()

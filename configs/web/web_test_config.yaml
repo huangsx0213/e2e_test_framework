@@ -1,9 +1,15 @@
+active_environment: DEV
 test_case_path : test_cases/web_test_cases.xlsx
+# List of Test Case IDs to run.
+# Specify one or more Test Case IDs here.
+# If this list is empty, all test cases will be run.
 tc_id_list:
-  - 'TC001'
-  - 'TC002'
+
+# List of tags to filter test cases.
+# Only test cases which contain any of these tags will be run.
+# If this list is empty, all test cases will be run.
 tags:
-  - 'tag1'
+
 browser: chrome
 is_remote: false
 remote_url: http://www.sg2.findhere.org:8044/wd/hub

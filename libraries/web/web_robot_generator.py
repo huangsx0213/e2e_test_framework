@@ -10,16 +10,19 @@ from libraries.common.log_manager import Logger
 
 
 class WebUIRobotCasesGenerator:
-    def __init__(self):
-        self.config = self.load_config()
-        self.web_test_loader = WebTestLoader(self.config['test_case_path'])
-        self.robot_suite = None
+    def __init__(self, test_config_path: str = None, test_cases_path: str = None):
+        self.project_root: str = PROJECT_ROOT
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web', 'web_test_config.yaml')
+        self._load_configuration()
+        self._initialize_components(test_cases_path)
 
+    def _load_configuration(self):
+        self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
 
-    @staticmethod
-    def load_config() -> Dict:
-        config_path = os.path.join(PROJECT_ROOT, 'configs', 'web', 'web_config.yaml')
-        return ConfigManager.load_yaml(config_path)
+    def _initialize_components(self, test_cases_path: str):
+        default_test_cases_path: str = os.path.join('test_cases', 'web_test_cases.xlsx')
+        self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
+        self.web_test_loader = WebTestLoader(self.test_cases_path)
 
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> TestSuite:
         self.robot_suite = TestSuite('WebUI Test Suite')
@@ -49,7 +52,6 @@ class WebUIRobotCasesGenerator:
             except Exception as e:
                 logging.error(f"Error creating test case {test_case['Case ID']} with data set {data_set_index}: {str(e)}")
                 raise
-
 
     def create_test_steps(self, robot_test, test_steps: List[Dict], data_set: Dict):
         for _, step in test_steps.iterrows():

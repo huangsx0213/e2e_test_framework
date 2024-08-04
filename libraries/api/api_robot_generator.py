@@ -10,16 +10,13 @@ from libraries.common.log_manager import logger_instance
 
 
 class APIRobotCasesGenerator:
-    def __init__(self, config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
+    def __init__(self, env_config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
-        self.config_path = config_path or os.path.join(self.project_root, 'configs', 'api', 'config.yaml')
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'test_config.yaml')
-
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'api_test_config.yaml')
         self._load_configuration()
         self._initialize_components(test_cases_path)
 
     def _load_configuration(self):
-        self.config: Dict = ConfigManager.load_yaml(self.config_path)
         self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
 
     def _initialize_components(self, test_cases_path: str):
@@ -29,6 +26,7 @@ class APIRobotCasesGenerator:
 
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
         self.robot_suite = TestSuite('API Test Suite')
+        self.robot_suite.teardown.config(name='clear_saved_fields', args=[])
         self.robot_suite.resource.imports.library('libraries.api.api_test_keywords.ApiTestKeywords')  # Update as needed
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
