@@ -24,7 +24,7 @@ class APIRobotCasesGenerator:
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
         self.test_cases_df = APITestLoader(self.test_cases_path)
 
-    def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> None:
+    def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> TestSuite:
         self.robot_suite = TestSuite('API Test Suite')
         self.robot_suite.teardown.config(name='clear_saved_fields', args=[])
         self.robot_suite.resource.imports.library('libraries.api.api_test_keywords.ApiTestKeywords')  # Update as needed
