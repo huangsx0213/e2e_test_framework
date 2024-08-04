@@ -27,7 +27,9 @@ class WebUIRobotCasesGenerator:
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> TestSuite:
         self.robot_suite = TestSuite('WebUI Test Suite')
         self.robot_suite.resource.imports.library('libraries.web.page_object.PageObject')
-        test_cases = self.web_test_loader.get_test_cases()
+        tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
+        tags = tags or self.test_config.get('tags', [])
+        test_cases = self.web_test_loader.filter_cases(tc_id_list, tags)
         for _, test_case in test_cases.iterrows():
             if test_case['Run'] == 'Y':
                 self.create_test_case(test_case)
