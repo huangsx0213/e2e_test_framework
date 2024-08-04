@@ -9,7 +9,7 @@ from libraries.web.web_test_loader import WebTestLoader
 from libraries.common.log_manager import Logger
 
 
-class WebUIRobotCasesGenerator:
+class E2ERobotCasesGenerator:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root: str = PROJECT_ROOT
         self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web', 'web_test_config.yaml')
