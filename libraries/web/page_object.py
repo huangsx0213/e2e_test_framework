@@ -14,7 +14,7 @@ class WebDriverSingleton:
 
     @classmethod
     def get_instance(cls, driver_config=None):
-        logging.info("Creating WebDriver instance")
+        logging.info("Getting WebDriver instance")
         if cls._instance is None:
             if driver_config is None:
                 raise ValueError("Config path must be provided when creating the first instance")
@@ -27,6 +27,7 @@ class WebDriverSingleton:
         if cls._instance:
             cls._instance.quit()
             cls._instance = None
+            logging.info("WebDriver instance closed")
 
 
 @library

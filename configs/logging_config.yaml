@@ -11,6 +11,12 @@ handlers:
     formatter: standard
     level: DEBUG
     stream: ext://sys.stdout
+  file:
+    class: logging.FileHandler
+    formatter: standard
+    level: DEBUG
+    mode: "a"
+
 
 loggers:
   e2e_testing:
@@ -20,4 +26,4 @@ loggers:
 
 root:
   level: INFO
-  handlers: [console]
+  handlers: [console,file]
