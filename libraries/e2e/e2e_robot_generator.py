@@ -44,7 +44,7 @@ class E2ERobotCasesGenerator:
         test_data_sets = self.web_test_loader.get_test_data(test_case['Case ID'])
         if not test_data_sets:
             test_data_sets = [{}]
-        self.child_suite = TestSuite(name=f"{test_case['Case ID']}.{test_case['Name']}", doc=test_case['Descriptions'])
+        self.child_suite = TestSuite(name=test_case['Case ID'], doc=test_case['Descriptions'])
         self.robot_suite.suites.append(self.child_suite)
 
         # Convert the paths to raw string format to avoid issues with backslashes
@@ -55,7 +55,6 @@ class E2ERobotCasesGenerator:
 
         for data_set_index, data_set in enumerate(test_data_sets, 1):
             test_name = f"{test_case['Case ID']}.{test_case['Name']}.{data_set_index}"
-
             robot_test = self.child_suite.tests.create(name=test_name)
             if 'Tags' in test_case and pd.notna(test_case['Tags']):
                 tags = [tag.strip() for tag in test_case['Tags'].split(',')]

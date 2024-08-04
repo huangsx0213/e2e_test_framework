@@ -1,16 +1,20 @@
+import os
 from robot.reporting import ResultWriter
-
 from libraries.api.api_robot_generator import APIRobotCasesGenerator
+from libraries.common.utility_helpers import PROJECT_ROOT
 
 
 def run_test_suite(suite):
     # Run the test suite and generate output XML
-    suite.run(output='output/output.xml')
+    output_xml = os.path.join(PROJECT_ROOT, 'output', 'output.xml')
+    report_file = os.path.join(PROJECT_ROOT, 'output', 'report.html')
+    log_file = os.path.join(PROJECT_ROOT, 'output', 'log.html')
+    suite.run(output=output_xml)
 
     # Generate log and report
-    ResultWriter('output/output.xml').write_results(
-        report='output/report.html',
-        log='output/log.html'
+    ResultWriter(output_xml).write_results(
+        report=report_file,
+        log=log_file
     )
 
 
