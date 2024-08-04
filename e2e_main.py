@@ -1,25 +1,22 @@
-import os
-from libraries.common.config_manager import ConfigManager
-from libraries.e2e.e2e_test_executor import E2ETestExecutor
-from libraries.web.webdriver_factory import WebDriverFactory
-from libraries.common.utility_helpers import PROJECT_ROOT
+from robot.reporting import ResultWriter
+from libraries.e2e.e2e_robot_generator import E2ERobotCasesGenerator
 
 
-def main():
-    project_root: str = PROJECT_ROOT
-    config_path = os.path.join(project_root, 'configs', 'e2e', 'e2e_config.yaml')
-    test_config = ConfigManager.load_yaml(config_path)
+def run_test_suite(suite):
+    # Run the test suite and generate output XML
+    suite.run(output='output/output.xml')
 
-    test_case_path = test_config.get("test_case_path", None)
+    # Generate log and report
+    ResultWriter('output/output.xml').write_results(
+        report='output/report.html',
+        log='output/log.html'
+    )
 
-    driver = WebDriverFactory.create_driver(config_path)
-
-    try:
-        test_executor = E2ETestExecutor(driver, test_case_path)
-        test_executor.run_tests()
-    finally:
-        WebDriverFactory.quit_driver(driver)
 
 
 if __name__ == "__main__":
-    main()
+    rcg = E2ERobotCasesGenerator()
+    # Create and run the test suite
+    suite = rcg.create_test_suite()
+    run_test_suite(suite)
+
