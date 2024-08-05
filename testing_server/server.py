@@ -121,8 +121,8 @@ def outbound_payment_xml():
     response_xml = dict_to_xml('result', response)
     xml_str = ET.tostring(response_xml, encoding='unicode', method='xml')
     xml_str = xml_str.replace('&lt;![CDATA[', '<![CDATA[').replace(']]&gt;', ']]>')
-
-    return Response(xml_str, content_type='application/xml')
+    xml_response = f'<?xml version="1.0" encoding="UTF-8"?>\n{xml_str}'
+    return Response(xml_response, content_type='application/xml')
 
 @app.route('/api/inbound_payment.xml', methods=['POST'])
 def inbound_payment_xml():
@@ -165,8 +165,8 @@ def inbound_payment_xml():
     response_xml = dict_to_xml('result', response)
     xml_str = ET.tostring(response_xml, encoding='unicode', method='xml')
     xml_str = xml_str.replace('&lt;![CDATA[', '<![CDATA[').replace(']]&gt;', ']]>')
-
-    return Response(xml_str, content_type='application/xml')
+    xml_response = f'<?xml version="1.0" encoding="UTF-8"?>\n{xml_str}'
+    return Response(xml_response, content_type='application/xml')
 
 @app.route('/api/outbound_payment.json', methods=['POST'])
 def outbound_payment_json():

@@ -69,7 +69,7 @@ class HeadersGenerator:
                         value = value.replace(f'{{{{{match}}}}}', str(dynamic_value))
                         logging.info(f"[Headers] Replaced {match} with dynamic value '{dynamic_value}'")
 
-                matches = re.findall(r'\$\{[^}]+\}', value)
+                matches = re.findall(r'\$\{([^}]+)\}', value)
                 for match in matches:
                     replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
                     value = value.replace(match, str(replacement_value))

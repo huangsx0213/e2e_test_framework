@@ -23,12 +23,12 @@ class APIResponseProcessor:
 
         try:
             json.loads(content)
-            logging.info(f"Response content is valid JSON: \n{content}")
+            logging.info(f"Response content is valid JSON string.")
             return content, 'json'
         except json.JSONDecodeError:
             try:
                 content = UtilityHelpers.format_xml(content)
-                logging.info(f"Response content is valid XML:\n{content}")
+                logging.info(f"Response content is valid XML string.")
                 return content, 'xml'
             except ValueError:
                 raise ValueError("Response content is neither valid JSON nor XML.")
@@ -47,10 +47,10 @@ class APIResponseProcessor:
 class APIResponseAsserter(APIResponseProcessor):
     def assert_response(self, expected_results: str, actual_response: Union[str, Response]) -> None:
 
-        logging.info(f"Type of actual_response: {type(actual_response)}")
-        logging.info(f"Content of actual_response: {actual_response}")
-
+        logging.info(f"Expected results:\n{expected_results}")
         response_content, response_format = self.process_response(actual_response)
+        logging.info(f"Actual response:\n{response_content}")
+
         expected_lines = expected_results.split('\n')
         assertion_errors = []
 
@@ -84,7 +84,7 @@ class APIResponseAsserter(APIResponseProcessor):
         except ValueError:
             pass  # Keep the original type if conversion fails
 
-        logging.info(f"Key: {key}, Expected value: {expected_value}, Actual value: {actual_value}")
+        logging.info(f"Asserting for: {key}, Expected value: {expected_value}, Actual value: {actual_value}")
         assert actual_value == expected_value, f"Assertion failed for key '{key}'. Expected: {expected_value}, Actual: {actual_value}"
 
 
@@ -105,4 +105,5 @@ class APIResponseExtractor(APIResponseProcessor):
                 raise ValueError("Unsupported response format. Use 'xml' or 'json'.")
             field = f'{test_case["TCID"]}.{field.strip()}'
 
+            logging.info(f"Setting suite variable:")
             builtin_lib.set_suite_variable(f'${{{field}}}', value)
