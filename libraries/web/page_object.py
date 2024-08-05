@@ -160,6 +160,7 @@ class PageObject:
             'dismiss_alert': self.web_actions.dismiss_alert,
             'get_alert_text': self.web_actions.get_alert_text,
             'highlight_element': self.web_actions.highlight_element,
+            'capture_screenshot': self.web_actions.capture_screenshot,
         }
 
         if action not in action_map:

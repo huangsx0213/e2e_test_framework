@@ -1,13 +1,16 @@
+import base64
+import datetime
 import logging
 import time
+from robot.libraries.BuiltIn import BuiltIn
 from selenium.common import NoSuchElementException, TimeoutException
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.remote.webelement import WebElement
-
-
+import io
+from PIL import Image
 
 class WebElementActions:
     def __init__(self, driver, default_timeout=10):
@@ -258,9 +261,39 @@ class WebElementActions:
         logging.info(f"Alert text retrieved: {alert_text}")
         return alert_text
 
+    def capture_screenshot(self):
+        try:
+            if self.driver:
+                # Capture the screenshot as binary PNG image
+                screenshot_binary = self.driver.get_screenshot_as_png()
+
+                # Open the image using PIL
+                image = Image.open(io.BytesIO(screenshot_binary))
+
+                # Resize the image
+                base_width = 800
+                w_percent = (base_width / float(image.size[0]))
+                h_size = int((float(image.size[1]) * float(w_percent)))
+                image = image.resize((base_width, h_size), Image.LANCZOS)
+
+                # Convert the image to WebP format and compress
+                buffer = io.BytesIO()
+                image.save(buffer, format="WebP", quality=70)
+
+                # Encode the compressed image as base64
+                encoded_string = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                logging.info("📸 Screenshot captured successfully at: " + str(datetime.datetime.now()))
+                BuiltIn().log(f'<img src="data:image/webp;base64,{encoded_string}" width="800px">', html=True)
+            else:
+                logging.error("WebDriver is not initialized.")
+        except Exception as e:
+            logging.error(f"Failed to capture screenshot: {str(e)}")
+            BuiltIn().log(f"Failed to capture screenshot: {str(e)}", level="ERROR")
+
     def highlight_element(self, element, duration=2, color="lightgreen", border="3px solid red"):
         element_desc = self._get_element_description(element)
         logging.info(f"Highlighting element: {element_desc}")
+
         def apply_style(s):
             self.driver.execute_script("arguments[0].setAttribute('style', arguments[1]);", element, s)
 
@@ -273,6 +306,7 @@ class WebElementActions:
             time.sleep(0.25)
 
         logging.info(f"Finished highlighting element: {element_desc}")
+
     def _get_element_description(self, element):
         if isinstance(element, WebElement):
             tag_name = element.tag_name
