@@ -126,7 +126,7 @@ class PageObject:
         logging.debug(f"Located element {locator} for action: {action}")
         return element
 
-    def _execute_action(self, action: str, element, *params):
+    def _execute_action(self, action: str, element, *args, **kwargs):
         action_map = {
             'open_url': self.web_actions.open_url,
             'send_keys': self.web_actions.send_keys,
@@ -166,7 +166,7 @@ class PageObject:
         if action not in action_map:
             raise ValueError(f"Unsupported action: {action}")
 
-        return action_map[action](element, *params) if element else action_map[action](*params)
+        return action_map[action](element, *args, **kwargs) if element else action_map[action](*args, **kwargs)
 
     @keyword
     def close_browser(self):

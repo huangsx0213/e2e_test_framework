@@ -15,7 +15,7 @@ class E2ERobotCasesGenerator:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root: str = PROJECT_ROOT
         self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'e2e', 'e2e_test_config.yaml')
-        self.env_config_path = os.path.join(self.project_root, 'configs', 'e2e', 'environments.yaml')
+        self.env_config_path = os.path.join(self.project_root, 'configs', 'web', 'environments.yaml')
         self._load_configuration()
         self._initialize_components(test_cases_path)
 
