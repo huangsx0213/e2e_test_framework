@@ -76,7 +76,8 @@ class PageObject:
             action_info = {
                 'element_name': row['Element Name'],
                 'action': row['Actions'],
-                'parameter_name': row['Parameter Name'].split(',') if row['Parameter Name'] else []
+                'parameter_name': row['Parameter Name'].split(',') if row['Parameter Name'] else [],
+                'screen_capture': row['Screenshot']
             }
             modules.setdefault(page_name, {}).setdefault(module_name, []).append(action_info)
         return modules
@@ -91,6 +92,7 @@ class PageObject:
             element_name = action_info['element_name']
             action = action_info['action']
             param_names = action_info['parameter_name']
+            screen_capture = action_info['screen_capture']
 
             element = None
             if element_name:
@@ -106,6 +108,9 @@ class PageObject:
                 msg += f" on element: {page_name}.{element_name}"
             logging.info(msg)
             self._execute_action(action, element, *action_params)
+            if screen_capture:
+                self.web_actions.capture_screenshot()
+            logging.info(f"Action: {action} executed successfully")
             logging.info("=" * 80)
 
     def _get_element_with_appropriate_condition(self, locator: Tuple[str, str], action: str):
