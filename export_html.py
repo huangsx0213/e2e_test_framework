@@ -54,7 +54,7 @@ html_template = '''<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <h1>API Automatic Testing Framework</h1>
+    <h1>E2E Automatic Testing Framework</h1>
     <div class="directory-container">
         <div class="directory-header">File Directory</div>
         <pre class="directory">{file_structure}</pre>
