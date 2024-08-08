@@ -271,7 +271,7 @@ class WebElementActions:
                 image = Image.open(io.BytesIO(screenshot_binary))
 
                 # Resize the image
-                base_width = 800
+                base_width = 1440
                 w_percent = (base_width / float(image.size[0]))
                 h_size = int((float(image.size[1]) * float(w_percent)))
                 image = image.resize((base_width, h_size), Image.LANCZOS)
@@ -283,7 +283,7 @@ class WebElementActions:
                 # Encode the compressed image as base64
                 encoded_string = base64.b64encode(buffer.getvalue()).decode('utf-8')
                 logging.info("📸 Screenshot captured successfully at: " + str(datetime.datetime.now()))
-                BuiltIn().log(f'<img src="data:image/webp;base64,{encoded_string}" width="800px">', html=True)
+                BuiltIn().log(f'<img src="data:image/webp;base64,{encoded_string}" width="1440px">', html=True)
             else:
                 logging.error("WebDriver is not initialized.")
         except Exception as e:
