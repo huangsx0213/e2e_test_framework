@@ -2,15 +2,18 @@ import argparse
 from ruamel.yaml import YAML
 import os
 from typing import Any, Dict
+from libraries.common.utility_helpers import PROJECT_ROOT
+
+
 class YamlConfigManager:
     """A class for managing YAML configuration files.
-    python script.py api_test_config.yaml --update active_environment PROD --update test_cases_path "test_cases/new_test_cases.xlsx" --update clear_saved_fields_after_test False
-    python script.py api_test_config.yaml --add-to-list tc_id_list TC001 --add-to-list tags api
-    python script.py api_test_config.yaml --remove-from-list tags deprecated
-    python script.py api_test_config.yaml --update active_environment PROD --add-to-list tc_id_list TC001 --remove-from-list tags deprecated
-    The configuration is stored as a dictionary in the file."""
+    python yaml_config_cli.py configs/api/api_test_config.yaml --update active_environment PROD --update test_cases_path "test_cases/new_test_cases.xlsx" --update clear_saved_fields_after_test False
+    python yaml_config_cli.py configs/api/api_test_config.yaml --add-to-list tc_id_list TC001 --add-to-list tags api
+    python yaml_config_cli.py configs/api/api_test_config.yaml --remove-from-list tags deprecated
+    python yaml_config_cli.py configs/api/api_test_config.yaml --update active_environment PROD --add-to-list tc_id_list TC001 --remove-from-list tags deprecated
+    """
     def __init__(self, file_path: str):
-        self.file_path = file_path
+        self.file_path = os.path.join(PROJECT_ROOT, file_path)
         self.yaml = YAML()
         self.yaml.preserve_quotes = True
         self.yaml.indent(mapping=2, sequence=4, offset=2)
