@@ -41,7 +41,7 @@ class WebUIRobotCasesGenerator:
         test_data_sets = self.web_test_loader.get_test_data(test_case['Case ID'])
 
         for data_set_index, data_set in enumerate(test_data_sets, 1):
-            test_name = f"{test_case['Case ID']}.{test_case['Name']}.{data_set_index}"
+            test_name = f"UI.{test_case['Case ID']}.{test_case['Name']}.{data_set_index}"
             robot_test = self.robot_suite.tests.create(name=test_name, doc=test_case['Descriptions'])
             if 'Tags' in test_case and pd.notna(test_case['Tags']):
                 tags = [tag.strip() for tag in test_case['Tags'].split(',')]
