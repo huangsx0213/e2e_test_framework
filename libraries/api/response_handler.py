@@ -43,13 +43,17 @@ class APIResponseProcessor:
             return matches[0]
         else:
             raise ValueError(f"No match found for JSONPath: {json_path}")
+
     def _extract_value_from_response(self, response, json_path):
-        json_data = json.loads(response.text)
-        jsonpath_expr = parse(f'$.{json_path}')
-        matches = [match.value for match in jsonpath_expr.find(json_data)]
-        if matches:
-            return float(matches[0])
-        raise ValueError(f"No match found for JSONPath: {json_path}")
+        response_content, response_format = self.process_response(response)
+
+        if response_format == 'json':
+            return self._get_json_value(response_content, json_path)
+        elif response_format == 'xml':
+            json_content = json.dumps(xmltodict.parse(response_content))
+            return self._get_json_value(json_content, json_path)
+        else:
+            raise ValueError("Unsupported response format. Use 'xml' or 'json'.")
     def _compare_diff(self, actual_diff, expected_diff):
         expected_operator = expected_diff[0]
         expected_value = float(expected_diff[1:])
@@ -106,7 +110,7 @@ class APIResponseAsserter(APIResponseProcessor):
     def validate_dynamic_checks(self, test_case, pre_check_responses, post_check_responses):
         exp_results = test_case['Exp Result'].split('\n')
         for exp_result in exp_results:
-            dynamic_checks = re.findall(r'(\w+)\.([^=]+)=([+-]?\d+(?:\.\d+)?)', exp_result)
+            dynamic_checks = re.findall(r'(\w+)\.(\$[.\[\]\w]+)=([+-]\d+)', exp_result)
             if dynamic_checks:
                 logging.info(f"Expected result: {exp_result}")
 
@@ -119,12 +123,12 @@ class APIResponseAsserter(APIResponseProcessor):
                     post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
                     logging.info(f"Post check value:{tcid}.{json_path}= {post_value}")
                     actual_value = post_value - pre_value
-                    logging.info(f"Actual value: Post check value - Pre check value = {'+' if actual_value >= 0 else '-'}{actual_value}.")
+                    logging.info(f"Actual value: Post check value - Pre check value = {'+' if actual_value >= 0 else ''}{actual_value}.")
 
 
                     if not self._compare_diff(actual_value, expected_value):
                         raise AssertionError(f"Dynamic check failed for {tcid}.{json_path}. "
-                                             f"Expected: {expected_value}, Actual: {'+' if actual_value >= 0 else '-'}{actual_value}.")
+                                             f"Expected: {expected_value}, Actual: {'+' if actual_value >= 0 else ''}{actual_value}.")
                     logging.info(f"****** Dynamic check passed for {tcid}.{json_path} ******")
 class APIResponseExtractor(APIResponseProcessor):
 
