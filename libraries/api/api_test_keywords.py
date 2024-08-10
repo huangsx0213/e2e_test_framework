@@ -1,6 +1,11 @@
+import json
 import logging
 import os
+import re
 from typing import Dict, List, Union, Any
+
+import pandas as pd
+
 from libraries.common.config_manager import ConfigManager
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
@@ -11,6 +16,7 @@ from libraries.common.utility_helpers import UtilityHelpers, PROJECT_ROOT
 from robot.api.deco import keyword, library
 from libraries.api.response_handler import APIResponseAsserter, APIResponseExtractor
 from robot.libraries.BuiltIn import BuiltIn
+from jsonpath_ng import parse
 
 builtin_lib = BuiltIn()
 
@@ -26,13 +32,15 @@ class ApiTestKeywords:
 
         self._load_configuration(test_cases_path)
         self._initialize_components()
-    def _load_configuration(self,test_cases_path):
+
+    def _load_configuration(self, test_cases_path):
         self.env_config: Dict = ConfigManager.load_yaml(self.env_config_path)
         self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
         self.active_environment: Dict = self.env_config['environments'][self.test_config['active_environment']]
         self.endpoints: Dict = self.active_environment['endpoints']
         default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
+
     def _initialize_components(self):
         self.template_dir: str = os.path.join(self.project_root, 'configs', 'api', 'body_templates')
         self.headers_dir: str = os.path.join(self.project_root, 'configs', 'api', 'headers')
@@ -44,14 +52,12 @@ class ApiTestKeywords:
         self.api_response_asserter: APIResponseAsserter = APIResponseAsserter()
         self.api_response_extractor: APIResponseExtractor = APIResponseExtractor()
 
-
-
-
     @keyword
     def clear_saved_fields(self):
         if self.test_config.get('clear_saved_fields_after_test', False):
             self.saved_fields_manager.clear_saved_fields()
             logging.info("Cleared saved fields")
+
     @keyword
     def execute_multiple_api_test_cases(self, test_case_ids: List[str] = None):
         """
@@ -76,15 +82,7 @@ class ApiTestKeywords:
 
     @keyword
     def execute_api_test_case(self, test_case_id: str, is_dynamic_check: bool = False):
-        """
-        Execute a single API test case by its ID.
-
-        :param test_case_id: The ID of the test case to execute.
-        :param is_dynamic_check: Boolean flag for dynamic check.
-        :return: True if execution is successful, False otherwise. If is_dynamic_check is True, returns response and execution time.
-        """
         try:
-            # Load the specific test case
             api_test_loader = APITestLoader(self.test_cases_path)
             test_cases = api_test_loader.get_api_test_cases()
             test_case = next((tc for _, tc in test_cases.iterrows() if tc['TCID'] == test_case_id), None)
@@ -92,10 +90,23 @@ class ApiTestKeywords:
             if test_case is None:
                 raise ValueError(f"Test case with ID {test_case_id} not found.")
 
-            response, execution_time = self.send_request(test_case)
-            logging.info(f"time taken to execute test case {test_case_id}: {execution_time}")
-            self.api_response_asserter.assert_response(test_case['Exp Result'], response)
-            self.api_response_extractor.extract_value(response, test_case)
+            check_with_tcids = self._extract_check_with_tcids(test_case)
+
+            if check_with_tcids:
+                pre_check_responses = self._execute_check_with_cases(check_with_tcids)
+                response, execution_time = self.send_request(test_case)
+                logging.info(f"time taken to execute test case {test_case_id}: {execution_time}")
+                self.api_response_asserter.validate_response(test_case['Exp Result'], response)
+                self.api_response_extractor.extract_value(response, test_case)
+                logging.info("============================================")
+                post_check_responses = self._execute_check_with_cases(check_with_tcids)
+                logging.info(f"Validating dynamic checks for test case {test_case_id}:")
+                self.api_response_asserter.validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
+            else:
+                response, execution_time = self.send_request(test_case)
+                logging.info(f"time taken to execute test case {test_case_id}: {execution_time}")
+                self.api_response_asserter.validate_response(test_case['Exp Result'], response)
+                self.api_response_extractor.extract_value(response, test_case)
 
             logging.info(f"Finished execution of test case {test_case_id}")
             logging.info("============================================")
@@ -103,21 +114,23 @@ class ApiTestKeywords:
         except Exception as e:
             logging.error(f"Failed to execute test case {test_case_id}: {str(e)}")
             raise e
-            return False
 
-    def execute_api_test_case_with_dynamic_checks(self, test_step: Dict[str, Union[str, Any]]) -> bool:
-        try:
-            check_with_tc_ids = self._extract_check_with_tc_ids(test_step)
-            pre_check_responses = self._execute_pre_check_steps(check_with_tc_ids)
-            target_response, execution_time = self._execute_test_step(test_step, is_dynamic_check=True)
-            post_check_responses = self._execute_post_check_steps(check_with_tc_ids)
-            self.response_handler.process_step_results_with_dynamic_checks(check_with_tc_ids, target_response, pre_check_responses, post_check_responses, test_step,
-                                                                           self.test_cases_path, self.test_case_manager, execution_time)
-            return True
-        except Exception as e:
-            logging.error(f"Failed to execute test step {test_step['TSID']}: {str(e)}")
-            raise e
-            return False
+    def _extract_check_with_tcids(self, test_case):
+        conditions = test_case['Conditions']
+        if pd.isna(conditions):
+            return []
+
+        check_with_match = re.search(r'\[Checkwith\](.*)', conditions)
+        if check_with_match:
+            return [tcid.strip() for tcid in check_with_match.group(1).split(',')]
+        return []
+
+    def _execute_check_with_cases(self, check_with_tcids):
+        responses = {}
+        for tcid in check_with_tcids:
+            response, _ = self.execute_api_test_case(tcid, is_dynamic_check=True)
+            responses[tcid] = response
+        return responses
 
     def send_request(self, test_case):
         ex_endpoint = test_case['Endpoint']

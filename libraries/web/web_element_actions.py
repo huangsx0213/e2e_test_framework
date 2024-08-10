@@ -278,7 +278,7 @@ class WebElementActions:
 
                 # Convert the image to WebP format and compress
                 buffer = io.BytesIO()
-                image.save(buffer, format="WebP", quality=70)
+                image.save(buffer, format="WebP", quality=30)
 
                 # Encode the compressed image as base64
                 encoded_string = base64.b64encode(buffer.getvalue()).decode('utf-8')

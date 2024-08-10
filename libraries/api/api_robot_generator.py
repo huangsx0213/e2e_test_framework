@@ -56,12 +56,12 @@ class APIRobotCasesGenerator:
                 if '[TestSetup]' in condition:
                     case_ids = condition.strip('[TestSetup]').split(',')
                     robot_test.setup.config(name='execute_multiple_api_test_cases', args=[case_ids])
-                elif '[TestTeardown]' in condition:
+                if '[TestTeardown]' in condition:
                     case_ids = condition.strip('[TestTeardown]').split(',')
                     robot_test.teardown.config(name='execute_multiple_api_test_cases', args=[case_ids])
-                elif '[SuiteSetup]' in condition:
+                if '[SuiteSetup]' in condition:
                     case_ids = condition.strip('[SuiteSetup]').split(',')
                     self.robot_suite.setup.config(name='execute_multiple_api_test_cases', args=[case_ids])
-                elif '[SuiteTeardown]' in condition:
+                if '[SuiteTeardown]' in condition:
                     case_ids = condition.strip('[SuiteTeardown]').split(',')
                     self.robot_suite.teardown.config(name='execute_multiple_api_test_cases', args=[case_ids])

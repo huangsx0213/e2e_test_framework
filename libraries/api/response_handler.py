@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any, Union, Tuple
 import pandas as pd
 from jsonpath_ng import parse
@@ -42,10 +43,25 @@ class APIResponseProcessor:
             return matches[0]
         else:
             raise ValueError(f"No match found for JSONPath: {json_path}")
+    def _extract_value_from_response(self, response, json_path):
+        json_data = json.loads(response.text)
+        jsonpath_expr = parse(f'$.{json_path}')
+        matches = [match.value for match in jsonpath_expr.find(json_data)]
+        if matches:
+            return float(matches[0])
+        raise ValueError(f"No match found for JSONPath: {json_path}")
+    def _compare_diff(self, actual_diff, expected_diff):
+        expected_operator = expected_diff[0]
+        expected_value = float(expected_diff[1:])
 
-
+        if expected_operator == '+':
+            return actual_diff == expected_value
+        elif expected_operator == '-':
+            return actual_diff == -expected_value
+        else:
+            raise ValueError(f"Unsupported operator in expected diff: {expected_operator}")
 class APIResponseAsserter(APIResponseProcessor):
-    def assert_response(self, expected_results: str, actual_response: Union[str, Response]) -> None:
+    def validate_response(self, expected_results: str, actual_response: Union[str, Response]) -> None:
 
         logging.info(f"Expected results:\n{expected_results}")
         response_content, response_format = self.process_response(actual_response)
@@ -56,12 +72,12 @@ class APIResponseAsserter(APIResponseProcessor):
 
         for line in expected_lines:
             if line.strip():
-                try:
-                    self._assert_line(line.strip(), response_content, response_format)
-                except AssertionError as e:
-                    logging.error(f"Assertion failed: {str(e)}")
-                    assertion_errors.append(str(e))
-
+                if line.strip().startswith('$'):
+                    try:
+                        self._assert_line(line.strip(), response_content, response_format)
+                    except AssertionError as e:
+                        logging.error(f"Assertion failed: {str(e)}")
+                        assertion_errors.append(str(e))
         if assertion_errors:
             raise AssertionError("Assertions failed:\n" + "\n".join(assertion_errors))
 
@@ -87,7 +103,29 @@ class APIResponseAsserter(APIResponseProcessor):
         logging.info(f"Asserting for: {key}, Expected value: {expected_value}, Actual value: {actual_value}")
         assert actual_value == expected_value, f"Assertion failed for key '{key}'. Expected: {expected_value}, Actual: {actual_value}"
 
+    def validate_dynamic_checks(self, test_case, pre_check_responses, post_check_responses):
+        exp_results = test_case['Exp Result'].split('\n')
+        for exp_result in exp_results:
+            dynamic_checks = re.findall(r'(\w+)\.([^=]+)=([+-]?\d+(?:\.\d+)?)', exp_result)
+            if dynamic_checks:
+                logging.info(f"Expected result: {exp_result}")
 
+            for check in dynamic_checks:
+                tcid, json_path, expected_value = check
+                if not tcid.startswith('$'):  # Only process checks that don't start with '$'
+                    # This is a dynamic check involving other test cases
+                    pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
+                    logging.info(f"Pre check value:{tcid}.{json_path}= {pre_value}")
+                    post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
+                    logging.info(f"Post check value:{tcid}.{json_path}= {post_value}")
+                    actual_value = post_value - pre_value
+                    logging.info(f"Actual value: Post check value - Pre check value = {'+' if actual_value >= 0 else '-'}{actual_value}.")
+
+
+                    if not self._compare_diff(actual_value, expected_value):
+                        raise AssertionError(f"Dynamic check failed for {tcid}.{json_path}. "
+                                             f"Expected: {expected_value}, Actual: {'+' if actual_value >= 0 else '-'}{actual_value}.")
+                    logging.info(f"****** Dynamic check passed for {tcid}.{json_path} ******")
 class APIResponseExtractor(APIResponseProcessor):
 
     def extract_value(self, response: Union[str, Response], test_case) -> Any:
@@ -107,3 +145,7 @@ class APIResponseExtractor(APIResponseProcessor):
 
             logging.info(f"Setting suite variable:")
             builtin_lib.set_suite_variable(f'${{{field}}}', value)
+
+
+
+
