@@ -1,22 +1,19 @@
-import json
 import logging
 import os
 import re
-from typing import Dict, List, Union, Any
-
+from typing import Dict, List
 import pandas as pd
-
 from libraries.common.config_manager import ConfigManager
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
 from libraries.api.headers_generator import HeadersGenerator
 from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.api.api_test_loader import APITestLoader
-from libraries.common.utility_helpers import UtilityHelpers, PROJECT_ROOT
+from libraries.common.utility_helpers import PROJECT_ROOT
 from robot.api.deco import keyword, library
 from libraries.api.response_handler import APIResponseAsserter, APIResponseExtractor
 from robot.libraries.BuiltIn import BuiltIn
-from jsonpath_ng import parse
+
 
 builtin_lib = BuiltIn()
 
@@ -88,22 +85,26 @@ class APITestKeywords:
 
             if check_with_tcids:
                 pre_check_responses = self._execute_check_with_cases(check_with_tcids)
+
                 response, execution_time = self.send_request(test_case)
-                logging.info(f"{self.__class__.__name__}: time taken to execute test case {test_case_id}: {execution_time}")
+                logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case_id}: {execution_time}")
                 self.api_response_asserter.validate_response(test_case['Exp Result'], response)
                 self.api_response_extractor.extract_value(response, test_case)
                 logging.info("============================================")
+
                 post_check_responses = self._execute_check_with_cases(check_with_tcids)
+
                 logging.info(f"{self.__class__.__name__}: Validating dynamic checks for test case {test_case_id}:")
                 self.api_response_asserter.validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
             else:
                 response, execution_time = self.send_request(test_case)
-                logging.info(f"{self.__class__.__name__}: time taken to execute test case {test_case_id}: {execution_time}")
+                logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case_id}: {execution_time}")
                 self.api_response_asserter.validate_response(test_case['Exp Result'], response)
                 self.api_response_extractor.extract_value(response, test_case)
 
             logging.info(f"{self.__class__.__name__}: Finished execution of test case {test_case_id}")
             logging.info("============================================")
+
             return True if not is_dynamic_check else (response, execution_time)
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Failed to execute test case {test_case_id}: {str(e)}")
@@ -122,6 +123,7 @@ class APITestKeywords:
     def _execute_check_with_cases(self, check_with_tcids):
         responses = {}
         for tcid in check_with_tcids:
+            logging.info(f"{self.__class__.__name__}: Executing test case {tcid} for dynamic check")
             response, _ = self.execute_api_test_case(tcid, is_dynamic_check=True)
             responses[tcid] = response
         return responses
