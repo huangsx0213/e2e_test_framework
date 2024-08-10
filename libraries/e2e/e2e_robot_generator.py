@@ -26,7 +26,7 @@ class E2ERobotCasesGenerator:
         default_test_cases_path: str = os.path.join('test_cases', 'e2e_test_cases.xlsx')
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
         self.web_test_loader = WebTestLoader(self.test_cases_path)
-        self.api_robot_generator = APIRobotCasesGenerator()
+        self.api_robot_generator = APIRobotCasesGenerator(None, self.test_cases_path)
 
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> TestSuite:
         self.robot_suite = TestSuite('End to End Test Suite')
@@ -39,7 +39,7 @@ class E2ERobotCasesGenerator:
         return self.robot_suite
 
     def create_test_case(self, test_case: Dict):
-        logging.info(f"Creating E2E test case {test_case['Case ID']}")
+        logging.info(f"{self.__class__.__name__}: Creating E2E test case {test_case['Case ID']}")
         test_steps = self.web_test_loader.get_test_steps(test_case['Case ID'])
         test_data_sets = self.web_test_loader.get_test_data(test_case['Case ID'])
         if not test_data_sets:
@@ -48,9 +48,9 @@ class E2ERobotCasesGenerator:
         self.robot_suite.suites.append(self.child_suite)
 
         # Convert the paths to raw string format to avoid issues with backslashes
-        env_config_path_arg = os.path.normpath(self.env_config_path).replace('\\', '\\\\')
-        test_config_path_arg = os.path.normpath(self.test_config_path).replace('\\', '\\\\')
-        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace('\\', '\\\\')
+        env_config_path_arg = os.path.normpath(self.env_config_path).replace('\\', '/')
+        test_config_path_arg = os.path.normpath(self.test_config_path).replace('\\', '/')
+        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace('\\', '/')
         self.child_suite.resource.imports.library('libraries.web.page_object.PageObject', args=[env_config_path_arg, test_config_path_arg, test_cases_path_arg])
 
         for data_set_index, data_set in enumerate(test_data_sets, 1):
@@ -63,9 +63,9 @@ class E2ERobotCasesGenerator:
             try:
                 self.create_test_steps(robot_test, test_steps, data_set)
 
-                logging.info(f"E2E test case {test_case['Case ID']} with data set {data_set_index} created successfully")
+                logging.info(f"{self.__class__.__name__}: E2E test case {test_case['Case ID']} with data set {data_set_index} created successfully")
             except Exception as e:
-                logging.error(f"Error creating test case {test_case['Case ID']} with data set {data_set_index}: {str(e)}")
+                logging.error(f"{self.__class__.__name__}: Error creating test case {test_case['Case ID']} with data set {data_set_index}: {str(e)}")
                 raise
 
     def create_test_steps(self, robot_test, test_steps: List[Dict], data_set: Dict):
@@ -75,7 +75,7 @@ class E2ERobotCasesGenerator:
             parameters = self.extract_parameters(data_set, step['Parameter Name'])
 
             try:
-                logging.info(f"Creating e2e step: {page_name}.{module_name}")
+                logging.info(f"{self.__class__.__name__}: Creating e2e step: {page_name}.{module_name}")
                 if module_name == 'API':
                     self.child_suite.tests.remove(robot_test)
                     tc_id_list = step['Parameter Name'].split(',')
@@ -85,7 +85,7 @@ class E2ERobotCasesGenerator:
                     robot_test.body.create_keyword(name='execute_module', args=[page_name, module_name, parameters])
                     self.child_suite.teardown.config(name='close_browser', args=[])
             except Exception as e:
-                logging.error(f"Error Creating web step {page_name}.{module_name}: {str(e)}")
+                logging.error(f"{self.__class__.__name__}: Error Creating web step {page_name}.{module_name}: {str(e)}")
                 raise
 
     @staticmethod
@@ -97,6 +97,6 @@ class E2ERobotCasesGenerator:
                 # Add type conversion here if needed
                 parameters[name] = value
             else:
-                logging.warning(f"Parameter {name} not found in data set")
-        logging.debug(f"Extracted parameters: {parameters}")
+                logging.warning(f"{E2ERobotCasesGenerator.__class__.__name__}: Parameter {name} not found in data set")
+        logging.debug(f"{E2ERobotCasesGenerator.__class__.__name__}: Extracted parameters: {parameters}")
         return parameters

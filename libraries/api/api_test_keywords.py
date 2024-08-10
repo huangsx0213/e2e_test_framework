@@ -22,7 +22,7 @@ builtin_lib = BuiltIn()
 
 
 @library
-class ApiTestKeywords:
+class APITestKeywords:
     ROBOT_LIBRARY_SCOPE = 'TEST SUITE'
 
     def __init__(self, env_config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
@@ -56,16 +56,10 @@ class ApiTestKeywords:
     def clear_saved_fields(self):
         if self.test_config.get('clear_saved_fields_after_test', False):
             self.saved_fields_manager.clear_saved_fields()
-            logging.info("Cleared saved fields")
+            logging.info(f"{self.__class__.__name__}: Cleared saved fields")
 
     @keyword
     def execute_multiple_api_test_cases(self, test_case_ids: List[str] = None):
-        """
-        Execute multiple API test cases.
-
-        :param test_case_ids: List of test case IDs to execute. If None, all test cases will be executed.
-        :return: Dictionary with test case IDs as keys and execution results as values.
-        """
         api_test_loader = APITestLoader(self.test_cases_path)
         test_cases = api_test_loader.get_api_test_cases()
 
@@ -74,7 +68,7 @@ class ApiTestKeywords:
 
         results = {}
         for tcid in test_case_ids:
-            logging.info(f"Executing test case: {tcid}")
+            logging.info(f"{self.__class__.__name__}: Executing test case: {tcid}")
             result = self.execute_api_test_case(tcid)
             results[tcid] = result
 
@@ -88,31 +82,31 @@ class ApiTestKeywords:
             test_case = next((tc for _, tc in test_cases.iterrows() if tc['TCID'] == test_case_id), None)
 
             if test_case is None:
-                raise ValueError(f"Test case with ID {test_case_id} not found.")
+                raise ValueError(f"{self.__class__.__name__}: Test case with ID {test_case_id} not found.")
 
             check_with_tcids = self._extract_check_with_tcids(test_case)
 
             if check_with_tcids:
                 pre_check_responses = self._execute_check_with_cases(check_with_tcids)
                 response, execution_time = self.send_request(test_case)
-                logging.info(f"time taken to execute test case {test_case_id}: {execution_time}")
+                logging.info(f"{self.__class__.__name__}: time taken to execute test case {test_case_id}: {execution_time}")
                 self.api_response_asserter.validate_response(test_case['Exp Result'], response)
                 self.api_response_extractor.extract_value(response, test_case)
                 logging.info("============================================")
                 post_check_responses = self._execute_check_with_cases(check_with_tcids)
-                logging.info(f"Validating dynamic checks for test case {test_case_id}:")
+                logging.info(f"{self.__class__.__name__}: Validating dynamic checks for test case {test_case_id}:")
                 self.api_response_asserter.validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
             else:
                 response, execution_time = self.send_request(test_case)
-                logging.info(f"time taken to execute test case {test_case_id}: {execution_time}")
+                logging.info(f"{self.__class__.__name__}: time taken to execute test case {test_case_id}: {execution_time}")
                 self.api_response_asserter.validate_response(test_case['Exp Result'], response)
                 self.api_response_extractor.extract_value(response, test_case)
 
-            logging.info(f"Finished execution of test case {test_case_id}")
+            logging.info(f"{self.__class__.__name__}: Finished execution of test case {test_case_id}")
             logging.info("============================================")
             return True if not is_dynamic_check else (response, execution_time)
         except Exception as e:
-            logging.error(f"Failed to execute test case {test_case_id}: {str(e)}")
+            logging.error(f"{self.__class__.__name__}: Failed to execute test case {test_case_id}: {str(e)}")
             raise e
 
     def _extract_check_with_tcids(self, test_case):
@@ -136,7 +130,7 @@ class ApiTestKeywords:
         ex_endpoint = test_case['Endpoint']
         current_endpoint = self.endpoints.get(ex_endpoint, None)
         if current_endpoint is None:
-            raise Exception(f"Endpoint {ex_endpoint} not found in config file")
+            raise Exception(f"{self.__class__.__name__}: Endpoint {ex_endpoint} not found in config file")
         method: str = current_endpoint['method']
         url: str = current_endpoint['path']
 
@@ -146,7 +140,7 @@ class ApiTestKeywords:
         self.saved_fields_manager.apply_suite_variables(test_case)
         body, format_type = self.body_generator.generate_request_body(test_case, method)
 
-        logging.info(f"Sending request to {url} with method: {method} for test step {test_case['TCID']}.")
+        logging.info(f"{self.__class__.__name__}: Sending request to {url} with method: {method} for test step {test_case['TCID']}.")
         response, execution_time = RequestSender.send_request(url, method, headers, body, format_type)
 
         return response, execution_time

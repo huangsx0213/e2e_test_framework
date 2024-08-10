@@ -7,7 +7,7 @@ class APITestLoader:
         self.data = self._load_excel_data()
 
     def _load_excel_data(self):
-        sheets = ['API', 'Headers', 'BodyTemplates', 'BodyDefaults']
+        sheets = ['API']
         return {sheet: pd.read_excel(self.excel_path, sheet_name=sheet).fillna("") for sheet in sheets}
 
     def get_data(self, sheet_name):

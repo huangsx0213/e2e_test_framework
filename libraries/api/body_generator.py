@@ -23,30 +23,30 @@ class BodyGenerator:
 
             template_name = test_case['Template']
             body_modifications = self._validate_and_load_json(test_case['Body Modifications'], test_case)
-            logging.info(f"[TCID:{test_case['TCID']}] Body modifications for test case {test_case['TCID']}: \n{self.format_json(body_modifications)}")
+            logging.info(f"{self.__class__.__name__}:Body modifications for test case {test_case['TCID']}: \n{self.format_json(body_modifications)}")
             template_path = self._resolve_template_path(template_name, test_case)
             format_type = UtilityHelpers.get_file_format(template_path)
 
             # Prepare all required request data
             request_data = self._prepare_request_data(test_case['Defaults'], body_modifications, test_case)
-            logging.info(f"[TCID:{test_case['TCID']}] Request data for test case {test_case['TCID']}: \n{self.format_json(request_data)}")
+            logging.info(f"{self.__class__.__name__}:Request data for test case {test_case['TCID']}: \n{self.format_json(request_data)}")
 
-            # Generate request body
+            # Generating request body
             body = TemplateRenderer.render_template(self.template_dir, template_path, request_data, format_type)
             if format_type == 'json':
-                logging.info(f"[TCID:{test_case['TCID']}] Request body for test case {test_case['TCID']}: \n{self.format_json(body)}")
+                logging.info(f"{self.__class__.__name__}:Request body for test case {test_case['TCID']}: \n{self.format_json(body)}")
             else:
-                logging.info(f"[TCID:{test_case['TCID']}] Request body for test case {test_case['TCID']}: \n{self.format_xml(body)}")
+                logging.info(f"{self.__class__.__name__}:Request body for test case {test_case['TCID']}: \n{self.format_xml(body)}")
             return body, format_type
         except Exception as e:
-            logging.error(f"[TCID:{test_case['TCID']}] Error in generate_request_body for test case {test_case['TCID']}: {str(e)}")
+            logging.error(f"{self.__class__.__name__}:Error in generate_request_body for test case {test_case['TCID']}: {str(e)}")
             raise
 
-    def _validate_and_load_json(self, json_string: str, test_step: Dict[str, Any]) -> Dict[str, Any]:
+    def _validate_and_load_json(self, json_string: str, test_case: Dict[str, Any]) -> Dict[str, Any]:
         try:
             return json.loads(json_string)
         except json.JSONDecodeError:
-            logging.error(f"[TSID:{test_step['TSID']}] Invalid JSON format in test step {test_step['TSID']}: {json_string}")
+            logging.error(f"{self.__class__.__name__}:Invalid JSON in test case {test_case['TCID']}: \n{json_string}")
             raise
 
     def _resolve_template_path(self, template_name: str, test_case: Dict[str, Any]) -> str:
@@ -54,7 +54,7 @@ class BodyGenerator:
         if not os.path.exists(template_path):
             template_path = os.path.join(self.template_dir, f"{template_name}.xml")
         if not os.path.exists(template_path):
-            logging.error(f"[TCID:{test_case['TCID']}] Template '{template_name}' not found for test step {test_case['TCID']} in {self.template_dir}")
+            logging.error(f"{self.__class__.__name__}:Template '{template_name}' not found for test case {test_case['TCID']} in {self.template_dir}")
             raise
         return template_path
 
@@ -69,7 +69,7 @@ class BodyGenerator:
         if not file_path.endswith('.json'):
             file_path += '.json'
         if not os.path.exists(file_path):
-            logging.error(f"[TCID:{test_case['TCID']}] Default values file '{default_values_file}' not found for test step {test_case['TCID']} in {self.body_defaults_dir}")
+            logging.error(f"{self.__class__.__name__}:Default values file '{default_values_file}' not found for test case {test_case['TCID']} in {self.body_defaults_dir}")
             raise
         return ConfigManager.load_json(file_path)
 
@@ -83,7 +83,7 @@ class BodyGenerator:
                     base_values[key] = value
             return base_values
         except Exception as e:
-            logging.error(f"[TCID:{test_case['TCID']}] Error merging default values and custom values in test case {test_case['TCID']} : {str(e)}")
+            logging.error(f"{self.__class__.__name__}:Error merging default values and custom values in test case {test_case['TCID']} : {str(e)}")
             raise
 
     def _generate_dynamic_values(self, data: Union[Dict[str, Any], list], test_case: Dict[str, Any]) -> Union[
@@ -97,15 +97,15 @@ class BodyGenerator:
                         else self._replace_placeholders(item, test_case) for item in data]
             return data
         except Exception as e:
-            logging.error(f"[TCID:{test_case['TCID']}] Error generating dynamic values in test step {test_case['TCID']} : {str(e)}")
+            logging.error(f"{self.__class__.__name__}:Error generating dynamic values in test case {test_case['TCID']} : {str(e)}")
             raise
 
-    def _replace_placeholders(self, value: Any, test_step: Dict[str, Any]) -> Any:
+    def _replace_placeholders(self, value: Any, test_case) -> Any:
         try:
             if isinstance(value, str) and re.match(r'\{\{\s*[^}]+?\s*\}\}', value):
                 placeholder = re.findall(r'\{\{\s*([^}]+?)\s*\}\}', value)[0]
                 return VariableGenerator.generate_dynamic_value(placeholder)
             return value
         except Exception as e:
-            logging.error(f"[TSID:{test_step['TSID']}] Error replacing placeholders in test step {test_step['TSID']} : {str(e)}")
+            logging.error(f"{self.__class__.__name__}:Error replacing placeholders in test case {test_case['TCID']}: {str(e)}")
             raise

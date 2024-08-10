@@ -10,7 +10,7 @@ from libraries.common.log_manager import logger_instance
 
 
 class APIRobotCasesGenerator:
-    def __init__(self, env_config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
+    def __init__(self, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
         self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'api_test_config.yaml')
         self._load_configuration()
@@ -27,15 +27,16 @@ class APIRobotCasesGenerator:
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> TestSuite:
         self.robot_suite = TestSuite('API Test Suite')
         self.robot_suite.teardown.config(name='clear_saved_fields', args=[])
-        self.robot_suite.resource.imports.library('libraries.api.api_test_keywords.ApiTestKeywords')  # Update as needed
+        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace('\\', '/')
+        logging.info(f"Generating API Robot Case：Currently using test cases from {test_cases_path_arg}")
+        self.robot_suite.resource.imports.library('libraries.api.api_test_keywords.APITestKeywords', args=[None, None, test_cases_path_arg])  # Update as needed
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
         try:
             filtered_cases = self.test_cases_df.filter_cases(tcid_list=tc_id_list, tags=tags)
-            logging.info(f"Successfully loaded test cases from {self.test_cases_path}")
             self.create_test_cases(filtered_cases)
         except Exception as e:
-            logging.info(f"Failed to run test suite: {str(e)}")
+            logging.info(f"Generating API Robot Case：Failed to create test suite: {str(e)}")
         finally:
             return self.robot_suite
 

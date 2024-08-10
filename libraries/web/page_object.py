@@ -14,12 +14,12 @@ class WebDriverSingleton:
 
     @classmethod
     def get_instance(cls, driver_config=None):
-        logging.info("Getting WebDriver instance")
+        logging.info(f"WebDriverSingleton: Getting WebDriver instance")
         if cls._instance is None:
             if driver_config is None:
-                raise ValueError("Config path must be provided when creating the first instance")
+                raise ValueError(f"WebDriverSingleton: Config path must be provided when creating the first instance")
             cls._instance = WebDriverFactory.create_driver(driver_config)
-            logging.info("WebDriver instance created")
+            logging.info(f"WebDriverSingleton: WebDriver instance created")
         return cls._instance
 
     @classmethod
@@ -27,7 +27,7 @@ class WebDriverSingleton:
         if cls._instance:
             cls._instance.quit()
             cls._instance = None
-            logging.info("WebDriver instance closed")
+            logging.info(f"WebDriverSingleton: WebDriver instance closed")
 
 
 @library
@@ -84,7 +84,7 @@ class PageObject:
 
     @keyword
     def execute_module(self, page_name: str, module_name: str, parameters: Dict = None):
-        logging.info(f"Executing module: {module_name} on page: {page_name}")
+        logging.info(f"{self.__class__.__name__}: Executing module: {module_name} on page: {page_name}")
         parameters = parameters or {}
         module_actions = self.page_modules[page_name][module_name]
 
@@ -101,7 +101,7 @@ class PageObject:
 
             action_params = [parameters.get(param) for param in param_names]
 
-            msg = f"Executing action: {action}"
+            msg = f"{self.__class__.__name__}: Executing action: {action}"
             if action_params:
                 msg += f" with parameters: {action_params}"
             if element:
@@ -110,7 +110,7 @@ class PageObject:
             self._execute_action(action, element, *action_params)
             if screen_capture:
                 self.web_actions.capture_screenshot()
-            logging.info(f"Action: {action} executed successfully")
+            logging.info(f"{self.__class__.__name__}: Action: {action} executed successfully")
             logging.info("=" * 80)
 
     def _get_element_with_appropriate_condition(self, locator: Tuple[str, str], action: str):
@@ -128,7 +128,7 @@ class PageObject:
         }
         condition = condition_map.get(action, 'presence')
         element = self.web_actions.wait_for_element(locator, condition=condition)
-        logging.debug(f"Located element {locator} for action: {action}")
+        logging.debug(f"{self.__class__.__name__}: Located element {locator} for action: {action}")
         return element
 
     def _execute_action(self, action: str, element, *args, **kwargs):
@@ -169,7 +169,7 @@ class PageObject:
         }
 
         if action not in action_map:
-            raise ValueError(f"Unsupported action: {action}")
+            raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
 
         return action_map[action](element, *args, **kwargs) if element else action_map[action](*args, **kwargs)
 

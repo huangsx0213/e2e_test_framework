@@ -36,7 +36,7 @@ class WebUIRobotCasesGenerator:
         return self.robot_suite
 
     def create_test_case(self, test_case: Dict):
-        logging.info(f"Creating E2E test case {test_case['Case ID']}")
+        logging.info(f"{self.__class__.__name__}: Creating E2E test case {test_case['Case ID']}")
         test_steps = self.web_test_loader.get_test_steps(test_case['Case ID'])
         test_data_sets = self.web_test_loader.get_test_data(test_case['Case ID'])
 
@@ -49,9 +49,9 @@ class WebUIRobotCasesGenerator:
                     robot_test.tags.add(tag)
             try:
                 self.create_test_steps(robot_test, test_steps, data_set)
-                logging.info(f"E2E test case {test_case['Case ID']} with data set {data_set_index} created successfully")
+                logging.info(f"{self.__class__.__name__}: E2E test case {test_case['Case ID']} with data set {data_set_index} created successfully")
             except Exception as e:
-                logging.error(f"Error creating test case {test_case['Case ID']} with data set {data_set_index}: {str(e)}")
+                logging.error(f"{self.__class__.__name__}: Error creating test case {test_case['Case ID']} with data set {data_set_index}: {str(e)}")
                 raise
 
     def create_test_steps(self, robot_test, test_steps: List[Dict], data_set: Dict):
@@ -61,10 +61,10 @@ class WebUIRobotCasesGenerator:
             parameters = self.extract_parameters(data_set, step['Parameter Name'])
 
             try:
-                logging.info(f"Creating web step: {page_name}.{module_name}")
+                logging.info(f"{self.__class__.__name__}: Creating web step: {page_name}.{module_name}")
                 robot_test.body.create_keyword(name='execute_module', args=[page_name, module_name, parameters])
             except Exception as e:
-                logging.error(f"Error Creating web step {page_name}.{module_name}: {str(e)}")
+                logging.error(f"{self.__class__.__name__}: Error Creating web step {page_name}.{module_name}: {str(e)}")
                 raise
 
     @staticmethod
@@ -76,6 +76,6 @@ class WebUIRobotCasesGenerator:
                 # Add type conversion here if needed
                 parameters[name] = value
             else:
-                logging.warning(f"Parameter {name} not found in data set")
-        logging.debug(f"Extracted parameters: {parameters}")
+                logging.warning(f"{WebUIRobotCasesGenerator.__class__.__name__}: Parameter {name} not found in data set")
+        logging.debug(f"{WebUIRobotCasesGenerator.__class__.__name__}: Extracted parameters: {parameters}")
         return parameters

@@ -20,21 +20,21 @@ class HeadersGenerator:
         try:
             original_headers = self._load_headers(testcase)
             logging.info(
-                f"[TCID:{testcase['TCID']}] Headers for test step '{testcase['TCID']}' loaded from file: \n{self.format_json(original_headers)}")
+                f"{self.__class__.__name__}:Headers for test case '{testcase['TCID']}' loaded from file: \n{self.format_json(original_headers)}")
             headers = {k: self._replace_placeholders(v, saved_fields, testcase) for k, v in original_headers.items()}
-            logging.info(f"[TCID:{testcase['TCID']}] Headers for test step '{testcase['TCID']}' replaced placeholders: \n{self.format_json(headers)}")
+            logging.info(f"{self.__class__.__name__}:Headers for test case '{testcase['TCID']}' replaced placeholders: \n{self.format_json(headers)}")
             return headers
         except KeyError as e:
-            logging.error(f"[TCID:{testcase['TCID']}] Headers file '{headers_filename}' not found in test step '{testcase['TCID']}': {str(e)}")
+            logging.error(f"{self.__class__.__name__}:Headers file '{headers_filename}' not found in test case '{testcase['TCID']}': {str(e)}")
             raise
 
         except json.JSONDecodeError as e:
             logging.error(
-                f"[TCID:{testcase['TCID']}] Invalid JSON format in headers file '{headers_filename}' for test step '{testcase['TCID']}': {str(e)}")
+                f"{self.__class__.__name__}:Invalid JSON format in headers file '{headers_filename}' for test case '{testcase['TCID']}': {str(e)}")
             raise
         except Exception as e:
             logging.error(
-                f"[TCID:{testcase['TCID']}] Error processing headers file '{headers_filename}' for test step '{testcase['TCID']}': {str(e)}")
+                f"{self.__class__.__name__}:Error processing headers file '{headers_filename}' for test case '{testcase['TCID']}': {str(e)}")
             raise
 
     def _load_headers(self, testcase) -> Dict[str, str]:
@@ -45,14 +45,14 @@ class HeadersGenerator:
                 headers_file_path += '.json'
             if not os.path.exists(headers_file_path):
                 logging.error(
-                    f"[TSID:{testcase['TSID']}] Headers file '{headers_filename}' not found in directory '{self.headers_dir}' for test step '{testcase['TSID']}'")
+                    f"{self.__class__.__name__}:Headers file '{headers_filename}' not found in directory '{self.headers_dir}' for test case '{testcase['TCID']}'")
                 raise
             with open(headers_file_path, 'r') as file:
                 headers = json.load(file)
             return headers
         except Exception as e:
             logging.error(
-                f"[TSID:{testcase['TSID']}] Error loading headers file '{headers_filename}' for test step '{testcase['TSID']}': {str(e)}")
+                f"{self.__class__.__name__}:Error loading headers file '{headers_filename}' for test case '{testcase['TCID']}': {str(e)}")
             raise
 
     def _replace_placeholders(self, value: Any, saved_fields: Dict[str, Any], testcase) -> Any:
@@ -63,21 +63,21 @@ class HeadersGenerator:
                 for match in matches:
                     if match in saved_fields:
                         value = value.replace(f'{{{{{match}}}}}', str([match]))
-                        logging.info(f"[Headers] Replaced {match} with saved field '{saved_fields[match]}'")
+                        logging.info(f"{self.__class__.__name__}:Replaced {match} with saved field '{saved_fields[match]}' for test case '{testcase['TCID']}'")
                     else:
                         dynamic_value = VariableGenerator.generate_dynamic_value(match)
                         value = value.replace(f'{{{{{match}}}}}', str(dynamic_value))
-                        logging.info(f"[Headers] Replaced {match} with dynamic value '{dynamic_value}'")
+                        logging.info(f"{self.__class__.__name__}:Replaced {match} with dynamic value '{dynamic_value}' for test case '{testcase['TCID']}'")
 
                 matches = re.findall(r'\$\{([^}]+)\}', value)
                 for match in matches:
                     replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
                     value = value.replace(match, str(replacement_value))
-                    logging.info(f"[Headers] Replaced {match} with variable value '{replacement_value}'")
+                    logging.info(f"{self.__class__.__name__}:Replaced {match} with variable value '{replacement_value}' for test case '{testcase['TCID']}'")
 
             return value
         except Exception as e:
             logging.error(
-                f"[TSID:{testcase['TSID']}] Error replacing placeholders in headers file '{headers_filename}' for test step '{testcase['TSID']}': {str(e)}"
+                f"{self.__class__.__name__}:Error replacing placeholders in headers file '{headers_filename}' for test case '{testcase['TCID']}': {str(e)}"
             )
             raise

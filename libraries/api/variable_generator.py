@@ -51,4 +51,4 @@ class VariableGenerator:
 
     @staticmethod
     def _generate_error_handling() -> str:
-        raise ValueError(f"No handler registered for field.")
+        raise ValueError(f"VariableGenerator: No handler registered for field.")

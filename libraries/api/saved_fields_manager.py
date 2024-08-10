@@ -28,7 +28,7 @@ class SavedFieldsManager:
                 saved_fields: Dict[str, Any] = yaml.safe_load(f) or {}
             return saved_fields
         except Exception as e:
-            logging.error(f"Failed to load saved fields from the yaml file: {str(e)}")
+            logging.error(f"{self.__class__.__name__}: Failed to load saved fields from the yaml file: {str(e)}")
             raise
 
     def save_fields(self, field_data: Dict[str, Any]) -> None:
@@ -38,7 +38,7 @@ class SavedFieldsManager:
             with open(self.file_path, 'w') as f:
                 yaml.safe_dump(saved_fields, f, default_flow_style=False)
         except Exception as e:
-            logging.error(f"Failed to save fields to the yaml file: {str(e)}")
+            logging.error(f"{self.__class__.__name__}: Failed to save fields to the yaml file: {str(e)}")
             raise
 
     def apply_saved_fields(self, test_case, saved_fields: Dict) -> None:
@@ -50,7 +50,7 @@ class SavedFieldsManager:
                         replaced_lines = [line.replace(f"${{{key}}}", str(value)) for line in lines]
                         test_case[column] = "\n".join(replaced_lines)
         except Exception as e:
-            logging.error(f"Failed to apply saved fields to [Body Modifications], [Exp Result]: {str(e)}")
+            logging.error(f"{self.__class__.__name__}: Failed to apply saved fields to [Body Modifications], [Exp Result]: {str(e)}")
             raise
 
     def apply_suite_variables(self, test_case) -> None:
@@ -60,8 +60,8 @@ class SavedFieldsManager:
                 for match in matches:
                     replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
                     test_case[key] = test_case[key].replace(match, str(replacement_value))
-                    logging.info(f"[{key}] Replaced {match} variable value {replacement_value}")
+                    logging.info(f"{self.__class__.__name__}: [{key}] Replaced {match} variable value {replacement_value}")
 
         except Exception as e:
-            logging.error(f"[{key}] Replaced {match} with {replacement_value} failed: {str(e)}")
+            logging.error(f"{self.__class__.__name__}: [{key}] Replaced {match} with {replacement_value} failed: {str(e)}")
             raise

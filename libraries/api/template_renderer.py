@@ -14,9 +14,9 @@ class TemplateRenderer:
             format_body = TemplateRenderer._format_rendered_body(rendered_body, format_type)
             return format_body
         except (TemplateNotFound, json.JSONDecodeError) as e:
-            raise ValueError(f"Error rendering template: {str(e)}")
+            raise ValueError(f"TemplateRenderer: Error rendering template: {str(e)}")
         except Exception as e:
-            raise ValueError(f"An unexpected error occurred while rendering template: {str(e)}")
+            raise ValueError(f"TemplateRenderer: An unexpected error occurred while rendering template: {str(e)}")
 
     @staticmethod
     def _create_environment(template_dir: str) -> Environment:
@@ -36,4 +36,4 @@ class TemplateRenderer:
         elif format_type == 'xml':
             return rendered_body
         else:
-            raise ValueError(f"Unsupported format type: {format_type}")
+            raise ValueError(f"TemplateRenderer: Unsupported format type: {format_type}")
