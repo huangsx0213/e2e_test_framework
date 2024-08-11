@@ -1,0 +1,16 @@
+# The active environment to be used for the tests.
+# This should match one of the environment keys defined below in 'environments'.
+active_environment: DEV
+# Path to the excel file containing the test cases.
+test_cases_path: 'test_cases/api_test_cases.xlsx'
+clear_saved_fields_after_test: true
+# List of Test Case IDs to run.
+# Specify one or more Test Case IDs here.
+# If this list is empty, all test cases will be run.
+tc_id_list:
+
+
+# List of tags to filter test cases.
+# Only test cases which contain any of these tags will be run.
+# If this list is empty, all test cases will be run.
+tags:

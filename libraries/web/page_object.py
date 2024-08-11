@@ -1,139 +1,178 @@
+import logging
+import os
+from typing import Dict, Tuple, List
+from robot.api.deco import keyword, library
 from libraries.web.web_element_actions import WebElementActions
-from libraries.common.log_manager import logger
+from libraries.common.utility_helpers import PROJECT_ROOT
+from libraries.common.config_manager import ConfigManager
+from libraries.web.web_test_loader import WebTestLoader
+from libraries.web.webdriver_factory import WebDriverFactory
 
 
+class WebDriverSingleton:
+    _instance = None
+
+    @classmethod
+    def get_instance(cls, driver_config=None):
+        logging.info(f"WebDriverSingleton: Getting WebDriver instance")
+        if cls._instance is None:
+            if driver_config is None:
+                raise ValueError(f"WebDriverSingleton: Config path must be provided when creating the first instance")
+            cls._instance = WebDriverFactory.create_driver(driver_config)
+            logging.info(f"WebDriverSingleton: WebDriver instance created")
+        return cls._instance
+
+    @classmethod
+    def quit(cls):
+        if cls._instance:
+            cls._instance.quit()
+            cls._instance = None
+            logging.info(f"WebDriverSingleton: WebDriver instance closed")
+
+
+@library
 class PageObject:
-    def __init__(self, driver, locators_df, page_object_df):
-        self.driver = driver
-        self.locators_df = locators_df
-        self.page_object_df = page_object_df
-        self.web_actions = WebElementActions(driver)
-        self.page_elements = self._load_page_elements()
-        self.page_methods = self._load_page_methods()
+    def __init__(self, env_config_path: str = None, test_config_path: str = None, test_cases_path: str = None):
+        self.project_root: str = PROJECT_ROOT
+        self.env_config_path = env_config_path or os.path.join(self.project_root, 'configs', 'web', 'environments.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web', 'web_test_config.yaml')
 
-    def _load_page_elements(self):
+        self._load_configuration(test_cases_path)
+        self._initialize_components()
+
+    def _load_configuration(self, test_cases_path):
+        self.env_config: Dict = ConfigManager.load_yaml(self.env_config_path)
+        self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
+        self.active_driver_config: Dict = self.env_config['environments'][self.test_config['active_environment']]
+        default_test_cases_path: str = os.path.join('test_cases', 'web_test_cases.xlsx')
+        self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
+
+    def _initialize_components(self):
+        self.web_test_loader = WebTestLoader(self.test_config['test_case_path'])
+        self.locators_df = self.web_test_loader.get_locators()
+        self.page_object_df = self.web_test_loader.get_page_objects()
+        self.driver = self._load_webdriver()
+        self.web_actions = WebElementActions(self.driver)
+        self.page_elements = self._load_page_elements()
+        self.page_modules = self._load_page_modules()
+
+    def _load_webdriver(self):
+        return WebDriverSingleton.get_instance(self.active_driver_config)
+
+    def _load_page_elements(self) -> Dict[str, Dict[str, Tuple[str, str]]]:
         elements = {}
         for _, row in self.locators_df.iterrows():
             page_name = row['Page Name']
             element_name = row['Element Name']
-            locator_type = row['Locator Type']
-            locator_value = row['Locator Value']
-
-            if page_name not in elements:
-                elements[page_name] = {}
-            elements[page_name][element_name] = (locator_type, locator_value)
+            locator = (row['Locator Type'], row['Locator Value'])
+            elements.setdefault(page_name, {})[element_name] = locator
         return elements
 
-    def _load_page_methods(self):
-        methods = {}
+    def _load_page_modules(self) -> Dict[str, Dict[str, List[Dict]]]:
+        modules = {}
         for _, row in self.page_object_df.iterrows():
             page_name = row['Page Name']
-            method_name = row['Method Name']
-            element_name = row['Element Name']
-            action = row['Actions']
-            parameter_name = row['Parameter Name']
-
-            if page_name not in methods:
-                methods[page_name] = {}
-            methods[page_name][method_name] = {
-                'element_name': element_name,
-                'action': action,
-                'parameter_name': parameter_name.split(',') if parameter_name else []
+            module_name = row['Module Name']
+            action_info = {
+                'element_name': row['Element Name'],
+                'action': row['Actions'],
+                'parameter_name': row['Parameter Name'].split(',') if row['Parameter Name'] else [],
+                'screen_capture': row['Screenshot']
             }
-        return methods
+            modules.setdefault(page_name, {}).setdefault(module_name, []).append(action_info)
+        return modules
 
-    def execute_method(self, page_name, method_name, parameters=None):
-        if parameters is None:
-            parameters = {}
-        method_info = self.page_methods[page_name][method_name]
-        element_name = method_info['element_name']
-        action = method_info['action']
+    @keyword
+    def execute_module(self, page_name: str, module_name: str, parameters: Dict = None):
+        logging.info(f"{self.__class__.__name__}: Executing module: {module_name} on page: {page_name}")
+        parameters = parameters or {}
+        module_actions = self.page_modules[page_name][module_name]
 
-        if ',' in action:  # Composite action
-            for sub_action in action.split(','):
-                self.execute_method(page_name, sub_action, parameters)
-        else:
+        for action_info in module_actions:
+            element_name = action_info['element_name']
+            action = action_info['action']
+            param_names = action_info['parameter_name']
+            screen_capture = action_info['screen_capture']
+
+            element = None
             if element_name:
                 locator = self.page_elements[page_name][element_name]
                 element = self._get_element_with_appropriate_condition(locator, action)
-            else:
-                element = None
 
-            if action == 'open_url':
-                self.web_actions.open_url(parameters[method_info['parameter_name'][0]])
-            elif action == 'send_keys':
-                self.web_actions.send_keys(element, parameters[method_info['parameter_name'][0]])
-            elif action == 'click':
-                self.web_actions.click(element)
-            elif action == 'clear':
-                self.web_actions.clear(element)
-            elif action == 'select_by_value':
-                self.web_actions.select_by_value(element, parameters[method_info['parameter_name'][0]])
-            elif action == 'select_by_visible_text':
-                self.web_actions.select_by_visible_text(element, parameters[method_info['parameter_name'][0]])
-            elif action == 'select_by_index':
-                self.web_actions.select_by_index(element, parameters[method_info['parameter_name'][0]])
-            elif action == 'hover':
-                self.web_actions.hover(element)
-            elif action == 'double_click':
-                self.web_actions.double_click(element)
-            elif action == 'right_click':
-                self.web_actions.right_click(element)
-            elif action == 'scroll_into_view':
-                self.web_actions.scroll_into_view(element)
-            elif action == 'scroll_to_element':
-                self.web_actions.scroll_to_element(element)
-            elif action == 'get_text':
-                return self.web_actions.get_text(element)
-            elif action == 'get_attribute':
-                return self.web_actions.get_attribute(element, parameters[method_info['parameter_name'][0]])
-            elif action == 'is_element_present':
-                return self.web_actions.is_element_present(locator)
-            elif action == 'is_element_visible':
-                return self.web_actions.is_element_visible(locator, parameters.get('timeout'))
-            elif action == 'is_element_clickable':
-                return self.web_actions.is_element_clickable(locator, parameters.get('timeout'))
-            elif action == 'is_element_selected':
-                return self.web_actions.is_element_selected(element)
-            elif action == 'is_element_enabled':
-                return self.web_actions.is_element_enabled(element)
-            elif action == 'element_text_should_be':
-                return self.web_actions.element_text_should_be(element, parameters[method_info['parameter_name'][0]])
-            elif action == 'element_text_should_contains':
-                return self.web_actions.element_text_should_contains(element, parameters[method_info['parameter_name'][0]])
-            elif action == 'title_should_be':
-                return self.web_actions.title_should_be(parameters[method_info['parameter_name'][0]])
-            elif action == 'title_should_contains':
-                return self.web_actions.title_should_contains(parameters[method_info['parameter_name'][0]])
-            elif action == 'wait_for_text_to_be_present':
-                return self.web_actions.wait_for_text_to_be_present(locator, parameters[method_info['parameter_name'][0]])
-            elif action == 'wait_for_element_to_disappear':
-                return self.web_actions.wait_for_element_to_disappear(locator)
-            elif action == 'switch_to_frame':
-                self.web_actions.switch_to_frame(element)
-            elif action == 'switch_to_default_content':
-                self.web_actions.switch_to_default_content()
-            elif action == 'execute_script':
-                return self.web_actions.execute_script(parameters[method_info['parameter_name'][0]], element)
-            elif action == 'accept_alert':
-                self.web_actions.accept_alert()
-            elif action == 'dismiss_alert':
-                self.web_actions.dismiss_alert()
-            elif action == 'get_alert_text':
-                return self.web_actions.get_alert_text()
-            elif action == 'highlight_element':
-                self.web_actions.highlight_element(element)
-            else:
-                raise ValueError(f"Unsupported action: {action}")
+            action_params = [parameters.get(param) for param in param_names]
 
-    def _get_element_with_appropriate_condition(self, locator, action):
-        if action in ['click', 'select_by_value', 'select_by_visible_text', 'select_by_index', 'double_click', 'right_click']:
-            element = self.web_actions.wait_for_element(locator, condition="clickable")
-        elif action in ['send_keys', 'clear', 'hover']:
-            element = self.web_actions.wait_for_element(locator, condition="visibility")
-        elif action in ['switch_to_frame']:
-            element = self.web_actions.wait_for_element(locator, condition="presence")
-        else:
-            element = self.web_actions.wait_for_element(locator)
-        logger.debug(f"Located element {locator} for action: {action}")
+            msg = f"{self.__class__.__name__}: Executing action: {action}"
+            if action_params:
+                msg += f" with parameters: {action_params}"
+            if element:
+                msg += f" on element: {page_name}.{element_name}"
+            logging.info(msg)
+            self._execute_action(action, element, *action_params)
+            if screen_capture:
+                self.web_actions.capture_screenshot()
+            logging.info(f"{self.__class__.__name__}: Action: {action} executed successfully")
+            logging.info("=" * 80)
+
+    def _get_element_with_appropriate_condition(self, locator: Tuple[str, str], action: str):
+        condition_map = {
+            'click': 'clickable',
+            'select_by_value': 'clickable',
+            'select_by_visible_text': 'clickable',
+            'select_by_index': 'clickable',
+            'double_click': 'clickable',
+            'right_click': 'clickable',
+            'send_keys': 'visibility',
+            'clear': 'visibility',
+            'hover': 'visibility',
+            'switch_to_frame': 'presence'
+        }
+        condition = condition_map.get(action, 'presence')
+        element = self.web_actions.wait_for_element(locator, condition=condition)
+        logging.debug(f"{self.__class__.__name__}: Located element {locator} for action: {action}")
         return element
+
+    def _execute_action(self, action: str, element, *args, **kwargs):
+        action_map = {
+            'open_url': self.web_actions.open_url,
+            'send_keys': self.web_actions.send_keys,
+            'click': self.web_actions.click,
+            'clear': self.web_actions.clear,
+            'select_by_value': self.web_actions.select_by_value,
+            'select_by_visible_text': self.web_actions.select_by_visible_text,
+            'select_by_index': self.web_actions.select_by_index,
+            'hover': self.web_actions.hover,
+            'double_click': self.web_actions.double_click,
+            'right_click': self.web_actions.right_click,
+            'scroll_into_view': self.web_actions.scroll_into_view,
+            'scroll_to_element': self.web_actions.scroll_to_element,
+            'get_text': self.web_actions.get_text,
+            'get_attribute': self.web_actions.get_attribute,
+            'is_element_present': self.web_actions.is_element_present,
+            'is_element_visible': self.web_actions.is_element_visible,
+            'is_element_clickable': self.web_actions.is_element_clickable,
+            'is_element_selected': self.web_actions.is_element_selected,
+            'is_element_enabled': self.web_actions.is_element_enabled,
+            'element_text_should_be': self.web_actions.element_text_should_be,
+            'element_text_should_contains': self.web_actions.element_text_should_contains,
+            'title_should_be': self.web_actions.title_should_be,
+            'title_should_contains': self.web_actions.title_should_contains,
+            'wait_for_text_to_be_present': self.web_actions.wait_for_text_to_be_present,
+            'wait_for_element_to_disappear': self.web_actions.wait_for_element_to_disappear,
+            'switch_to_frame': self.web_actions.switch_to_frame,
+            'switch_to_default_content': self.web_actions.switch_to_default_content,
+            'execute_script': self.web_actions.execute_script,
+            'accept_alert': self.web_actions.accept_alert,
+            'dismiss_alert': self.web_actions.dismiss_alert,
+            'get_alert_text': self.web_actions.get_alert_text,
+            'highlight_element': self.web_actions.highlight_element,
+            'capture_screenshot': self.web_actions.capture_screenshot,
+        }
+
+        if action not in action_map:
+            raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
+
+        return action_map[action](element, *args, **kwargs) if element else action_map[action](*args, **kwargs)
+
+    @keyword
+    def close_browser(self):
+        WebDriverSingleton.quit()

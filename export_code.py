@@ -26,8 +26,8 @@ def write_contents_to_file(files_list, output_file):
                     f.write('\n')
 
 if __name__ == '__main__':
-    exclude_scripts = ['__init__.py', 'export_code.py', 'export_html.py', 'gen_temp_default.py', 'web_main.py', 'web_test_executor.py', 'api_main.py']  # Replace with your actual script names
-    directory_to_search = '.'
+    exclude_scripts = ['__init__.py', 'export_code.py', 'export_html.py', 'gen_temp_default.py', 'web_main.py', 'api_main.py']  # Replace with your actual script names
+    directory_to_search = './libraries/web'
     extensions = ('.py', '.json', '.xml', '.yaml', '.html')
     exclude_directories = {'venv', '.idea', '__pycache__', '.git', 'testing_server', 'output'}
 

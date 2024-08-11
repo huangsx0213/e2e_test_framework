@@ -1,0 +1,12 @@
+active_environment: SIT
+test_case_path : test_cases/web_test_cases.xlsx
+# List of Test Case IDs to run.
+# Specify one or more Test Case IDs here.
+# If this list is empty, all test cases will be run.
+tc_id_list:
+
+# List of tags to filter test cases.
+# Only test cases which contain any of these tags will be run.
+# If this list is empty, all test cases will be run.
+tags:
+

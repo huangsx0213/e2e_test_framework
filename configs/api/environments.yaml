@@ -1,7 +1,3 @@
-# The active environment to be used for the tests.
-# This should match one of the environment keys defined below in 'environments'.
-active_environment: DEV
-
 # Definition of different environments and their respective endpoints.
 environments:
   DEV:

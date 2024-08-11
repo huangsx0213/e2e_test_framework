@@ -19,10 +19,10 @@ class RequestSender:
                     headers['Content-Type'] = 'application/xml'
                 response = requests_method(url, headers=headers, data=body, verify=False)
             else:
-                raise ValueError(f"Unsupported format type: {format_type}")
+                raise ValueError(f"RequestSender: Unsupported format type: {format_type}")
             response.raise_for_status()
         except (requests.RequestException, ValueError) as e:
-            raise ValueError(f"sending request error: {str(e)}\nwith response text:\n{response.text}")
+            raise ValueError(f"RequestSender: sending request error: {str(e)}\nwith response text:\n{response.text}")
 
         execution_time = time.time() - start_time
         return response, execution_time
@@ -40,4 +40,4 @@ class RequestSender:
         if method in methods:
             return methods[method]
         else:
-            raise ValueError(f"Unsupported HTTP method: {method}")
+            raise ValueError(f"RequestSender: Unsupported HTTP method: {method}")

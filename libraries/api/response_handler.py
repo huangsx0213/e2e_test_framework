@@ -1,165 +1,155 @@
 import json
+import re
+from typing import Any, Union, Tuple
 import pandas as pd
-import requests
+from jsonpath_ng import parse
 import xmltodict
-from typing import Dict, Any, Union
-from decimal import Decimal, getcontext
-from libraries.common.log_manager import logger
-from libraries.api.excel_operation_manager import ExcelOperationManager
-from libraries.api.html_report_generator import HTMLReportGenerator
-from libraries.api.response_comparator import ResponseComparator
-from libraries.api.saved_fields_manager import SavedFieldsManager
+from requests import Response
+import logging
+from robot.libraries.BuiltIn import BuiltIn
 from libraries.common.utility_helpers import UtilityHelpers
 
+builtin_lib = BuiltIn()
 
-class ResponseHandler:
-    def __init__(self) -> None:
-        self.workbook_cache = {}
-        self.pending_operations = []
-        self.sfm = SavedFieldsManager()
-        self.html_report_generator = HTMLReportGenerator()
-        self.excel_manager = ExcelOperationManager()
-        self.response_comparator = ResponseComparator()
-        self.format_xml = UtilityHelpers.format_xml
-        self.format_json = UtilityHelpers.format_json
 
-    def process_step_results(self, response: requests.Response, test_step, test_cases_path: str,
-                             test_case_manager, execution_time: float, is_dynamic_check: bool) -> str:
+class APIResponseProcessor:
+    def process_response(self, response: Union[str, Response]) -> Tuple[str, str]:
+
+        if isinstance(response, str):
+            content = response.strip()
+        elif isinstance(response, Response):
+            content = response.text.strip()
+        else:
+            raise ValueError(f"{self.__class__.__name__}: Unsupported response type. Expected string or Response object.")
+
         try:
-            fields_to_save_for_excel = ''
-            actual_status: int = response.status_code
-            actual_response: Union[Dict[str, Any], str] = self.extract_response_content(response, test_step)
-
-            # actual_results
-            expected_lines = self._split_lines(test_step['Exp Result'])
-            results = [self.response_comparator.compare_response_field(actual_response, expectation) for expectation in expected_lines]
-            actual_results = self.format_comparison_results(results)
-
-            # overall_result
-            overall_result = "FAIL" if any(res['result'] == "FAIL" for res in results) else "PASS"
-
-            # fields to save to excel and yaml
-            fields_to_save_lines = self._split_lines(test_step['Save Fields'])
-            if fields_to_save_lines != ['']:
-                fields_saved_results = [self.response_comparator.get_save_result(actual_response, field) for field in fields_to_save_lines]
-                fields_to_save_for_excel = self.format_fields_to_save(fields_saved_results)
-                fields_to_save_for_yaml = self.format_fields_to_save_yaml(test_step, fields_saved_results)
-                self.sfm.save_fields(fields_to_save_for_yaml)
-
-            # Cache the operation
-            if not is_dynamic_check:
-                self.excel_manager.cache_excel_operation(test_step, test_cases_path, actual_status, actual_results,
-                                                         overall_result, fields_to_save_for_excel, test_case_manager,
-                                                         execution_time)
-
-            logger.info(json.dumps(results, indent=4))
-            logger.info(f"The Result is: {overall_result}.")
-            return overall_result
-        except Exception as e:
-            logger.error(f"An error occurred while processing and storing results: {str(e)}")
-            raise
-
-    def process_step_results_with_dynamic_checks(self, check_with_tc_ids, target_response, pre_check_responses, post_check_responses, test_step, test_cases_path, test_case_manager,
-                                                 execution_time) -> None:
-        try:
-            fields_to_save_for_excel = ''
-            actual_status: int = target_response.status_code
-            actual_response: Union[Dict[str, Any], str] = self.extract_response_content(target_response, test_step)
-            expected_lines = self._split_lines(test_step['Exp Result'])
-            validate_results = self.get_validate_results_with_dynamic_checks(check_with_tc_ids, expected_lines, post_check_responses, pre_check_responses, target_response,
-                                                                             test_step)
-
-            overall_result = "FAIL" if any(res['result'] == "FAIL" for res in validate_results) else "PASS"
-            actual_results = self.format_comparison_results_with_dynamic_checks(validate_results)
-
-            # fields to save to excel and yaml
-            fields_to_save_lines = self._split_lines(test_step['Save Fields'])
-            if fields_to_save_lines != ['']:
-                fields_saved_results = [self.response_comparator.get_save_result(actual_response, field) for field in fields_to_save_lines]
-                fields_to_save_for_excel = self.format_fields_to_save(fields_saved_results)
-                fields_to_save_for_yaml = self.format_fields_to_save_yaml(test_step, fields_saved_results)
-                self.sfm.save_fields(fields_to_save_for_yaml)
-
-            # Cache the operation for writing to Excel
-            self.excel_manager.cache_excel_operation(test_step, test_cases_path, actual_status, actual_results, overall_result, fields_to_save_for_excel, test_case_manager,
-                                                     execution_time)
-        except Exception as e:
-            logger.error(f"An error occurred while handling validate expectations result: {str(e)}")
-            raise
-
-    def get_validate_results_with_dynamic_checks(self, check_with_tc_ids, expected_lines, post_check_responses, pre_check_responses, target_response, test_step):
-        validate_results = []
-        for expectation in expected_lines:
-            field_path, expected_value = expectation.split('=')
-            field_path = field_path.strip()
-            expected_value = expected_value.strip()
-            getcontext().prec = 5
-            if field_path.startswith(tuple(check_with_tc_ids)):
-                tc_id, _ = field_path.split('.', 1)
-                tc_id, _ = tc_id.split('[', 1)
-                expected_delta = Decimal(expected_value)
-                pre_check_response = self.extract_response_content(pre_check_responses[tc_id], test_step)
-                post_check_response = self.extract_response_content(post_check_responses[tc_id], test_step)
-                pre_value = Decimal(self.response_comparator.extract_actual_value(pre_check_response, field_path))
-                post_value = Decimal(self.response_comparator.extract_actual_value(post_check_response, field_path))
-                delta = post_value - pre_value
-                if delta != expected_delta:
-                    validate_results.append(self.response_comparator.create_comparison_result2(field_path, delta, expected_delta))
-                    logger.error(f"Check-with condition failed for {field_path}: {delta} != {expected_delta}")
-                else:
-                    validate_results.append(self.response_comparator.create_comparison_result2(field_path, delta, expected_delta))
-            else:
-                target_response_content = self.extract_response_content(target_response, test_step)
-                actual_value = self.response_comparator.extract_actual_value(target_response_content, field_path)
-                if str(actual_value) != expected_value:
-                    validate_results.append(self.response_comparator.create_comparison_result(field_path, actual_value, expected_value))
-                    logger.error(f"Expectation failed for {field_path}: {actual_value} != {expected_value}")
-                else:
-                    validate_results.append(self.response_comparator.create_comparison_result(field_path, actual_value, expected_value))
-        return validate_results
-
-    def extract_response_content(self, response: requests.Response, test_step):
-        try:
-            response = response.json()
-            logger.info(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_json(response)}")
-            return response
-        except json.JSONDecodeError as json_error:
-            logger.warning(f"[TSID:{test_step['TSID']}] JSON decode error: {json_error}. Attempting XML parse.")
+            json.loads(content)
+            logging.info(f"{self.__class__.__name__}: Response content is valid JSON string.")
+            return content, 'json'
+        except json.JSONDecodeError:
             try:
-                logger.info(f"[TSID:{test_step['TSID']}] Response content: \n{self.format_xml(response.text)}")
-                return xmltodict.parse(response.text)
-            except Exception as xml_error:
-                logger.error(f"[TSID:{test_step['TSID']}] XML parse error: {xml_error}. Returning raw response text.")
-                return response.text
+                content = UtilityHelpers.format_xml(content)
+                logging.info(f"{self.__class__.__name__}: Response content is valid XML string.")
+                return content, 'xml'
+            except ValueError:
+                raise ValueError(f"{self.__class__.__name__}: Response content is neither valid JSON nor XML.")
 
-    def apply_pending_operations(self) -> None:
-        self.pending_operations = self.excel_manager.apply_pending_operations()
+    def _get_json_value(self, json_string: str, json_path: str) -> Any:
 
-    def generate_html_report(self) -> None:
-        self.html_report_generator.generate_html_report(self.pending_operations)
+        parsed_json = json.loads(json_string)
+        jsonpath_expr = parse(f'$.{json_path}')
+        matches = [match.value for match in jsonpath_expr.find(parsed_json)]
+        if matches:
+            return matches[0]
+        else:
+            raise ValueError(f"{self.__class__.__name__}: No match found for JSONPath: {json_path}")
 
-    def format_comparison_results(self, results: list) -> str:
-        return '\n'.join(f"{res['field']}={res['actual_value']}:{res['result']}" for res in results)
+    def _extract_value_from_response(self, response, json_path):
+        response_content, response_format = self.process_response(response)
 
-    def format_comparison_results_with_dynamic_checks(self, results: list) -> str:
-        formatted_results = []
-        for res in results:
-            if res['field'].startswith('response'):
-                r = f"{res['field']}={res['actual_value']}:{res['result']}"
-                formatted_results.append(r)
+        if response_format == 'json':
+            return self._get_json_value(response_content, json_path)
+        elif response_format == 'xml':
+            json_content = json.dumps(xmltodict.parse(response_content))
+            return self._get_json_value(json_content, json_path)
+        else:
+            raise ValueError(f"{self.__class__.__name__}: Unsupported response format. Use 'xml' or 'json'.")
+    def _compare_diff(self, actual_diff, expected_diff):
+        expected_operator = expected_diff[0]
+        expected_value = float(expected_diff[1:])
+
+        if expected_operator == '+':
+            return actual_diff == expected_value
+        elif expected_operator == '-':
+            return actual_diff == -expected_value
+        else:
+            raise ValueError(f"{self.__class__.__name__}: Unsupported operator in expected diff: {expected_operator}")
+class APIResponseAsserter(APIResponseProcessor):
+    def validate_response(self, expected_results: str, actual_response: Union[str, Response]) -> None:
+
+        logging.info(f"{self.__class__.__name__}: Expected results:\n{expected_results}")
+        response_content, response_format = self.process_response(actual_response)
+        logging.info(f"{self.__class__.__name__}: Actual response:\n{response_content}")
+
+        expected_lines = expected_results.split('\n')
+        assertion_errors = []
+
+        for line in expected_lines:
+            if line.strip():
+                if line.strip().startswith('$'):
+                    try:
+                        self._assert_line(line.strip(), response_content, response_format)
+                    except AssertionError as e:
+                        logging.error(f"{self.__class__.__name__}: Assertion failed: {str(e)}")
+                        assertion_errors.append(str(e))
+        if assertion_errors:
+            raise AssertionError(f"{self.__class__.__name__}: Assertions failed:\n" + "\n".join(assertion_errors))
+
+    def _assert_line(self, line: str, response_content: str, response_format: str):
+        key, expected_value = line.split('=')
+        key = key.strip()
+        expected_value = expected_value.strip()
+
+        if response_format == 'json':
+            actual_value = self._get_json_value(response_content, key)
+        elif response_format == 'xml':
+            json_content = json.dumps(xmltodict.parse(response_content))
+            actual_value = self._get_json_value(json_content, key)
+        else:
+            raise ValueError(f"{self.__class__.__name__}: Unsupported response format. Use 'xml' or 'json'.")
+
+        # Convert values to the same type for comparison
+        try:
+            expected_value = type(actual_value)(expected_value)
+        except ValueError:
+            pass  # Keep the original type if conversion fails
+
+        logging.info(f"{self.__class__.__name__}: Asserting for: {key}, Expected value: {expected_value}, Actual value: {actual_value}")
+        assert actual_value == expected_value, f"{self.__class__.__name__}: Assertion failed for key '{key}'. Expected: {expected_value}, Actual: {actual_value}"
+
+    def validate_dynamic_checks(self, test_case, pre_check_responses, post_check_responses):
+        exp_results = test_case['Exp Result'].split('\n')
+        for exp_result in exp_results:
+            dynamic_checks = re.findall(r'(\w+)\.(\$[.\[\]\w]+)=([+-]\d+)', exp_result)
+            if dynamic_checks:
+                logging.info(f"{self.__class__.__name__}: Expected result: {exp_result}")
+
+            for check in dynamic_checks:
+                tcid, json_path, expected_value = check
+                if not tcid.startswith('$'):  # Only process checks that don't start with '$'
+                    # This is a dynamic check involving other test cases
+                    pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
+                    logging.info(f"{self.__class__.__name__}: Pre check value:{tcid}.{json_path}= {pre_value}")
+                    post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
+                    logging.info(f"{self.__class__.__name__}: Post check value:{tcid}.{json_path}= {post_value}")
+                    actual_value = post_value - pre_value
+                    logging.info(f"{self.__class__.__name__}: Actual value: Post check value - Pre check value = {'+' if actual_value >= 0 else ''}{actual_value}.")
+
+
+                    if not self._compare_diff(actual_value, expected_value):
+                        raise AssertionError(f"{self.__class__.__name__}: Dynamic check failed for {tcid}.{json_path}. "
+                                             f"{self.__class__.__name__}: Expected: {expected_value}, Actual: {'+' if actual_value >= 0 else ''}{actual_value}.")
+                    logging.info(f"****** Dynamic check passed for {tcid}.{json_path} ******")
+class APIResponseExtractor(APIResponseProcessor):
+
+    def extract_value(self, response: Union[str, Response], test_case) -> Any:
+
+        response_content, response_format = self.process_response(response)
+        save_fields = test_case['Save Fields'].splitlines() if pd.notna(test_case['Save Fields']) else []
+        for field in save_fields:
+
+            if response_format == 'json':
+                value = self._get_json_value(response_content, field)
+            elif response_format == 'xml':
+                json_content = json.dumps(xmltodict.parse(response_content))
+                value = self._get_json_value(json_content, field)
             else:
-                r = f"{res['field']}=+{res['actual_value']}:{res['result']}" if res['actual_value'] >= 0 else f"{res['field']}=-{res['actual_value']}:{res['result']}"
-                formatted_results.append(r)
+                raise ValueError(f"{self.__class__.__name__}: Unsupported response format. Use 'xml' or 'json'.")
+            field = f'{test_case["TCID"]}.{field.strip()}'
 
-        return '\n'.join(formatted_results)
+            logging.info(f"{self.__class__.__name__}: Setting suite variable:")
+            builtin_lib.set_suite_variable(f'${{{field}}}', value)
 
-    def format_fields_to_save(self, fields_saved_results: list) -> str:
-        return '\n'.join(f"{res['field']}={res['actual_value']}" for res in fields_saved_results)
 
-    def format_fields_to_save_yaml(self, test_step, fields_saved_results: list) -> Dict[str, Any]:
-        return {
-            f"{test_step['TSID']}.{res['field']}": res['actual_value'] for res in fields_saved_results
-        }
 
-    def _split_lines(self, lines: str) -> list:
-        return lines.strip().split('\n') if pd.notna(lines) else []
+

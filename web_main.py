@@ -1,25 +1,26 @@
 import os
-from libraries.common.config_manager import ConfigManager
-from libraries.web.web_test_executor import WebTestExecutor
-from libraries.web.webdriver_factory import WebDriverFactory
+
+from robot.reporting import ResultWriter
+from libraries.web.web_robot_generator import WebUIRobotCasesGenerator
 from libraries.common.utility_helpers import PROJECT_ROOT
 
 
-def main():
-    project_root: str = PROJECT_ROOT
-    config_path = os.path.join(project_root, 'configs', 'web', 'web_config.yaml')
-    test_config = ConfigManager.load_yaml(config_path)
+def run_test_suite(suite):
+    # Run the test suite and generate output XML
+    output_xml = os.path.join(PROJECT_ROOT, 'output', 'output.xml')
+    report_file = os.path.join(PROJECT_ROOT, 'output', 'report.html')
+    log_file = os.path.join(PROJECT_ROOT, 'output', 'log.html')
+    suite.run(output=output_xml)
 
-    test_case_path = test_config.get("test_case_path", None)
-
-    driver = WebDriverFactory.create_driver(config_path)
-
-    try:
-        test_executor = WebTestExecutor(driver, test_case_path)
-        test_executor.run_tests()
-    finally:
-        WebDriverFactory.quit_driver(driver)
+    # Generate log and report
+    ResultWriter(output_xml).write_results(
+        report=report_file,
+        log=log_file
+    )
 
 
 if __name__ == "__main__":
-    main()
+    rcg = WebUIRobotCasesGenerator()
+    # Create and run the test suite
+    suite = rcg.create_test_suite()
+    run_test_suite(suite)

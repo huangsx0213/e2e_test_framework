@@ -16,7 +16,7 @@ class UtilityHelpers:
         elif file_path.endswith('.xml'):
             return 'xml'
         else:
-            raise ValueError(f"Unsupported file format for file: {file_path}")
+            raise ValueError(f"UtilityHelpers: Unsupported file format for file: {file_path}")
 
     @staticmethod
     def escape_xml(value):
@@ -48,6 +48,13 @@ class UtilityHelpers:
         :return: Pretty-printed XML string.
         """
         try:
+            # check for XML declaration
+            xml_declaration = ""
+            if xml_string.startswith("<?xml"):
+                declaration_end_index = xml_string.find("?>") + 2
+                xml_declaration = xml_string[:declaration_end_index]
+                xml_string = xml_string[declaration_end_index:].strip()
+
             parser = etree.XMLParser(remove_blank_text=True, strip_cdata=False)
             xml_element = etree.fromstring(xml_string, parser)
 
@@ -62,9 +69,11 @@ class UtilityHelpers:
 
             _preserve_cdata(xml_element)
             formatted_xml = etree.tostring(xml_element, pretty_print=True, encoding='unicode')
+            if xml_declaration:
+                formatted_xml = xml_declaration + "\n" + formatted_xml
             return formatted_xml.strip()
         except Exception as e:
-            raise ValueError(f"Invalid XML data: {str(e)}")
+            raise ValueError(f"UtilityHelpers: Invalid XML data: {str(e)}")
 
     @staticmethod
     def time_calculation():
@@ -76,7 +85,7 @@ class UtilityHelpers:
                 end_time = time.time()
                 execution_time = end_time - start_time
                 from libraries.common.log_manager import logger
-                logger.info(f"Function {func.__name__} executed in {execution_time:.4f} seconds")
+                logger.info(f"UtilityHelpers: Function {func.__name__} executed in {execution_time:.4f} seconds")
                 return result
 
             return wrapper
@@ -90,7 +99,7 @@ class UtilityHelpers:
                 return current_dir
             parent = os.path.dirname(current_dir)
             if parent == current_dir:
-                raise FileNotFoundError("Project root not found")
+                raise FileNotFoundError("UtilityHelpers: Project root not found")
             current_dir = parent
 
     @staticmethod
@@ -105,8 +114,9 @@ class UtilityHelpers:
             project_root = UtilityHelpers._find_project_root(current_dir)
 
         if project_root is None:
-            raise FileNotFoundError("Project root not found")
+            raise FileNotFoundError("UtilityHelpers: Project root not found")
 
         return project_root
+
 
 PROJECT_ROOT = UtilityHelpers.get_project_root()
