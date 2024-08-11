@@ -3,20 +3,18 @@ import os
 import re
 from typing import Dict, List
 import pandas as pd
+from libraries.api.api_test_loader import APITestLoader
 from libraries.common.config_manager import ConfigManager
+from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
 from libraries.api.headers_generator import HeadersGenerator
 from libraries.api.saved_fields_manager import SavedFieldsManager
-from libraries.api.api_test_loader import APITestLoader
-from libraries.common.utility_helpers import PROJECT_ROOT
-from robot.api.deco import keyword, library
 from libraries.api.response_handler import APIResponseAsserter, APIResponseExtractor
 from robot.libraries.BuiltIn import BuiltIn
-
+from robot.api.deco import keyword, library
 
 builtin_lib = BuiltIn()
-
 
 @library
 class APITestKeywords:
@@ -24,13 +22,12 @@ class APITestKeywords:
 
     def __init__(self, env_config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
-        self.env_config_path = env_config_path or os.path.join(self.project_root, 'configs', 'api', 'environments.yaml')
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'api_test_config.yaml')
-
-        self._load_configuration(test_cases_path)
+        self._load_configuration(env_config_path, test_config_path, test_cases_path)
         self._initialize_components()
 
-    def _load_configuration(self, test_cases_path):
+    def _load_configuration(self, env_config_path, test_config_path, test_cases_path):
+        self.env_config_path = env_config_path or os.path.join(self.project_root, 'configs', 'api', 'environments.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'api_test_config.yaml')
         self.env_config: Dict = ConfigManager.load_yaml(self.env_config_path)
         self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
         self.active_environment: Dict = self.env_config['environments'][self.test_config['active_environment']]
@@ -85,22 +82,11 @@ class APITestKeywords:
 
             if check_with_tcids:
                 pre_check_responses = self._execute_check_with_cases(check_with_tcids)
-
-                response, execution_time = self.send_request(test_case)
-                logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case_id}: {execution_time}")
-                self.api_response_asserter.validate_response(test_case['Exp Result'], response)
-                self.api_response_extractor.extract_value(response, test_case)
-                logging.info("============================================")
-
+                response, execution_time = self._execute_single_test_case(test_case)
                 post_check_responses = self._execute_check_with_cases(check_with_tcids)
-
-                logging.info(f"{self.__class__.__name__}: Validating dynamic checks for test case {test_case_id}:")
-                self.api_response_asserter.validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
+                self._validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
             else:
-                response, execution_time = self.send_request(test_case)
-                logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case_id}: {execution_time}")
-                self.api_response_asserter.validate_response(test_case['Exp Result'], response)
-                self.api_response_extractor.extract_value(response, test_case)
+                response, execution_time = self._execute_single_test_case(test_case)
 
             logging.info(f"{self.__class__.__name__}: Finished execution of test case {test_case_id}")
             logging.info("============================================")
@@ -109,6 +95,14 @@ class APITestKeywords:
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Failed to execute test case {test_case_id}: {str(e)}")
             raise e
+
+    def _execute_single_test_case(self, test_case):
+        response, execution_time = self.send_request(test_case)
+        logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time}")
+        self.api_response_asserter.validate_response(test_case['Exp Result'], response)
+        self.api_response_extractor.extract_value(response, test_case)
+        logging.info("============================================")
+        return response, execution_time
 
     def _extract_check_with_tcids(self, test_case):
         conditions = test_case['Conditions']
@@ -127,6 +121,10 @@ class APITestKeywords:
             response, _ = self.execute_api_test_case(tcid, is_dynamic_check=True)
             responses[tcid] = response
         return responses
+
+    def _validate_dynamic_checks(self, test_case, pre_check_responses, post_check_responses):
+        logging.info(f"{self.__class__.__name__}: Validating dynamic checks for test case {test_case['TCID']}:")
+        self.api_response_asserter.validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
 
     def send_request(self, test_case):
         ex_endpoint = test_case['Endpoint']

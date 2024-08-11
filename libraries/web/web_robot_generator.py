@@ -25,7 +25,7 @@ class WebUIRobotCasesGenerator:
         self.web_test_loader = WebTestLoader(self.test_cases_path)
 
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> TestSuite:
-        self.robot_suite = TestSuite('WebUI Test Suite')
+        self.robot_suite = TestSuite('Web UI TestSuite')
         self.robot_suite.resource.imports.library('libraries.web.page_object.PageObject')
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])

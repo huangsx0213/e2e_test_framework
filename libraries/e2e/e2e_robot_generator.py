@@ -29,7 +29,7 @@ class E2ERobotCasesGenerator:
         self.api_robot_generator = APIRobotCasesGenerator(None, self.test_cases_path)
 
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> TestSuite:
-        self.robot_suite = TestSuite('EndToEndTestSuite')
+        self.robot_suite = TestSuite('End To End TestSuite')
 
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
@@ -78,12 +78,12 @@ class E2ERobotCasesGenerator:
                 logging.info(f"{self.__class__.__name__}: Creating e2e step: {page_name}.{module_name}")
                 if module_name == 'API':
                     self.child_suite.tests.remove(robot_ui_test)
-                    self.child_suite.name = f"APITestSuite.{page_name}.{step['Case ID']}"
+                    self.child_suite.name = f"APISubSuite.{page_name}.{step['Case ID']}"
                     tc_id_list = step['Parameter Name'].split(',')
                     self.api_robot_generator.create_test_suite(tc_id_list, None, self.child_suite)
 
                 else:
-                    self.child_suite.name = f"UITestSuite.{page_name}.{step['Case ID']}"
+                    self.child_suite.name = f"UISubSuite.{page_name}.{step['Case ID']}"
                     robot_ui_test.body.create_keyword(name='execute_module', args=[page_name, module_name, parameters])
                     self.child_suite.teardown.config(name='close_browser', args=[])
             except Exception as e:

@@ -25,7 +25,7 @@ class APIRobotCasesGenerator:
         self.test_cases_df = APITestLoader(self.test_cases_path)
 
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None, test_suite=None) -> TestSuite:
-        self.api_suite = test_suite if test_suite else TestSuite('APITestSuite')
+        self.api_suite = test_suite if test_suite else TestSuite('API TestSuite')
         self.api_suite.teardown.config(name='clear_saved_fields', args=[])
         test_cases_path_arg = os.path.normpath(self.test_cases_path).replace('\\', '/')
         logging.info(f"Generating API Robot Case：Currently using test cases from {test_cases_path_arg}")
