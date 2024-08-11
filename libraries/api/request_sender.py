@@ -22,7 +22,7 @@ class RequestSender:
                 raise ValueError(f"RequestSender: Unsupported format type: {format_type}")
             response.raise_for_status()
         except (requests.RequestException, ValueError) as e:
-            raise ValueError(f"RequestSender: sending request error: {str(e)}\nwith response text:\n{response.text}")
+            raise ValueError(f"RequestSender: sending request error: {str(e)}")
 
         execution_time = time.time() - start_time
         return response, execution_time
