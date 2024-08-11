@@ -1,5 +1,5 @@
 /.idea/
 /venv/
 /logs/
-/output/
+/report/
 **/__pycache__/

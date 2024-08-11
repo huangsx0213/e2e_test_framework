@@ -5,10 +5,10 @@ from libraries.e2e.e2e_robot_generator import E2ERobotCasesGenerator
 
 
 def run_test_suite(suite):
-    # Run the test suite and generate output XML
-    output_xml = os.path.join(PROJECT_ROOT, 'output', 'output.xml')
-    report_file = os.path.join(PROJECT_ROOT, 'output', 'report.html')
-    log_file = os.path.join(PROJECT_ROOT, 'output', 'log.html')
+    # Run the test suite and generate report XML
+    output_xml = os.path.join(PROJECT_ROOT, 'report', 'output.xml')
+    report_file = os.path.join(PROJECT_ROOT, 'report', 'report.html')
+    log_file = os.path.join(PROJECT_ROOT, 'report', 'log.html')
     suite.run(output=output_xml)
 
     # Generate log and report

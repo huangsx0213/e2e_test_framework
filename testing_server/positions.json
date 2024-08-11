@@ -43,24 +43,14 @@
             }
         },
         "CNY": {
-            "2024-06-12": {
+            "2024-08-11": {
                 "inbound": {
-                    "count": 11,
-                    "total_amount": 1100.0
+                    "count": 9,
+                    "total_amount": 900.0
                 },
                 "outbound": {
-                    "count": 11,
-                    "total_amount": 1100.0
-                }
-            },
-            "2024-06-13": {
-                "inbound": {
-                    "count": 1,
-                    "total_amount": 100.0
-                },
-                "outbound": {
-                    "count": 1,
-                    "total_amount": 100.0
+                    "count": 9,
+                    "total_amount": 900.0
                 }
             }
         }

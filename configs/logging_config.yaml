@@ -18,12 +18,6 @@ handlers:
     mode: "a"
 
 
-loggers:
-  e2e_testing:
-    level: DEBUG
-    handlers: [console]
-    propagate: no
-
 root:
   level: INFO
   handlers: [console,file]
