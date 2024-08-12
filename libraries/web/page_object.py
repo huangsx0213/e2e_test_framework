@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from typing import Dict, Tuple, List
 from robot.api.deco import keyword, library
 from libraries.web.web_element_actions import WebElementActions
@@ -7,7 +8,9 @@ from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
 from libraries.web.web_test_loader import WebTestLoader
 from libraries.web.webdriver_factory import WebDriverFactory
+from robot.libraries.BuiltIn import BuiltIn
 
+builtin_lib = BuiltIn()
 
 class WebDriverSingleton:
     _instance = None
@@ -173,7 +176,28 @@ class PageObject:
         if action not in action_map:
             raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
 
-        return action_map[action](element, *args, **kwargs) if element else action_map[action](*args, **kwargs)
+        # Create a new list to store the modified arguments
+        new_args = []
+
+        # Iterate through each argument in the original args list
+        for arg in args:
+            if isinstance(arg, str):
+                # Use regex to find all occurrences of ${...} in the string
+                matches = re.findall(r'\$\{([^}]+)\}', arg)
+                if matches:
+                    # If matches are found, process each one
+                    for match in matches:
+                        # Retrieve the actual value for the variable using builtin_lib
+                        replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
+
+                        # Replace the ${...} placeholder with the actual value
+                        arg = arg.replace(f'${{{match}}}', str(replacement_value))
+
+                        logging.info(f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for action: {action}")
+            # Add the processed (or original) argument to the new list
+            new_args.append(arg)
+
+        return action_map[action](element, *new_args, **kwargs) if element else action_map[action](*new_args, **kwargs)
 
     @keyword
     def close_browser(self):

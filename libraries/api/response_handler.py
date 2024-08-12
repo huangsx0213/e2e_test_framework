@@ -148,7 +148,8 @@ class APIResponseExtractor(APIResponseProcessor):
             field = f'{test_case["TCID"]}.{field.strip()}'
 
             logging.info(f"{self.__class__.__name__}: Setting suite variable:")
-            builtin_lib.set_suite_variable(f'${{{field}}}', value)
+
+            builtin_lib.set_global_variable(f'${{{field}}}', value)
 
 
 
