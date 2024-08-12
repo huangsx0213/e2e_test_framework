@@ -76,6 +76,6 @@ class WebUIRobotCasesGenerator:
                 # Add type conversion here if needed
                 parameters[name] = value
             else:
-                logging.warning(f"{WebUIRobotCasesGenerator.__class__.__name__}: Parameter {name} not found in data set")
-        logging.debug(f"{WebUIRobotCasesGenerator.__class__.__name__}: Extracted parameters: {parameters}")
+                logging.warning(f"WebUIRobotCasesGenerator: Parameter {name} not found in data set")
+        logging.info(f"WebUIRobotCasesGenerator: Extracted parameters: {parameters}")
         return parameters

@@ -100,5 +100,5 @@ class E2ERobotCasesGenerator:
                 parameters[name] = value
             else:
                 logging.warning(f"E2ERobotCasesGenerator: Parameter {name} not found in data set")
-        logging.debug(f"E2ERobotCasesGenerator: Extracted parameters: {parameters}")
+        logging.info(f"E2ERobotCasesGenerator: Extracted parameters: {parameters}")
         return parameters

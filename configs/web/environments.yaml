@@ -4,8 +4,8 @@ environments:
     browser: chrome
     is_remote: false
     remote_url: http://www.sg2.findhere.org:8044/wd/hub
-    chrome_path: E:\Downloads\my files\chrome-win64\chrome.exe
-    chromedriver_path: E:\Downloads\my files\chromedriver-win64\chromedriver.exe
+    chrome_path: D:\Downloads\My Files\chrome-win64\chrome.exe
+    chromedriver_path: D:\Downloads\My Files\chromedriver-win64\chromedriver.exe
     edge_path: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
     edgedriver_path: C:\WebDrivers\msedgedriver.exe
     browser_options:

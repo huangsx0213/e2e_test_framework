@@ -16,17 +16,19 @@ class WebDriverFactory:
 
         logging.info(f"WebDriverFactory: Configuring for browser: {browser}")
         logging.info(f"WebDriverFactory: Remote execution: {'Yes' if is_remote else 'No'}")
-
+        browser_path = None
         if browser.lower() == 'chrome':
             options = ChromeOptions()
-            service = ChromeService(executable_path=driver_config.get('chromedriver_path'))
-            browser_path = driver_config.get('chrome_path')
-            logging.info(f"WebDriverFactory: Using ChromeDriver path: {driver_config.get('chromedriver_path')}")
+            if not is_remote:
+                service = ChromeService(executable_path=driver_config.get('chromedriver_path'))
+                browser_path = driver_config.get('chrome_path')
+                logging.info(f"WebDriverFactory: Using ChromeDriver path: {driver_config.get('chromedriver_path')}")
         elif browser.lower() == 'edge':
             options = EdgeOptions()
-            service = EdgeService(executable_path=driver_config.get('edgedriver_path'))
-            browser_path = driver_config.get('edge_path')
-            logging.info(f"WebDriverFactory: Using EdgeDriver path: {driver_config.get('edgedriver_path')}")
+            if not is_remote:
+                service = EdgeService(executable_path=driver_config.get('edgedriver_path'))
+                browser_path = driver_config.get('edge_path')
+                logging.info(f"WebDriverFactory: Using EdgeDriver path: {driver_config.get('edgedriver_path')}")
         else:
             logging.error(f"WebDriverFactory: Unsupported browser: {browser}")
             raise ValueError(f"WebDriverFactory: Unsupported browser: {browser}")
@@ -37,7 +39,7 @@ class WebDriverFactory:
             logging.info(f"WebDriverFactory: Set browser binary location: {browser_path}")
 
         # 设置浏览器选项
-        logging.info("Configuring browser options:")
+        logging.info("WebDriverFactory: Configuring browser options:")
         for option, value in browser_options.items():
             if isinstance(value, bool) and value:
                 options.add_argument(f'--{option}')
@@ -67,7 +69,7 @@ class WebDriverFactory:
     def quit_driver(driver):
         if driver:
             logging.info(f"WebDriverFactory: Quitting WebDriver")
-            driver.quit()
+            driver.close()
             logging.info(f"WebDriverFactory: WebDriver quit successfully")
         else:
             logging.warning(f"WebDriverFactory: Attempted to quit a non-existent WebDriver")

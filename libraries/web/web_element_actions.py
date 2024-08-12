@@ -12,8 +12,9 @@ from selenium.webdriver.remote.webelement import WebElement
 import io
 from PIL import Image
 
+
 class WebElementActions:
-    def __init__(self, driver, default_timeout=10):
+    def __init__(self, driver, default_timeout=60):
         self.driver = driver
         self.default_timeout = default_timeout
 
@@ -300,12 +301,16 @@ class WebElementActions:
         original_style = element.get_attribute('style')
 
         for _ in range(int(duration)):
-            apply_style(f"{self.__class__.__name__}: background: {color}; border: {border};")
+            apply_style(f"background: {color}; border: {border};")
             time.sleep(0.25)
             apply_style(original_style)
             time.sleep(0.25)
 
         logging.info(f"{self.__class__.__name__}: Finished highlighting element: {element_desc}")
+
+    def wait(self, seconds):
+        logging.info(f"{self.__class__.__name__}: Waiting for {seconds} seconds")
+        time.sleep(int(seconds))
 
     def _get_element_description(self, element):
         if isinstance(element, WebElement):

@@ -25,7 +25,7 @@ class WebDriverSingleton:
     @classmethod
     def quit(cls):
         if cls._instance:
-            cls._instance.quit()
+            cls._instance.close()
             cls._instance = None
             logging.info(f"WebDriverSingleton: WebDriver instance closed")
 
@@ -124,6 +124,7 @@ class PageObject:
             'send_keys': 'visibility',
             'clear': 'visibility',
             'hover': 'visibility',
+            'highlight_element': 'visibility',
             'switch_to_frame': 'presence'
         }
         condition = condition_map.get(action, 'presence')
@@ -166,6 +167,7 @@ class PageObject:
             'get_alert_text': self.web_actions.get_alert_text,
             'highlight_element': self.web_actions.highlight_element,
             'capture_screenshot': self.web_actions.capture_screenshot,
+            'wait': self.web_actions.wait,
         }
 
         if action not in action_map:
