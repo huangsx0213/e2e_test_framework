@@ -177,31 +177,27 @@ class WebElementActions:
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Checking if element text matches expected: {element_desc}, expected text: {expected_text}")
         actual_text = self.get_text(element)
-        result = actual_text == expected_text
-        logging.info(f"{self.__class__.__name__}: Text match result: {result}, Actual text: {actual_text} for element: {element_desc}")
-        return result
+        assert actual_text == expected_text, f"{self.__class__.__name__}: Expected text: {expected_text} is not matching actual text: {actual_text}"
+        logging.info(f"{self.__class__.__name__}: Element expected to match text: {expected_text}, Actual text: {actual_text}")
 
     def element_text_should_contains(self, element, expected_text):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Checking if element text contains expected: {element_desc}, expected text: {expected_text}")
         actual_text = self.get_text(element)
-        result = expected_text in actual_text
-        logging.info(f"{self.__class__.__name__}: Text contain result: {result}, Actual text: {actual_text} for element: {element_desc}")
-        return result
+        assert expected_text in actual_text, f"{self.__class__.__name__}: Expected text: {expected_text} is not in actual text: {actual_text}"
+        logging.info(f"{self.__class__.__name__}: Element expected to contain text: {expected_text}, Actual text: {actual_text}")
 
     def title_should_be(self, expected_title):
         logging.info(f"{self.__class__.__name__}: Checking if page title matches expected: {expected_title}")
         actual_title = self.driver.title
-        result = actual_title == expected_title
-        logging.info(f"{self.__class__.__name__}: Title match result: {result}, Actual title: {actual_title}")
-        return result
+        assert actual_title == expected_title, f"{self.__class__.__name__}: Expected title: {expected_title} is not matching actual title: {actual_title}"
+        logging.info(f"{self.__class__.__name__}: Title expected to match: {expected_title}, Actual title: {actual_title}")
 
     def title_should_contains(self, expected_title):
         logging.info(f"{self.__class__.__name__}: Checking if page title contains expected: {expected_title}")
         actual_title = self.driver.title
-        result = expected_title in actual_title
-        logging.info(f"{self.__class__.__name__}: Title contain result: {result}, Actual title: {actual_title}")
-        return result
+        assert expected_title in actual_title, f"{self.__class__.__name__}: Expected title: {expected_title} is not in actual title: {actual_title}"
+        logging.info(f"{self.__class__.__name__}: Title expected to contain: {expected_title}, Actual title: {actual_title}")
 
     def wait_for_text_to_be_present(self, locator, text, timeout=None):
         if timeout is None:
