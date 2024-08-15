@@ -7,7 +7,7 @@ class APITestLoader:
         self.data = self._load_excel_data()
 
     def _load_excel_data(self):
-        sheets = ['API']
+        sheets = ['API', 'BodyTemplates', 'BodyDefaults', 'Headers', 'Endpoints']
         return {sheet: pd.read_excel(self.excel_path, sheet_name=sheet).fillna("") for sheet in sheets}
 
     def get_data(self, sheet_name):
@@ -15,6 +15,18 @@ class APITestLoader:
 
     def get_api_test_cases(self):
         return self.get_data('API')
+
+    def get_body_templates(self):
+        return self.get_data('BodyTemplates')
+
+    def get_body_defaults(self):
+        return self.get_data('BodyDefaults')
+
+    def get_headers(self):
+        return self.get_data('Headers')
+
+    def get_environments(self):
+        return self.get_data('Endpoints')
 
     def filter_cases(self, tcid_list=None, tags=None):
         test_cases = self.get_api_test_cases()
@@ -29,12 +41,3 @@ class APITestLoader:
         test_cases = test_cases[test_cases['Run'] == 'Y']
 
         return test_cases
-
-    def get_headers(self):
-        return self.get_data('Headers')
-
-    def get_body_templates(self):
-        return self.get_data('BodyTemplates')
-
-    def get_body_defaults(self):
-        return self.get_data('BodyDefaults')
