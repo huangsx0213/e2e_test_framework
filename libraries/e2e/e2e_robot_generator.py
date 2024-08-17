@@ -48,8 +48,8 @@ class E2ERobotCasesGenerator:
         self.robot_suite.suites.append(self.child_suite)
 
         # Convert the paths to raw string format to avoid issues with backslashes
-        test_config_path_arg = os.path.normpath(self.test_config_path).replace('\\', '/')
-        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace('\\', '/')
+        test_config_path_arg = os.path.normpath(self.test_config_path).replace(os.path.sep, '/')
+        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace(os.path.sep, '/')
         self.child_suite.resource.imports.library('libraries.web.page_object.PageObject', args=[test_config_path_arg, test_cases_path_arg])
 
         for data_set_index, data_set in enumerate(test_data_sets, 1):
