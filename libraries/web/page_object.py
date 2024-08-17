@@ -37,8 +37,8 @@ class WebDriverSingleton:
 class PageObject:
     def __init__(self, env_config_path: str = None, test_config_path: str = None, test_cases_path: str = None):
         self.project_root: str = PROJECT_ROOT
-        self.env_config_path = env_config_path or os.path.join(self.project_root, 'configs', 'web', 'environments.yaml')
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web', 'web_test_config.yaml')
+        self.env_config_path = env_config_path or os.path.join(self.project_root, 'configs',  'environments.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs',  'web_test_config.yaml')
 
         self._load_configuration(test_cases_path)
         self._initialize_components()

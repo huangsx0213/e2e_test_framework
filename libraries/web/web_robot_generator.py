@@ -12,7 +12,7 @@ from libraries.common.log_manager import Logger
 class WebUIRobotCasesGenerator:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root: str = PROJECT_ROOT
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web', 'web_test_config.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs',  'web_test_config.yaml')
         self._load_configuration()
         self._initialize_components(test_cases_path)
 
