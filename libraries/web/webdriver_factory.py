@@ -20,15 +20,15 @@ class WebDriverFactory:
         if browser.lower() == 'chrome':
             options = ChromeOptions()
             if not is_remote:
-                service = ChromeService(executable_path=driver_config.get('chromedriver_path'))
+                service = ChromeService(executable_path=driver_config.get('chrome_driver_path'))
                 browser_path = driver_config.get('chrome_path')
-                logging.info(f"WebDriverFactory: Using ChromeDriver path: {driver_config.get('chromedriver_path')}")
+                logging.info(f"WebDriverFactory: Using ChromeDriver path: {driver_config.get('chrome_driver_path')}")
         elif browser.lower() == 'edge':
             options = EdgeOptions()
             if not is_remote:
-                service = EdgeService(executable_path=driver_config.get('edgedriver_path'))
+                service = EdgeService(executable_path=driver_config.get('edge_driver_path'))
                 browser_path = driver_config.get('edge_path')
-                logging.info(f"WebDriverFactory: Using EdgeDriver path: {driver_config.get('edgedriver_path')}")
+                logging.info(f"WebDriverFactory: Using EdgeDriver path: {driver_config.get('edge_driver_path')}")
         else:
             logging.error(f"WebDriverFactory: Unsupported browser: {browser}")
             raise ValueError(f"WebDriverFactory: Unsupported browser: {browser}")

@@ -14,7 +14,6 @@ builtin_lib = BuiltIn()
 
 class APIResponseProcessor:
     def process_response(self, response: Union[str, Response]) -> Tuple[str, str]:
-
         if isinstance(response, str):
             content = response.strip()
         elif isinstance(response, Response):
@@ -22,29 +21,43 @@ class APIResponseProcessor:
         else:
             raise ValueError(f"{self.__class__.__name__}: Unsupported response type. Expected string or Response object.")
 
+        if self._is_json(content):
+            return content, 'json'
+        elif self._is_xml(content):
+            content = UtilityHelpers.format_xml(content)
+            return content, 'xml'
+        else:
+            raise ValueError(f"{self.__class__.__name__}: Response content is neither valid JSON nor XML.")
+
+    @staticmethod
+    def _is_json(content: str) -> bool:
         try:
             json.loads(content)
-            logging.info(f"{self.__class__.__name__}: Response content is valid JSON string.")
-            return content, 'json'
+            logging.info("APIResponseProcessor: Response content is valid JSON string.")
+            return True
         except json.JSONDecodeError:
-            try:
-                content = UtilityHelpers.format_xml(content)
-                logging.info(f"{self.__class__.__name__}: Response content is valid XML string.")
-                return content, 'xml'
-            except ValueError:
-                raise ValueError(f"{self.__class__.__name__}: Response content is neither valid JSON nor XML.")
+            return False
 
-    def _get_json_value(self, json_string: str, json_path: str) -> Any:
+    @staticmethod
+    def _is_xml(content: str) -> bool:
+        try:
+            xmltodict.parse(content)
+            logging.info("APIResponseProcessor: Response content is valid XML string.")
+            return True
+        except Exception:
+            return False
 
+    @staticmethod
+    def _get_json_value(json_string: str, json_path: str) -> Any:
         parsed_json = json.loads(json_string)
         jsonpath_expr = parse(f'$.{json_path}')
         matches = [match.value for match in jsonpath_expr.find(parsed_json)]
         if matches:
             return matches[0]
         else:
-            raise ValueError(f"{self.__class__.__name__}: No match found for JSONPath: {json_path}")
+            raise ValueError(f"APIResponseProcessor: No match found for JSONPath: {json_path}")
 
-    def _extract_value_from_response(self, response, json_path):
+    def _extract_value_from_response(self, response: Union[str, Response], json_path: str) -> Any:
         response_content, response_format = self.process_response(response)
 
         if response_format == 'json':
@@ -54,7 +67,9 @@ class APIResponseProcessor:
             return self._get_json_value(json_content, json_path)
         else:
             raise ValueError(f"{self.__class__.__name__}: Unsupported response format. Use 'xml' or 'json'.")
-    def _compare_diff(self, actual_diff, expected_diff):
+
+    @staticmethod
+    def _compare_diff(actual_diff: float, expected_diff: str) -> bool:
         expected_operator = expected_diff[0]
         expected_value = float(expected_diff[1:])
 
@@ -63,52 +78,44 @@ class APIResponseProcessor:
         elif expected_operator == '-':
             return actual_diff == -expected_value
         else:
-            raise ValueError(f"{self.__class__.__name__}: Unsupported operator in expected diff: {expected_operator}")
+            raise ValueError(f"APIResponseProcessor: Unsupported operator in expected diff: {expected_operator}")
+
+
 class APIResponseAsserter(APIResponseProcessor):
     def validate_response(self, expected_results: str, actual_response: Union[str, Response]) -> None:
-
-        logging.info(f"{self.__class__.__name__}: Expected results:\n{expected_results}")
         response_content, response_format = self.process_response(actual_response)
         logging.info(f"{self.__class__.__name__}: Actual response:\n{response_content}")
 
-        expected_lines = expected_results.split('\n')
+        expected_lines = expected_results.splitlines()
         assertion_errors = []
 
         for line in expected_lines:
-            if line.strip():
-                if line.strip().startswith('$'):
-                    try:
-                        self._assert_line(line.strip(), response_content, response_format)
-                    except AssertionError as e:
-                        logging.error(f"{self.__class__.__name__}: Assertion failed: {str(e)}")
-                        assertion_errors.append(str(e))
+            if line.strip().startswith('$'):
+                try:
+                    self._assert_line(line.strip(), response_content, response_format)
+                except AssertionError as e:
+                    logging.error(f"{self.__class__.__name__}: Assertion failed: {str(e)}")
+                    assertion_errors.append(str(e))
+
         if assertion_errors:
             raise AssertionError(f"{self.__class__.__name__}: Assertions failed:\n" + "\n".join(assertion_errors))
 
-    def _assert_line(self, line: str, response_content: str, response_format: str):
-        key, expected_value = line.split('=')
-        key = key.strip()
-        expected_value = expected_value.strip()
+    def _assert_line(self, line: str, response_content: str, response_format: str) -> None:
+        key, expected_value = map(str.strip, line.split('=', 1))
 
-        if response_format == 'json':
-            actual_value = self._get_json_value(response_content, key)
-        elif response_format == 'xml':
-            json_content = json.dumps(xmltodict.parse(response_content))
-            actual_value = self._get_json_value(json_content, key)
-        else:
-            raise ValueError(f"{self.__class__.__name__}: Unsupported response format. Use 'xml' or 'json'.")
+        actual_value = self._extract_value_from_response(response_content, key)
 
         # Convert values to the same type for comparison
         try:
             expected_value = type(actual_value)(expected_value)
-        except ValueError:
+        except (ValueError, TypeError):
             pass  # Keep the original type if conversion fails
 
-        logging.info(f"{self.__class__.__name__}: Asserting for: {key}, Expected value: {expected_value}, Actual value: {actual_value}")
+        logging.info(f"{self.__class__.__name__}: Asserting: {key}, Expected: {expected_value}, Actual: {actual_value}")
         assert actual_value == expected_value, f"{self.__class__.__name__}: Assertion failed for key '{key}'. Expected: {expected_value}, Actual: {actual_value}"
 
-    def validate_dynamic_checks(self, test_case, pre_check_responses, post_check_responses):
-        exp_results = test_case['Exp Result'].split('\n')
+    def validate_dynamic_checks(self, test_case: dict, pre_check_responses: dict, post_check_responses: dict) -> None:
+        exp_results = test_case['Exp Result'].splitlines()
         for exp_result in exp_results:
             dynamic_checks = re.findall(r'(\w+)\.(\$[.\[\]\w]+)=([+-]\d+)', exp_result)
             if dynamic_checks:
@@ -116,41 +123,28 @@ class APIResponseAsserter(APIResponseProcessor):
 
             for check in dynamic_checks:
                 tcid, json_path, expected_value = check
-                if not tcid.startswith('$'):  # Only process checks that don't start with '$'
-                    # This is a dynamic check involving other test cases
-                    pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
-                    logging.info(f"{self.__class__.__name__}: Pre check value:{tcid}.{json_path}= {pre_value}")
-                    post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
-                    logging.info(f"{self.__class__.__name__}: Post check value:{tcid}.{json_path}= {post_value}")
-                    actual_value = post_value - pre_value
-                    logging.info(f"{self.__class__.__name__}: Actual value: Post check value - Pre check value = {'+' if actual_value >= 0 else ''}{actual_value}.")
+                pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
+                post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
+                actual_value = post_value - pre_value
+
+                logging.info(f"{self.__class__.__name__}: Actual diff: {actual_value}, Expected diff: {expected_value}")
+
+                if not self._compare_diff(actual_value, expected_value):
+                    raise AssertionError(f"{self.__class__.__name__}: Dynamic check failed for {tcid}.{json_path}. Expected: {expected_value}, Actual: {actual_value}")
+
+                logging.info(f"{self.__class__.__name__}: Dynamic check passed for {tcid}.{json_path}")
 
 
-                    if not self._compare_diff(actual_value, expected_value):
-                        raise AssertionError(f"{self.__class__.__name__}: Dynamic check failed for {tcid}.{json_path}. "
-                                             f"{self.__class__.__name__}: Expected: {expected_value}, Actual: {'+' if actual_value >= 0 else ''}{actual_value}.")
-                    logging.info(f"****** Dynamic check passed for {tcid}.{json_path} ******")
 class APIResponseExtractor(APIResponseProcessor):
-
-    def extract_value(self, response: Union[str, Response], test_case) -> Any:
-
+    def extract_value(self, response: Union[str, Response], test_case: dict) -> None:
         response_content, response_format = self.process_response(response)
-        save_fields = test_case['Save Fields'].splitlines() if pd.notna(test_case['Save Fields']) else []
+        save_fields = test_case.get('Save Fields', '').splitlines()
+
         for field in save_fields:
-
-            if response_format == 'json':
-                value = self._get_json_value(response_content, field)
-            elif response_format == 'xml':
-                json_content = json.dumps(xmltodict.parse(response_content))
-                value = self._get_json_value(json_content, field)
-            else:
-                raise ValueError(f"{self.__class__.__name__}: Unsupported response format. Use 'xml' or 'json'.")
-            field = f'{test_case["TCID"]}.{field.strip()}'
-
-            logging.info(f"{self.__class__.__name__}: Setting suite variable:")
-
-            builtin_lib.set_global_variable(f'${{{field}}}', value)
-
-
-
-
+            try:
+                value = self._extract_value_from_response(response_content, field)
+                field_name = f'{test_case["TCID"]}.{field.strip()}'
+                logging.info(f"{self.__class__.__name__}: Setting suite variable {field_name} to {value}.")
+                BuiltIn().set_global_variable(f'${{{field_name}}}', value)
+            except Exception as e:
+                logging.error(f"{self.__class__.__name__}: Failed to process field '{field}': {e}")

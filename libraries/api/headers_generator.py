@@ -9,6 +9,7 @@ from robot.libraries.BuiltIn import BuiltIn
 
 builtin_lib = BuiltIn()
 
+
 class HeadersGenerator:
     def __init__(self, api_test_loader) -> None:
         self.format_json = UtilityHelpers.format_json
@@ -21,21 +22,20 @@ class HeadersGenerator:
 
             # Ensure headers_name exists and is valid
             if headers_name not in headers['HeaderName'].values:
-                logging.error(f"{self.__class__.__name__}: Headers name '{headers_name}' not found in the headers dataframe.")
                 raise ValueError(f"Headers name '{headers_name}' not found in the headers dataframe.")
 
-            header_content = headers[headers['HeaderName'] == headers_name]['Content'].iloc[0]
+            # Convert to string explicitly before checking
+            header_content = str(headers[headers['HeaderName'] == headers_name]['Content'].iloc[0])
+            logging.info(f"{self.__class__.__name__}: Headers for test case '{testcase['TCID']}' loaded from file: \n{header_content}")
 
             # Check if header_content is empty
             if pd.isna(header_content):
-                logging.error(f"{self.__class__.__name__}: Header content is empty for '{headers_name}' in test case '{testcase['TCID']}': ")
                 raise ValueError("Header content is empty.")
 
             # Parse the YAML-like content
             original_headers = yaml.safe_load(header_content)
-            logging.info(f"{self.__class__.__name__}: Headers for test case '{testcase['TCID']}' loaded from file: \n{header_content}")
 
-            headers = {k: self._replace_placeholders(v, saved_fields, testcase) for k, v in original_headers.items()}
+            headers = {k: self.replace_placeholders(v, saved_fields, testcase) for k, v in original_headers.items()}
             logging.info(f"{self.__class__.__name__}: Headers for test case '{testcase['TCID']}' replaced placeholders: \n{self.format_json(headers)}")
 
             return headers
@@ -52,11 +52,15 @@ class HeadersGenerator:
             logging.error(f"{self.__class__.__name__}: No data found in headers dataframe: {str(e)}")
             raise
 
+        except TypeError as e:
+            logging.error(f"{self.__class__.__name__}: TypeError when parsing YAML content for headers file '{headers_name}' for test case '{testcase['TCID']}': {str(e)}")
+            raise
+
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error processing headers file '{headers_name}' for test case '{testcase['TCID']}': {str(e)}")
             raise
 
-    def _replace_placeholders(self, value: Any, saved_fields: Dict[str, Any], testcase) -> Any:
+    def replace_placeholders(self, value: Any, saved_fields: Dict[str, Any], testcase) -> Any:
         headers_filename = testcase['Headers']
         try:
             if isinstance(value, str):

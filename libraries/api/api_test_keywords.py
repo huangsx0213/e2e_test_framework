@@ -109,7 +109,7 @@ class APITestKeywords:
 
     def _execute_single_test_case(self, test_case):
         response, execution_time = self.send_request(test_case)
-        logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time}")
+        logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time:.2f} seconds")
         self.api_response_asserter.validate_response(test_case['Exp Result'], response)
         self.api_response_extractor.extract_value(response, test_case)
         logging.info("============================================")

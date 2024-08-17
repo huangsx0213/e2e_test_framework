@@ -7,7 +7,7 @@ class WebTestLoader:
         self.data = self._load_excel_data()
 
     def _load_excel_data(self):
-        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData']
+        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments']
         return {sheet: pd.read_excel(self.excel_path, sheet_name=sheet).fillna("") for sheet in sheets}
 
     def get_data(self, sheet_name):
@@ -15,6 +15,7 @@ class WebTestLoader:
 
     def get_test_cases(self):
         return self.get_data('TestCases')
+
     def filter_cases(self, tcid_list=None, tags=None):
         test_cases = self.get_test_cases()
 
@@ -28,6 +29,7 @@ class WebTestLoader:
         test_cases = test_cases[test_cases['Run'] == 'Y']
 
         return test_cases
+
     def get_test_steps(self, case_id):
         test_steps = self.get_data('TestSteps')
         return test_steps[test_steps['Case ID'] == case_id]
@@ -54,3 +56,6 @@ class WebTestLoader:
 
     def get_locators(self):
         return self.get_data('Locators')
+
+    def get_web_environments(self):
+        return self.get_data('WebEnvironments')

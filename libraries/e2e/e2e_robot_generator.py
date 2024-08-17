@@ -14,8 +14,8 @@ from libraries.web.web_test_loader import WebTestLoader
 class E2ERobotCasesGenerator:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root: str = PROJECT_ROOT
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'e2e', 'e2e_test_config.yaml')
-        self.env_config_path = os.path.join(self.project_root, 'configs', 'web', 'environments.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'e2e_test_config.yaml')
+
         self._load_configuration()
         self._initialize_components(test_cases_path)
 
@@ -48,10 +48,9 @@ class E2ERobotCasesGenerator:
         self.robot_suite.suites.append(self.child_suite)
 
         # Convert the paths to raw string format to avoid issues with backslashes
-        env_config_path_arg = os.path.normpath(self.env_config_path).replace('\\', '/')
         test_config_path_arg = os.path.normpath(self.test_config_path).replace('\\', '/')
         test_cases_path_arg = os.path.normpath(self.test_cases_path).replace('\\', '/')
-        self.child_suite.resource.imports.library('libraries.web.page_object.PageObject', args=[env_config_path_arg, test_config_path_arg, test_cases_path_arg])
+        self.child_suite.resource.imports.library('libraries.web.page_object.PageObject', args=[test_config_path_arg, test_cases_path_arg])
 
         for data_set_index, data_set in enumerate(test_data_sets, 1):
             test_name = f"UI.{test_case['Case ID']}.{test_case['Name']}.{data_set_index}"
