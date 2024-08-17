@@ -1,6 +1,6 @@
 import logging
 import re
-import json
+import yaml
 from typing import Dict, Any
 import pandas as pd
 from libraries.common.utility_helpers import UtilityHelpers
@@ -9,9 +9,8 @@ from robot.libraries.BuiltIn import BuiltIn
 
 builtin_lib = BuiltIn()
 
-
 class HeadersGenerator:
-    def __init__(self,api_test_loader ) -> None:
+    def __init__(self, api_test_loader) -> None:
         self.format_json = UtilityHelpers.format_json
         self.api_test_loader = api_test_loader
 
@@ -32,10 +31,11 @@ class HeadersGenerator:
                 logging.error(f"{self.__class__.__name__}: Header content is empty for '{headers_name}' in test case '{testcase['TCID']}': ")
                 raise ValueError("Header content is empty.")
 
-            original_headers_json = json.loads(header_content)
+            # Parse the YAML-like content
+            original_headers = yaml.safe_load(header_content)
             logging.info(f"{self.__class__.__name__}: Headers for test case '{testcase['TCID']}' loaded from file: \n{header_content}")
 
-            headers = {k: self._replace_placeholders(v, saved_fields, testcase) for k, v in original_headers_json.items()}
+            headers = {k: self._replace_placeholders(v, saved_fields, testcase) for k, v in original_headers.items()}
             logging.info(f"{self.__class__.__name__}: Headers for test case '{testcase['TCID']}' replaced placeholders: \n{self.format_json(headers)}")
 
             return headers
@@ -44,8 +44,8 @@ class HeadersGenerator:
             logging.error(f"{self.__class__.__name__}: Headers file '{headers_name}' not found in test case '{testcase['TCID']}': {str(e)}")
             raise
 
-        except json.JSONDecodeError as e:
-            logging.error(f"{self.__class__.__name__}: Invalid JSON format in headers file '{headers_name}' for test case '{testcase['TCID']}': {str(e)}")
+        except yaml.YAMLError as e:
+            logging.error(f"{self.__class__.__name__}: Invalid YAML format in headers file '{headers_name}' for test case '{testcase['TCID']}': {str(e)}")
             raise
 
         except pd.errors.EmptyDataError as e:
@@ -91,4 +91,3 @@ class HeadersGenerator:
                 f"{self.__class__.__name__}:Unexpected error replacing placeholders in headers file '{headers_filename}' for test case '{testcase['TCID']}': {str(e)}"
             )
             raise
-
