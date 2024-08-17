@@ -1,43 +1,52 @@
 import json
 import logging
-import os
 import re
+
+
 from typing import Any, Dict, Union
-from libraries.common.config_manager import ConfigManager
 from libraries.common.utility_helpers import UtilityHelpers
-from .variable_generator import VariableGenerator
-from .template_renderer import TemplateRenderer
+from libraries.api.template_renderer import TemplateRenderer
+from libraries.api.variable_generator import VariableGenerator
 
 
 class BodyGenerator:
-    def __init__(self, template_dir: str, body_defaults_dir: str) -> None:
-        self.template_dir = template_dir
-        self.body_defaults_dir = body_defaults_dir
+    def __init__(self, api_test_loader):
+        self.api_test_loader = api_test_loader
         self.format_json = UtilityHelpers.format_json
         self.format_xml = UtilityHelpers.format_xml
+
+    def _load_template(self, template_name):
+        templates = self.api_test_loader.get_body_templates()
+        template = templates[templates['TemplateName'] == template_name].iloc[0]
+        content = template['Content']
+        format = template['Format']
+        return content, format
+
+    def _load_default_values(self, default_name):
+        defaults = self.api_test_loader.get_body_defaults()
+        default = defaults[defaults['Name'] == default_name].iloc[0]
+        return json.loads(default['Content'])
 
     def generate_request_body(self, test_case, method) -> (Union[Dict, str], str):
         try:
             if method in ['GET', 'DELETE']:
                 return {}, 'json'
 
-            template_name = test_case['Template']
-            body_modifications = self._validate_and_load_json(test_case['Body Modifications'], test_case)
-            logging.info(f"{self.__class__.__name__}:Body modifications for test case {test_case['TCID']}: \n{self.format_json(body_modifications)}")
-            template_path = self._resolve_template_path(template_name, test_case)
-            format_type = UtilityHelpers.get_file_format(template_path)
-
-            # Prepare all required request data
-            request_data = self._prepare_request_data(test_case['Defaults'], body_modifications, test_case)
+            body_template_content, body_template_format = self._load_template(test_case['Body Template'])
+            body_defaults_content = self._load_default_values(test_case['Body Default'])
+            body_user_defined_fields = self._validate_and_load_json(test_case['Body User-defined Fields'], test_case)
+            logging.info(f"{self.__class__.__name__}:Body user-defined fields for test case {test_case['TCID']}: \n{body_user_defined_fields}")
+            combined_data = self._merge_values(body_defaults_content, body_user_defined_fields, test_case)
+            request_data = self._generate_dynamic_values(combined_data, test_case)
             logging.info(f"{self.__class__.__name__}:Request data for test case {test_case['TCID']}: \n{self.format_json(request_data)}")
 
             # Generating request body
-            body = TemplateRenderer.render_template(self.template_dir, template_path, request_data, format_type)
-            if format_type == 'json':
+            body = TemplateRenderer.render_template(body_template_content, request_data, body_template_format)
+            if body_template_format == 'json':
                 logging.info(f"{self.__class__.__name__}:Request body for test case {test_case['TCID']}: \n{self.format_json(body)}")
             else:
                 logging.info(f"{self.__class__.__name__}:Request body for test case {test_case['TCID']}: \n{self.format_xml(body)}")
-            return body, format_type
+            return body, body_template_format
         except Exception as e:
             logging.error(f"{self.__class__.__name__}:Error in generate_request_body for test case {test_case['TCID']}: {str(e)}")
             raise
@@ -48,30 +57,6 @@ class BodyGenerator:
         except json.JSONDecodeError:
             logging.error(f"{self.__class__.__name__}:Invalid JSON in test case {test_case['TCID']}: \n{json_string}")
             raise
-
-    def _resolve_template_path(self, template_name: str, test_case: Dict[str, Any]) -> str:
-        template_path = os.path.join(self.template_dir, f"{template_name}.json")
-        if not os.path.exists(template_path):
-            template_path = os.path.join(self.template_dir, f"{template_name}.xml")
-        if not os.path.exists(template_path):
-            logging.error(f"{self.__class__.__name__}:Template '{template_name}' not found for test case {test_case['TCID']} in {self.template_dir}")
-            raise
-        return template_path
-
-    def _prepare_request_data(self, default_values_file: str, modifications: Dict[str, Any],
-                              test_case: Dict[str, Any]) -> Dict[str, Any]:
-        default_values = self._load_default_values(default_values_file, test_case)
-        combined_data = self._merge_values(default_values, modifications, test_case)
-        return self._generate_dynamic_values(combined_data, test_case)
-
-    def _load_default_values(self, default_values_file: str, test_case: Dict[str, Any]) -> Dict[str, Any]:
-        file_path = os.path.join(self.body_defaults_dir, default_values_file)
-        if not file_path.endswith('.json'):
-            file_path += '.json'
-        if not os.path.exists(file_path):
-            logging.error(f"{self.__class__.__name__}:Default values file '{default_values_file}' not found for test case {test_case['TCID']} in {self.body_defaults_dir}")
-            raise
-        return ConfigManager.load_json(file_path)
 
     def _merge_values(self, base_values: Dict[str, Any], custom_values: Dict[str, Any], test_case: Dict[str, Any]) -> \
             Dict[str, Any]:

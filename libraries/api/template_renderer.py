@@ -1,16 +1,15 @@
-import os
 import json
-from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+from jinja2 import Environment, TemplateNotFound
 from typing import Dict, Any, Union
 
 
 class TemplateRenderer:
     @staticmethod
-    def render_template(template_dir: str, template_path: str, modifications: Dict[str, Any], format_type: str) -> Union[Dict, str]:
+    def render_template(template_content, render_by: Dict[str, Any], format_type: str) -> Union[Dict, str]:
         try:
-            env = TemplateRenderer._create_environment(template_dir)
-            template = TemplateRenderer._load_template(env, template_path)
-            rendered_body: str = template.render(modifications)
+            env = TemplateRenderer._create_environment()
+            template = env.from_string(template_content)
+            rendered_body: str = template.render(render_by)
             format_body = TemplateRenderer._format_rendered_body(rendered_body, format_type)
             return format_body
         except (TemplateNotFound, json.JSONDecodeError) as e:
@@ -19,15 +18,10 @@ class TemplateRenderer:
             raise ValueError(f"TemplateRenderer: An unexpected error occurred while rendering template: {str(e)}")
 
     @staticmethod
-    def _create_environment(template_dir: str) -> Environment:
-        env = Environment(loader=FileSystemLoader(template_dir))
+    def _create_environment() -> Environment:
+        env = Environment()
         env.filters['json_bool'] = lambda value: str(value).lower()
         return env
-
-    @staticmethod
-    def _load_template(env: Environment, template_path: str):
-        template_name: str = os.path.basename(template_path)
-        return env.get_template(template_name)
 
     @staticmethod
     def _format_rendered_body(rendered_body: str, format_type: str) -> Union[Dict, str]:

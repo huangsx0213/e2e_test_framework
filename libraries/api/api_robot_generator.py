@@ -29,7 +29,7 @@ class APIRobotCasesGenerator:
         self.api_suite.teardown.config(name='clear_saved_fields', args=[])
         test_cases_path_arg = os.path.normpath(self.test_cases_path).replace('\\', '/')
         logging.info(f"Generating API Robot Case：Currently using test cases from {test_cases_path_arg}")
-        self.api_suite.resource.imports.library('libraries.api.api_test_keywords.APITestKeywords', args=[None, None, test_cases_path_arg])  # Update as needed
+        self.api_suite.resource.imports.library('libraries.api.api_test_keywords.APITestKeywords', args=[None, test_cases_path_arg])  # Update as needed
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
         try:
