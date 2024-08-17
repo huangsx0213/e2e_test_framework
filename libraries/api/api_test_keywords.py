@@ -39,7 +39,7 @@ class APITestKeywords:
 
     def _load_endpoints(self):
 
-        endpoints = self.api_test_loader.get_environments()
+        endpoints = self.api_test_loader.get_endpoints()
         self.active_environment = self.test_config['active_environment']
         self.endpoints = {}
         for _, row in endpoints[endpoints['Environment'] == self.active_environment].iterrows():
