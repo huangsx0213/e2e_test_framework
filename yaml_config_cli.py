@@ -7,10 +7,10 @@ from libraries.common.utility_helpers import PROJECT_ROOT
 
 class YamlConfigManager:
     """A class for managing YAML configuration files.
-    python yaml_config_cli.py configs/api/api_test_config.yaml --update active_environment PROD --update test_cases_path "test_cases/new_test_cases.xlsx" --update clear_saved_fields_after_test False
-    python yaml_config_cli.py configs/api/api_test_config.yaml --add-to-list tc_id_list TC001 --add-to-list tags api
-    python yaml_config_cli.py configs/api/api_test_config.yaml --remove-from-list tags deprecated
-    python yaml_config_cli.py configs/api/api_test_config.yaml --update active_environment PROD --add-to-list tc_id_list TC001 --remove-from-list tags deprecated
+    python yaml_config_cli.py configs/api_test_config.yaml --update active_environment PROD --update test_cases_path "test_cases/new_test_cases.xlsx" --update clear_saved_fields_after_test False
+    python yaml_config_cli.py configs/api_test_config.yaml --add-to-list tc_id_list TC001 --add-to-list tags api
+    python yaml_config_cli.py configs/api_test_config.yaml --remove-from-list tags deprecated
+    python yaml_config_cli.py configs/api_test_config.yaml --update active_environment PROD --add-to-list tc_id_list TC001 --remove-from-list tags deprecated
     """
     def __init__(self, file_path: str):
         self.file_path = os.path.join(PROJECT_ROOT, file_path)
