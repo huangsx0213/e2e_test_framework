@@ -80,7 +80,9 @@ class PageObject:
 
     def _load_webdriver(self):
         active_env_config = self.env_config['environments'][self.test_config['active_environment']]
-        return WebDriverSingleton.get_instance(active_env_config)
+        driver = WebDriverSingleton.get_instance(active_env_config)
+        driver.minimize_window()
+        return driver
 
     def _load_page_elements(self) -> Dict[str, Dict[str, Tuple[str, str]]]:
         elements = {}
