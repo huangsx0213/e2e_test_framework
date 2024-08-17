@@ -30,7 +30,7 @@ class APITestKeywords:
 
     def _load_configuration(self, test_config_path, test_cases_path):
 
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'api_test_config.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api_test_config.yaml')
 
         self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
 

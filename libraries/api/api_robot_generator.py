@@ -12,7 +12,7 @@ from libraries.common.log_manager import logger_instance
 class APIRobotCasesGenerator:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'api_test_config.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api_test_config.yaml')
         self._load_configuration()
         self._initialize_components(test_cases_path)
 

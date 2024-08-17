@@ -33,7 +33,7 @@ class HeadersGenerator:
                 raise ValueError("Header content is empty.")
 
             original_headers_json = json.loads(header_content)
-            logging.info(f"{self.__class__.__name__}: Headers for test case '{testcase['TCID']}' loaded from file: \n{self.format_json(header_content)}")
+            logging.info(f"{self.__class__.__name__}: Headers for test case '{testcase['TCID']}' loaded from file: \n{header_content}")
 
             headers = {k: self._replace_placeholders(v, saved_fields, testcase) for k, v in original_headers_json.items()}
             logging.info(f"{self.__class__.__name__}: Headers for test case '{testcase['TCID']}' replaced placeholders: \n{self.format_json(headers)}")
