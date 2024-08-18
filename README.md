@@ -181,17 +181,17 @@ In this example:
 
 ### 5.1 API Tests
 ```bash
-python e2e_main.py --api
+python main.py --api
 ```
 
 ### 5.2 Web UI Tests
 ```bash
-python e2e_main.py --web
+python main.py --web
 ```
 
 ### 5.3 E2E Tests
 ```bash
-python e2e_main.py --e2e
+python main.py --e2e
 ```
 
 

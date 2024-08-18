@@ -94,7 +94,7 @@ def read_files(directory='.', exclude_files=None, exclude_directories=None):
     # Convert exclude_files to absolute paths
     exclude_files = [os.path.abspath(file) for file in exclude_files]
 
-    supported_extensions = ('.py', '.json', '.yaml', '.html', '.xml')
+    supported_extensions = ('.py', '.json', '.yaml', '.html', '.xml', '.md')
     files_list = []
     for root, dirs, files in os.walk(directory):
         # Modify dirs in place to exclude specified directories
