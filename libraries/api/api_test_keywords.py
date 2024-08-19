@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+from time import sleep
 from typing import Dict, List
 import pandas as pd
 from libraries.common.config_manager import ConfigManager
@@ -94,6 +95,7 @@ class APITestKeywords:
             if check_with_tcids:
                 pre_check_responses = self._execute_check_with_cases(check_with_tcids)
                 response, execution_time = self._execute_single_test_case(test_case)
+                sleep(3)
                 post_check_responses = self._execute_check_with_cases(check_with_tcids)
                 self._validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
             else:

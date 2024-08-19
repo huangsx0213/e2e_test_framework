@@ -7,18 +7,17 @@ import logging
 class RequestSender:
     @staticmethod
     def send_request(url: str, method: str, headers: Optional[Dict[str, str]] = None,
-                     body: Optional[Union[Dict, str]] = None, format_type: str = 'json',
-                     ca_cert_path: Optional[str] = None) -> (requests.Response, float, Optional[str]):
+                     body: Optional[Union[Dict, str]] = None, format_type: str = 'json') -> (requests.Response, float, Optional[str]):
         requests_method = RequestSender._get_request_method(method)
         start_time = time.time()
 
         try:
             if format_type == 'json':
-                response = requests_method(url, headers=headers, json=body, verify=ca_cert_path)
+                response = requests_method(url, headers=headers, json=body, verify=False)
             elif format_type == 'xml':
                 if headers is not None:
                     headers['Content-Type'] = 'application/xml'
-                response = requests_method(url, headers=headers, data=body, verify=ca_cert_path)
+                response = requests_method(url, headers=headers, data=body, verify=False)
             else:
                 logging.error(f"Unsupported format type: {format_type}")
                 raise ValueError(f"RequestSender: Unsupported format type: {format_type}")

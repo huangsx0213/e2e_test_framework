@@ -9,6 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.remote.webelement import WebElement
+from libraries.web.table_verifier import TableVerifier
 import io
 from PIL import Image
 
@@ -17,6 +18,7 @@ class WebElementActions:
     def __init__(self, driver, default_timeout=60):
         self.driver = driver
         self.default_timeout = default_timeout
+        self.table_verifier = TableVerifier(self.driver)
 
     def wait_for_element(self, locator, condition="presence", timeout=None):
         if timeout is None:
@@ -42,6 +44,28 @@ class WebElementActions:
         except TimeoutException:
             logging.error(f"{self.__class__.__name__}: Timeout waiting for element: {locator}, condition: {condition}")
             raise
+
+    def _get_element_description(self, element):
+        if isinstance(element, WebElement):
+            tag_name = element.tag_name
+            element_id = element.get_attribute('id')
+            element_class = element.get_attribute('class')
+            element_name = element.get_attribute('name')
+
+            description = f"<{tag_name}"
+            if element_id:
+                description += f" id='{element_id}'"
+            if element_class:
+                description += f" class='{element_class}'"
+            if element_name:
+                description += f" name='{element_name}'"
+            description += ">"
+
+            return description
+        elif isinstance(element, tuple):
+            return str(element)
+        else:
+            return str(element)
 
     def open_url(self, url):
         logging.info(f"{self.__class__.__name__}: Opening URL: {url}")
@@ -307,25 +331,3 @@ class WebElementActions:
     def wait(self, seconds):
         logging.info(f"{self.__class__.__name__}: Waiting for {seconds} seconds")
         time.sleep(int(seconds))
-
-    def _get_element_description(self, element):
-        if isinstance(element, WebElement):
-            tag_name = element.tag_name
-            element_id = element.get_attribute('id')
-            element_class = element.get_attribute('class')
-            element_name = element.get_attribute('name')
-
-            description = f"<{tag_name}"
-            if element_id:
-                description += f" id='{element_id}'"
-            if element_class:
-                description += f" class='{element_class}'"
-            if element_name:
-                description += f" name='{element_name}'"
-            description += ">"
-
-            return description
-        elif isinstance(element, tuple):
-            return str(element)
-        else:
-            return str(element)
