@@ -125,7 +125,7 @@ class APIResponseAsserter(APIResponseProcessor):
                 tcid, json_path, expected_value = check
                 pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
                 post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
-                actual_value = float(post_value) - float(pre_value)
+                actual_value = round(float(post_value) - float(pre_value), 2)
 
                 logging.info(f"{self.__class__.__name__}: Actual diff: {actual_value}, Expected diff: {expected_value}")
 
