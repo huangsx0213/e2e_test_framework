@@ -15,7 +15,7 @@ handlers:
     class: logging.FileHandler
     formatter: standard
     level: DEBUG
-    mode: "a"
+    mode: "w"
 
 
 root:

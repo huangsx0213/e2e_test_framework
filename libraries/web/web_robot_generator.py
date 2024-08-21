@@ -40,6 +40,12 @@ class WebUIRobotCasesGenerator:
         test_steps = self.web_test_loader.get_test_steps(test_case['Case ID'])
         test_data_sets = self.web_test_loader.get_test_data(test_case['Case ID'])
 
+        if not test_data_sets:
+            # If no test data sets, create a single test case with empty parameters
+            test_data_sets = [{}]
+            logging.warning(f"{self.__class__.__name__}: No test data sets found for {test_case['Case ID']}, creating a single test case with empty parameters")
+            logging.warning(f"{self.__class__.__name__}: Need to check if all steps of {test_case['Case ID']} are valid for empty parameters")
+
         for data_set_index, data_set in enumerate(test_data_sets, 1):
             test_name = f"UI.{test_case['Case ID']}.{test_case['Name']}.{data_set_index}"
             robot_test = self.robot_suite.tests.create(name=test_name, doc=test_case['Descriptions'])
