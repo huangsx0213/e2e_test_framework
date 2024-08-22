@@ -9,13 +9,16 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.remote.webelement import WebElement
+from libraries.web.table_verifier import TableVerifier
 import io
 from PIL import Image
 
+
 class WebElementActions:
-    def __init__(self, driver, default_timeout=10):
+    def __init__(self, driver, default_timeout=60):
         self.driver = driver
         self.default_timeout = default_timeout
+        self.table_verifier = TableVerifier(self.driver)
 
     def wait_for_element(self, locator, condition="presence", timeout=None):
         if timeout is None:
@@ -41,6 +44,28 @@ class WebElementActions:
         except TimeoutException:
             logging.error(f"{self.__class__.__name__}: Timeout waiting for element: {locator}, condition: {condition}")
             raise
+
+    def _get_element_description(self, element):
+        if isinstance(element, WebElement):
+            tag_name = element.tag_name
+            element_id = element.get_attribute('id')
+            element_class = element.get_attribute('class')
+            element_name = element.get_attribute('name')
+
+            description = f"<{tag_name}"
+            if element_id:
+                description += f" id='{element_id}'"
+            if element_class:
+                description += f" class='{element_class}'"
+            if element_name:
+                description += f" name='{element_name}'"
+            description += ">"
+
+            return description
+        elif isinstance(element, tuple):
+            return str(element)
+        else:
+            return str(element)
 
     def open_url(self, url):
         logging.info(f"{self.__class__.__name__}: Opening URL: {url}")
@@ -176,31 +201,27 @@ class WebElementActions:
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Checking if element text matches expected: {element_desc}, expected text: {expected_text}")
         actual_text = self.get_text(element)
-        result = actual_text == expected_text
-        logging.info(f"{self.__class__.__name__}: Text match result: {result}, Actual text: {actual_text} for element: {element_desc}")
-        return result
+        assert actual_text == expected_text, f"{self.__class__.__name__}: Expected text: {expected_text} is not matching actual text: {actual_text}"
+        logging.info(f"{self.__class__.__name__}: Element expected to match text: {expected_text}, Actual text: {actual_text}")
 
     def element_text_should_contains(self, element, expected_text):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Checking if element text contains expected: {element_desc}, expected text: {expected_text}")
         actual_text = self.get_text(element)
-        result = expected_text in actual_text
-        logging.info(f"{self.__class__.__name__}: Text contain result: {result}, Actual text: {actual_text} for element: {element_desc}")
-        return result
+        assert expected_text in actual_text, f"{self.__class__.__name__}: Expected text: {expected_text} is not in actual text: {actual_text}"
+        logging.info(f"{self.__class__.__name__}: Element expected to contain text: {expected_text}, Actual text: {actual_text}")
 
     def title_should_be(self, expected_title):
         logging.info(f"{self.__class__.__name__}: Checking if page title matches expected: {expected_title}")
         actual_title = self.driver.title
-        result = actual_title == expected_title
-        logging.info(f"{self.__class__.__name__}: Title match result: {result}, Actual title: {actual_title}")
-        return result
+        assert actual_title == expected_title, f"{self.__class__.__name__}: Expected title: {expected_title} is not matching actual title: {actual_title}"
+        logging.info(f"{self.__class__.__name__}: Title expected to match: {expected_title}, Actual title: {actual_title}")
 
     def title_should_contains(self, expected_title):
         logging.info(f"{self.__class__.__name__}: Checking if page title contains expected: {expected_title}")
         actual_title = self.driver.title
-        result = expected_title in actual_title
-        logging.info(f"{self.__class__.__name__}: Title contain result: {result}, Actual title: {actual_title}")
-        return result
+        assert expected_title in actual_title, f"{self.__class__.__name__}: Expected title: {expected_title} is not in actual title: {actual_title}"
+        logging.info(f"{self.__class__.__name__}: Title expected to contain: {expected_title}, Actual title: {actual_title}")
 
     def wait_for_text_to_be_present(self, locator, text, timeout=None):
         if timeout is None:
@@ -300,31 +321,13 @@ class WebElementActions:
         original_style = element.get_attribute('style')
 
         for _ in range(int(duration)):
-            apply_style(f"{self.__class__.__name__}: background: {color}; border: {border};")
+            apply_style(f"background: {color}; border: {border};")
             time.sleep(0.25)
             apply_style(original_style)
             time.sleep(0.25)
 
         logging.info(f"{self.__class__.__name__}: Finished highlighting element: {element_desc}")
 
-    def _get_element_description(self, element):
-        if isinstance(element, WebElement):
-            tag_name = element.tag_name
-            element_id = element.get_attribute('id')
-            element_class = element.get_attribute('class')
-            element_name = element.get_attribute('name')
-
-            description = f"<{tag_name}"
-            if element_id:
-                description += f" id='{element_id}'"
-            if element_class:
-                description += f" class='{element_class}'"
-            if element_name:
-                description += f" name='{element_name}'"
-            description += ">"
-
-            return description
-        elif isinstance(element, tuple):
-            return str(element)
-        else:
-            return str(element)
+    def wait(self, seconds):
+        logging.info(f"{self.__class__.__name__}: Waiting for {seconds} seconds")
+        time.sleep(int(seconds))

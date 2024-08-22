@@ -1,9 +1,9 @@
 import logging
 import os
 import re
+from time import sleep
 from typing import Dict, List
 import pandas as pd
-from libraries.api.api_test_loader import APITestLoader
 from libraries.common.config_manager import ConfigManager
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.api.request_sender import RequestSender
@@ -11,38 +11,50 @@ from libraries.api.body_generator import BodyGenerator
 from libraries.api.headers_generator import HeadersGenerator
 from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.api.response_handler import APIResponseAsserter, APIResponseExtractor
+from libraries.api.api_test_loader import APITestLoader
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api.deco import keyword, library
 
 builtin_lib = BuiltIn()
 
+
 @library
 class APITestKeywords:
     ROBOT_LIBRARY_SCOPE = 'TEST SUITE'
 
-    def __init__(self, env_config_path: str = None, test_config_path: str = None, test_cases_path: str = None) -> None:
+    def __init__(self, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
-        self._load_configuration(env_config_path, test_config_path, test_cases_path)
+        self._load_configuration(test_config_path, test_cases_path)
         self._initialize_components()
 
-    def _load_configuration(self, env_config_path, test_config_path, test_cases_path):
-        self.env_config_path = env_config_path or os.path.join(self.project_root, 'configs', 'api', 'environments.yaml')
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'api_test_config.yaml')
-        self.env_config: Dict = ConfigManager.load_yaml(self.env_config_path)
+
+
+    def _load_configuration(self, test_config_path, test_cases_path):
+
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api_test_config.yaml')
+
         self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
-        self.active_environment: Dict = self.env_config['environments'][self.test_config['active_environment']]
-        self.endpoints: Dict = self.active_environment['endpoints']
+
         default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
 
-    def _initialize_components(self):
-        self.template_dir: str = os.path.join(self.project_root, 'configs', 'api', 'body_templates')
-        self.headers_dir: str = os.path.join(self.project_root, 'configs', 'api', 'headers')
-        self.body_defaults_dir: str = os.path.join(self.project_root, 'configs', 'api', 'body_defaults')
+    def _load_endpoints(self):
 
+        endpoints = self.api_test_loader.get_endpoints()
+        self.active_environment = self.test_config['active_environment']
+        self.endpoints = {}
+        for _, row in endpoints[endpoints['Environment'] == self.active_environment].iterrows():
+            self.endpoints[row['Endpoint']] = {
+                'method': row['Method'],
+                'path': row['Path']
+            }
+
+    def _initialize_components(self):
         self.saved_fields_manager: SavedFieldsManager = SavedFieldsManager()
-        self.body_generator: BodyGenerator = BodyGenerator(self.template_dir, self.body_defaults_dir)
-        self.headers_generator: HeadersGenerator = HeadersGenerator(self.headers_dir)
+        self.api_test_loader = APITestLoader(self.test_cases_path)
+        self._load_endpoints()
+        self.body_generator: BodyGenerator = BodyGenerator(self.api_test_loader)
+        self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
         self.api_response_asserter: APIResponseAsserter = APIResponseAsserter()
         self.api_response_extractor: APIResponseExtractor = APIResponseExtractor()
 
@@ -54,8 +66,8 @@ class APITestKeywords:
 
     @keyword
     def execute_multiple_api_test_cases(self, test_case_ids: List[str] = None):
-        api_test_loader = APITestLoader(self.test_cases_path)
-        test_cases = api_test_loader.get_api_test_cases()
+
+        test_cases = self.api_test_loader = APITestLoader(self.test_cases_path).get_api_test_cases()
 
         if test_case_ids is None:
             test_case_ids = [tc['TCID'] for tc in test_cases]
@@ -71,8 +83,8 @@ class APITestKeywords:
     @keyword
     def execute_api_test_case(self, test_case_id: str, is_dynamic_check: bool = False):
         try:
-            api_test_loader = APITestLoader(self.test_cases_path)
-            test_cases = api_test_loader.get_api_test_cases()
+
+            test_cases = self.api_test_loader = APITestLoader(self.test_cases_path).get_api_test_cases()
             test_case = next((tc for _, tc in test_cases.iterrows() if tc['TCID'] == test_case_id), None)
 
             if test_case is None:
@@ -83,6 +95,7 @@ class APITestKeywords:
             if check_with_tcids:
                 pre_check_responses = self._execute_check_with_cases(check_with_tcids)
                 response, execution_time = self._execute_single_test_case(test_case)
+                sleep(3)
                 post_check_responses = self._execute_check_with_cases(check_with_tcids)
                 self._validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
             else:
@@ -98,7 +111,7 @@ class APITestKeywords:
 
     def _execute_single_test_case(self, test_case):
         response, execution_time = self.send_request(test_case)
-        logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time}")
+        logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time:.2f} seconds")
         self.api_response_asserter.validate_response(test_case['Exp Result'], response)
         self.api_response_extractor.extract_value(response, test_case)
         logging.info("============================================")

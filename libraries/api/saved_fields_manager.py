@@ -13,7 +13,7 @@ builtin_lib = BuiltIn()
 class SavedFieldsManager:
     def __init__(self, file_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
-        self.file_path: str = file_path or os.path.join(self.project_root, 'configs', 'api', 'saved_fields.yaml')
+        self.file_path: str = file_path or os.path.join(self.project_root, 'configs', 'saved_fields.yaml')
 
     def clear_saved_fields(self):
         with open(self.file_path, 'w') as f:
@@ -43,18 +43,18 @@ class SavedFieldsManager:
     def apply_saved_fields(self, test_case, saved_fields: Dict) -> None:
         try:
             for key, value in saved_fields.items():
-                for column in ['Body Modifications', 'Exp Result']:
+                for column in ['Body User-defined Fields', 'Exp Result']:
                     if column in test_case and test_case[column] != '':
                         lines = test_case[column].splitlines()
                         replaced_lines = [line.replace(f"${{{key}}}", str(value)) for line in lines]
                         test_case[column] = "\n".join(replaced_lines)
         except Exception as e:
-            logging.error(f"{self.__class__.__name__}: Failed to apply saved fields to [Body Modifications], [Exp Result]: {str(e)}")
+            logging.error(f"{self.__class__.__name__}: Failed to apply saved fields to [Body User-defined Fields], [Exp Result]: {str(e)}")
             raise
 
     def apply_suite_variables(self, test_case) -> None:
         try:
-            for key in ['Body Modifications', 'Exp Result']:
+            for key in ['Body User-defined Fields', 'Exp Result']:
                 matches = re.findall(r'\$\{[^}]+\}', test_case[key])
                 for match in matches:
                     replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')

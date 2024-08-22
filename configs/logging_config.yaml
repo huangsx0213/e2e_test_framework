@@ -15,14 +15,8 @@ handlers:
     class: logging.FileHandler
     formatter: standard
     level: DEBUG
-    mode: "a"
+    mode: "w"
 
-
-loggers:
-  e2e_testing:
-    level: DEBUG
-    handlers: [console]
-    propagate: no
 
 root:
   level: INFO

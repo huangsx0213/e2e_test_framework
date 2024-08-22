@@ -5,14 +5,14 @@ import pandas as pd
 from libraries.api.api_test_loader import APITestLoader
 from libraries.common.config_manager import ConfigManager
 from libraries.common.utility_helpers import PROJECT_ROOT
-from robot.api import TestSuite, ResultWriter
+from robot.api import TestSuite
 from libraries.common.log_manager import logger_instance
 
 
 class APIRobotCasesGenerator:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api', 'api_test_config.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api_test_config.yaml')
         self._load_configuration()
         self._initialize_components(test_cases_path)
 
@@ -27,16 +27,16 @@ class APIRobotCasesGenerator:
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None, test_suite=None) -> TestSuite:
         self.api_suite = test_suite if test_suite else TestSuite('API TestSuite')
         self.api_suite.teardown.config(name='clear_saved_fields', args=[])
-        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace('\\', '/')
-        logging.info(f"Generating API Robot Case：Currently using test cases from {test_cases_path_arg}")
-        self.api_suite.resource.imports.library('libraries.api.api_test_keywords.APITestKeywords', args=[None, None, test_cases_path_arg])  # Update as needed
+        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace(os.path.sep, '/')
+        logging.info(f"{self.__class__.__name__}: Currently using test cases from {test_cases_path_arg}")
+        self.api_suite.resource.imports.library('libraries.api.api_test_keywords.APITestKeywords', args=[None, test_cases_path_arg])  # Update as needed
         tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
         tags = tags or self.test_config.get('tags', [])
         try:
             filtered_cases = self.test_cases_df.filter_cases(tcid_list=tc_id_list, tags=tags)
             self.create_test_cases(filtered_cases)
         except Exception as e:
-            logging.info(f"Generating API Robot Case：Failed to create test suite: {str(e)}")
+            logging.error(f"{self.__class__.__name__}: Failed to create test suite: {str(e)}")
         finally:
             return self.api_suite
 

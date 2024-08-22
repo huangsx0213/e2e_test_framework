@@ -1,5 +1,7 @@
+import json
 import logging
 import os
+import re
 from typing import Dict, Tuple, List
 from robot.api.deco import keyword, library
 from libraries.web.web_element_actions import WebElementActions
@@ -7,48 +9,68 @@ from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
 from libraries.web.web_test_loader import WebTestLoader
 from libraries.web.webdriver_factory import WebDriverFactory
+from robot.libraries.BuiltIn import BuiltIn
 
+builtin_lib = BuiltIn()
 
 class WebDriverSingleton:
     _instance = None
 
     @classmethod
     def get_instance(cls, driver_config=None):
-        logging.info(f"WebDriverSingleton: Getting WebDriver instance")
+        logging.info("WebDriverSingleton: Getting WebDriver instance")
         if cls._instance is None:
             if driver_config is None:
-                raise ValueError(f"WebDriverSingleton: Config path must be provided when creating the first instance")
+                raise ValueError("WebDriverSingleton: Config path must be provided when creating the first instance")
             cls._instance = WebDriverFactory.create_driver(driver_config)
-            logging.info(f"WebDriverSingleton: WebDriver instance created")
+            logging.info("WebDriverSingleton: WebDriver instance created")
         return cls._instance
 
     @classmethod
     def quit(cls):
         if cls._instance:
-            cls._instance.quit()
+            cls._instance.close()
             cls._instance = None
-            logging.info(f"WebDriverSingleton: WebDriver instance closed")
+            logging.info("WebDriverSingleton: WebDriver instance closed")
 
 
 @library
 class PageObject:
-    def __init__(self, env_config_path: str = None, test_config_path: str = None, test_cases_path: str = None):
-        self.project_root: str = PROJECT_ROOT
-        self.env_config_path = env_config_path or os.path.join(self.project_root, 'configs', 'web', 'environments.yaml')
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web', 'web_test_config.yaml')
+    def __init__(self, test_config_path: str = None, test_cases_path: str = None):
+        self.project_root = PROJECT_ROOT
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web_test_config.yaml')
+        self.test_cases_path = test_cases_path or os.path.join(self.project_root, 'test_cases', 'web_test_cases.xlsx')
 
-        self._load_configuration(test_cases_path)
+        self._load_configuration()
         self._initialize_components()
 
-    def _load_configuration(self, test_cases_path):
-        self.env_config: Dict = ConfigManager.load_yaml(self.env_config_path)
-        self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
-        self.active_driver_config: Dict = self.env_config['environments'][self.test_config['active_environment']]
-        default_test_cases_path: str = os.path.join('test_cases', 'web_test_cases.xlsx')
-        self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
+    def _load_configuration(self):
+        self.test_config = ConfigManager.load_yaml(self.test_config_path)
+        self.web_test_loader = WebTestLoader(self.test_cases_path)
+        self.env_config = self._load_environment_config()
+
+    def _load_environment_config(self):
+        environments = self.web_test_loader.get_web_environments()
+        active_env = self.test_config['active_environment']
+        env_config = environments[environments['Environment'] == active_env].iloc[0].to_dict()
+        env_config['BrowserOptions'] = json.loads(env_config['BrowserOptions'])
+
+        return {
+            'environments': {
+                active_env: {
+                    'browser': env_config['Browser'],
+                    'is_remote': env_config['IsRemote'],
+                    'remote_url': env_config['RemoteURL'],
+                    'chrome_path': env_config['ChromePath'],
+                    'chrome_driver_path': env_config['ChromeDriverPath'],
+                    'edge_path': env_config['EdgePath'],
+                    'edge_driver_path': env_config['EdgeDriverPath'],
+                    'browser_options': env_config['BrowserOptions']
+                }
+            }
+        }
 
     def _initialize_components(self):
-        self.web_test_loader = WebTestLoader(self.test_config['test_case_path'])
         self.locators_df = self.web_test_loader.get_locators()
         self.page_object_df = self.web_test_loader.get_page_objects()
         self.driver = self._load_webdriver()
@@ -57,29 +79,27 @@ class PageObject:
         self.page_modules = self._load_page_modules()
 
     def _load_webdriver(self):
-        return WebDriverSingleton.get_instance(self.active_driver_config)
+        active_env_config = self.env_config['environments'][self.test_config['active_environment']]
+        driver = WebDriverSingleton.get_instance(active_env_config)
+        driver.minimize_window()
+        return driver
 
     def _load_page_elements(self) -> Dict[str, Dict[str, Tuple[str, str]]]:
         elements = {}
         for _, row in self.locators_df.iterrows():
-            page_name = row['Page Name']
-            element_name = row['Element Name']
-            locator = (row['Locator Type'], row['Locator Value'])
-            elements.setdefault(page_name, {})[element_name] = locator
+            elements.setdefault(row['Page Name'], {})[row['Element Name']] = (row['Locator Type'], row['Locator Value'])
         return elements
 
     def _load_page_modules(self) -> Dict[str, Dict[str, List[Dict]]]:
         modules = {}
         for _, row in self.page_object_df.iterrows():
-            page_name = row['Page Name']
-            module_name = row['Module Name']
             action_info = {
                 'element_name': row['Element Name'],
                 'action': row['Actions'],
                 'parameter_name': row['Parameter Name'].split(',') if row['Parameter Name'] else [],
                 'screen_capture': row['Screenshot']
             }
-            modules.setdefault(page_name, {}).setdefault(module_name, []).append(action_info)
+            modules.setdefault(row['Page Name'], {}).setdefault(row['Module Name'], []).append(action_info)
         return modules
 
     @keyword
@@ -91,30 +111,21 @@ class PageObject:
         for action_info in module_actions:
             element_name = action_info['element_name']
             action = action_info['action']
-            param_names = action_info['parameter_name']
             screen_capture = action_info['screen_capture']
+            element = self._find_element(page_name, element_name, action)
+            action_params = [parameters.get(param) for param in action_info['parameter_name']]
 
-            element = None
-            if element_name:
-                locator = self.page_elements[page_name][element_name]
-                element = self._get_element_with_appropriate_condition(locator, action)
-
-            action_params = [parameters.get(param) for param in param_names]
-
-            msg = f"{self.__class__.__name__}: Executing action: {action}"
-            if action_params:
-                msg += f" with parameters: {action_params}"
-            if element:
-                msg += f" on element: {page_name}.{element_name}"
-            logging.info(msg)
             self._execute_action(action, element, *action_params)
             if screen_capture:
                 self.web_actions.capture_screenshot()
-            logging.info(f"{self.__class__.__name__}: Action: {action} executed successfully")
             logging.info("=" * 80)
 
-    def _get_element_with_appropriate_condition(self, locator: Tuple[str, str], action: str):
-        condition_map = {
+    def _find_element(self, page_name: str, element_name: str, action: str):
+        if not element_name:
+            return None
+
+        locator = self.page_elements[page_name][element_name]
+        condition = {
             'click': 'clickable',
             'select_by_value': 'clickable',
             'select_by_visible_text': 'clickable',
@@ -124,9 +135,10 @@ class PageObject:
             'send_keys': 'visibility',
             'clear': 'visibility',
             'hover': 'visibility',
+            'highlight_element': 'visibility',
             'switch_to_frame': 'presence'
-        }
-        condition = condition_map.get(action, 'presence')
+        }.get(action, 'presence')
+
         element = self.web_actions.wait_for_element(locator, condition=condition)
         logging.debug(f"{self.__class__.__name__}: Located element {locator} for action: {action}")
         return element
@@ -166,12 +178,31 @@ class PageObject:
             'get_alert_text': self.web_actions.get_alert_text,
             'highlight_element': self.web_actions.highlight_element,
             'capture_screenshot': self.web_actions.capture_screenshot,
+            'wait': self.web_actions.wait,
         }
 
         if action not in action_map:
             raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
 
-        return action_map[action](element, *args, **kwargs) if element else action_map[action](*args, **kwargs)
+        # Create a new list to store the modified arguments
+        new_args = []
+        for arg in args:
+            if isinstance(arg, str):
+                # Use regex to find all occurrences of ${...} in the string
+                matches = re.findall(r'\$\{([^}]+)\}', arg)
+                if matches:
+                    for match in matches:
+                        # Retrieve the actual value for the variable using builtin_lib
+                        replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
+                        # Replace the ${...} placeholder with the actual value
+                        arg = arg.replace(f'${{{match}}}', str(replacement_value))
+
+                        logging.info(f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for action: {action}")
+
+            # Add the processed (or original) argument to the new list
+            new_args.append(arg)
+
+        return action_map[action](element, *new_args, **kwargs) if element else action_map[action](*new_args, **kwargs)
 
     @keyword
     def close_browser(self):

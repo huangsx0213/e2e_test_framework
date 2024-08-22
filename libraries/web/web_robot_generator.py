@@ -12,7 +12,7 @@ from libraries.common.log_manager import Logger
 class WebUIRobotCasesGenerator:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root: str = PROJECT_ROOT
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web', 'web_test_config.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs',  'web_test_config.yaml')
         self._load_configuration()
         self._initialize_components(test_cases_path)
 
@@ -39,6 +39,12 @@ class WebUIRobotCasesGenerator:
         logging.info(f"{self.__class__.__name__}: Creating E2E test case {test_case['Case ID']}")
         test_steps = self.web_test_loader.get_test_steps(test_case['Case ID'])
         test_data_sets = self.web_test_loader.get_test_data(test_case['Case ID'])
+
+        if not test_data_sets:
+            # If no test data sets, create a single test case with empty parameters
+            test_data_sets = [{}]
+            logging.warning(f"{self.__class__.__name__}: No test data sets found for {test_case['Case ID']}, creating a single test case with empty parameters")
+            logging.warning(f"{self.__class__.__name__}: Need to check if all steps of {test_case['Case ID']} are valid for empty parameters")
 
         for data_set_index, data_set in enumerate(test_data_sets, 1):
             test_name = f"UI.{test_case['Case ID']}.{test_case['Name']}.{data_set_index}"
@@ -76,6 +82,6 @@ class WebUIRobotCasesGenerator:
                 # Add type conversion here if needed
                 parameters[name] = value
             else:
-                logging.warning(f"{WebUIRobotCasesGenerator.__class__.__name__}: Parameter {name} not found in data set")
-        logging.debug(f"{WebUIRobotCasesGenerator.__class__.__name__}: Extracted parameters: {parameters}")
+                logging.warning(f"WebUIRobotCasesGenerator: Parameter {name} not found in data set")
+        logging.info(f"WebUIRobotCasesGenerator: Extracted parameters: {parameters}")
         return parameters

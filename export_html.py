@@ -94,7 +94,7 @@ def read_files(directory='.', exclude_files=None, exclude_directories=None):
     # Convert exclude_files to absolute paths
     exclude_files = [os.path.abspath(file) for file in exclude_files]
 
-    supported_extensions = ('.py', '.json', '.yaml', '.html', '.xml')
+    supported_extensions = ('.py', '.json', '.yaml', '.html', '.xml', '.md')
     files_list = []
     for root, dirs, files in os.walk(directory):
         # Modify dirs in place to exclude specified directories
@@ -136,7 +136,7 @@ def generate_file_structure(files_list, directory='.', prefix=''):
                     file_structure += f'{subindent}<a href="#{file_id}">{f}</a>\n'
     return file_structure
 
-def generate_html_file(html_content, output_file='output/index.html'):
+def generate_html_file(html_content, output_file='report/e2e_test_framework.html'):
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, 'w', encoding='utf-8') as file:
         file.write(html_content)
@@ -148,11 +148,11 @@ if __name__ == "__main__":
         'export_code.py'
         # Add more file paths as needed
     ]
-    exclude_directories = {'venv', '.idea', '__pycache__', '.git', 'output'}
+    exclude_directories = {'venv', '.idea', '__pycache__', '.git', 'report'}
 
     files_list = read_files(exclude_files=exclude_files, exclude_directories=exclude_directories)
     code_blocks = generate_code_blocks_and_links(files_list)
     file_structure = generate_file_structure(files_list, directory='.')
     html_content = html_template.format(file_structure=file_structure, code_blocks=code_blocks)
     generate_html_file(html_content)
-    print(f"HTML file 'output/index.html' generated successfully.")
+    print(f"HTML file 'report/e2e_test_framework.html' generated successfully.")

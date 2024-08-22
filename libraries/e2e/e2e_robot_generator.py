@@ -14,8 +14,8 @@ from libraries.web.web_test_loader import WebTestLoader
 class E2ERobotCasesGenerator:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root: str = PROJECT_ROOT
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'e2e', 'e2e_test_config.yaml')
-        self.env_config_path = os.path.join(self.project_root, 'configs', 'web', 'environments.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'e2e_test_config.yaml')
+
         self._load_configuration()
         self._initialize_components(test_cases_path)
 
@@ -48,10 +48,9 @@ class E2ERobotCasesGenerator:
         self.robot_suite.suites.append(self.child_suite)
 
         # Convert the paths to raw string format to avoid issues with backslashes
-        env_config_path_arg = os.path.normpath(self.env_config_path).replace('\\', '/')
-        test_config_path_arg = os.path.normpath(self.test_config_path).replace('\\', '/')
-        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace('\\', '/')
-        self.child_suite.resource.imports.library('libraries.web.page_object.PageObject', args=[env_config_path_arg, test_config_path_arg, test_cases_path_arg])
+        test_config_path_arg = os.path.normpath(self.test_config_path).replace(os.path.sep, '/')
+        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace(os.path.sep, '/')
+        self.child_suite.resource.imports.library('libraries.web.page_object.PageObject', args=[test_config_path_arg, test_cases_path_arg])
 
         for data_set_index, data_set in enumerate(test_data_sets, 1):
             test_name = f"UI.{test_case['Case ID']}.{test_case['Name']}.{data_set_index}"
@@ -72,7 +71,8 @@ class E2ERobotCasesGenerator:
         for _, step in test_steps.iterrows():
             page_name = step['Page Name']
             module_name = step['Module Name']
-            parameters = self.extract_parameters(data_set, step['Parameter Name'])
+            if step['Module Name'] != 'API':
+                parameters = self.extract_parameters(data_set, step['Parameter Name'])
 
             try:
                 logging.info(f"{self.__class__.__name__}: Creating e2e step: {page_name}.{module_name}")
@@ -99,6 +99,6 @@ class E2ERobotCasesGenerator:
                 # Add type conversion here if needed
                 parameters[name] = value
             else:
-                logging.warning(f"{E2ERobotCasesGenerator.__class__.__name__}: Parameter {name} not found in data set")
-        logging.debug(f"{E2ERobotCasesGenerator.__class__.__name__}: Extracted parameters: {parameters}")
+                logging.warning(f"E2ERobotCasesGenerator: Parameter {name} not found in data set")
+        logging.info(f"E2ERobotCasesGenerator: Extracted parameters: {parameters}")
         return parameters

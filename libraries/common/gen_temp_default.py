@@ -4,7 +4,7 @@ import json
 from collections import defaultdict
 
 TEMPLATE_DIR = '../../configs/api/body_templates'
-OUTPUT_DIR = '../../output'
+OUTPUT_DIR = '../../report'
 
 
 def extract_placeholders(template_content):
