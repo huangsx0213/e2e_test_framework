@@ -46,8 +46,8 @@ if __name__ == "__main__":
     if args.e2e:
         suite_to_run = create_e2e_suite()
 
-    # If no specific test type is specified, run all tests
+    # If no specific test type is specified, run default E2E tests
     if not (args.api or args.web or args.e2e):
-        suite_to_run = create_api_suite()
+        suite_to_run = create_e2e_suite()
 
     run_test_suite(suite_to_run)
