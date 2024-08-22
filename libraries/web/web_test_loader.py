@@ -51,7 +51,7 @@ class WebTestLoader:
 
         page_module_combinations = set(zip(page_modules['Page Name'], page_modules['Module Name']))
         for _, row in test_steps.iterrows():
-            if (row['Page Name'], row['Module Name']) not in page_module_combinations:
+            if (row['Page Name'], row['Module Name']) not in page_module_combinations and row['Module Name'] != 'API':
                 logging.error(
                     f"WebTestLoader: Invalid Page Name '{row['Page Name']}' and Module Name '{row['Module Name']}' combination in TestSteps for Case ID '{row['Case ID']}'.")
             self._validate_parameters(row)
@@ -67,6 +67,7 @@ class WebTestLoader:
         module_params = page_modules[(page_modules['Page Name'] == step_row['Page Name']) &
                                      (page_modules['Module Name'] == step_row['Module Name'])]['Parameter Name'].tolist()
         module_params = [param for param in module_params if param]
+
         if module_params:
             expected_params = set()
             for param in module_params:
