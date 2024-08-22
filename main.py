@@ -39,17 +39,15 @@ if __name__ == "__main__":
     parser.add_argument('--e2e', action='store_true', help='Run E2E tests')
     args = parser.parse_args()
 
-    main_suite = TestSuite('Main Test Suite')
-
     if args.api:
-        main_suite.suites.append(create_api_suite())
+        suite_to_run = create_api_suite()
     if args.web:
-        main_suite.suites.append(create_web_suite())
+        suite_to_run = create_web_suite()
     if args.e2e:
-        main_suite.suites.append(create_e2e_suite())
+        suite_to_run = create_e2e_suite()
 
     # If no specific test type is specified, run all tests
     if not (args.api or args.web or args.e2e):
-        main_suite.suites.append(create_e2e_suite())
+        suite_to_run = create_api_suite()
 
-    run_test_suite(main_suite)
+    run_test_suite(suite_to_run)

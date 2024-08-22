@@ -1,5 +1,7 @@
+import json
 import logging
 import pandas as pd
+
 
 class WebTestLoader:
     def __init__(self, excel_path):
@@ -154,10 +156,6 @@ class WebTestLoader:
         return result
 
     def get_test_data(self, case_id):
-        """
-        Retrieve test data for a specific case ID.
-        Returns a list of dictionaries, each representing a data set.
-        """
         test_data = self.get_data_by_sheet_name('TestData')
         case_data = test_data[test_data['Case ID'] == case_id]
 
@@ -173,10 +171,35 @@ class WebTestLoader:
         for _, group in grouped_data:
             data_set = {}
             for _, row in group.iterrows():
-                data_set[row['Parameter Name']] = row['Value']
+                value = self._parse_value(row['Value'], row['Data Type'])
+                data_set[row['Parameter Name']] = value
             data_sets.append(data_set)
 
         return data_sets
+
+    def _parse_value(self, value, data_type):
+        if data_type.lower() == 'json':
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                logging.error(f"Invalid JSON string: {value}")
+                return value  # 返回原始字符串，以防解析失败
+        elif data_type.lower() == 'integer':
+            try:
+                return int(value)
+            except ValueError:
+                logging.error(f"Invalid integer value: {value}")
+                return value
+        elif data_type.lower() == 'float':
+            try:
+                return float(value)
+            except ValueError:
+                logging.error(f"Invalid float value: {value}")
+                return value
+        elif data_type.lower() == 'boolean':
+            return value.lower() in ('true', 'yes', '1', 'on')
+        else:
+            return value  # 默认作为字符串处理
 
     def get_page_objects(self):
         """
