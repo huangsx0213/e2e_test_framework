@@ -71,7 +71,8 @@ class E2ERobotCasesGenerator:
         for _, step in test_steps.iterrows():
             page_name = step['Page Name']
             module_name = step['Module Name']
-            parameters = self.extract_parameters(data_set, step['Parameter Name'])
+            if step['Module Name'] != 'API':
+                parameters = self.extract_parameters(data_set, step['Parameter Name'])
 
             try:
                 logging.info(f"{self.__class__.__name__}: Creating e2e step: {page_name}.{module_name}")
