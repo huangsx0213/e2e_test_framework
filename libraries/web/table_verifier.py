@@ -125,10 +125,13 @@ class TableVerifier:
         """
         if match_type == 'exact':
             assert actual_value == expected_value, f"Mismatch in column '{column}'. Expected: {expected_value}, Actual: {actual_value}"
+            logging.info(f"Verified column '{column}': expected: {expected_value}, actual: {actual_value}")
         elif match_type == 'partial':
             assert expected_value in actual_value, f"Value '{expected_value}' not found in column '{column}'. Actual: {actual_value}"
+            logging.info(f"Verified column '{column}': partial match: {expected_value} in {actual_value}")
         elif match_type == 'regex':
             assert re.search(expected_value, actual_value), f"Regex '{expected_value}' did not match in column '{column}'. Actual: {actual_value}"
+            logging.info(f"Verified column '{column}': regex match: {expected_value} in {actual_value}")
         else:
             raise ValueError(f"Invalid match_type: {match_type}")
 
