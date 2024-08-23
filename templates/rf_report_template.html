@@ -45,19 +45,48 @@
             margin-left: 160px;
             padding: 1rem;
         }
+
         .table {
             border-radius: 10px;
             overflow: hidden;
             border-collapse: separate;
         }
+
         .table-hover tbody tr:hover {
             background-color: #f1f1f1;
         }
-        .dataTables_wrapper .dataTable thead th {
+
+        .table thead th {
             background-color: #343a40;
             color: #ffffff;
             border-bottom: 1px solid #495057;
+            border-top: 1px solid #495057;
         }
+
+        .table tbody td {
+            border-top: 1px solid #dee2e6;
+        }
+
+        .table thead th:first-child {
+            border-top-left-radius: 10px;
+            border-left: 1px solid #dee2e6;
+        }
+
+        .table thead th:last-child {
+            border-top-right-radius: 10px;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .table tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 10px;
+            border-left: 1px solid #dee2e6;
+        }
+
+        .table tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 10px;
+            border-right: 1px solid #dee2e6;
+        }
+
         .pie-chart {
             width: 100%;
             height: 400px;
