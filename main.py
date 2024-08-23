@@ -3,7 +3,7 @@ import argparse
 from robot.reporting import ResultWriter
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.api.api_robot_generator import APIRobotCasesGenerator
-from libraries.report.dashboard_generator import DashboardGenerator
+from libraries.common.dashboard_generator import DashboardGenerator
 from libraries.web.web_robot_generator import WebUIRobotCasesGenerator
 from libraries.e2e.e2e_robot_generator import E2ERobotCasesGenerator
 
