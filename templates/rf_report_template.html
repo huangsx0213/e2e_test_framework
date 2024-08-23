@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
     <title>RF Metrics Report</title>
     <style>
         .sidebar {
@@ -278,6 +279,9 @@
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
@@ -344,33 +348,46 @@
             });
         }
 
-        function openPage(pageName, elmnt) {
-            var i, tabcontent, navLinks;
-            tabcontent = document.getElementsByClassName("tabcontent");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
-            }
-            navLinks = document.getElementsByClassName("nav-link");
-            for (i = 0; i < navLinks.length; i++) {
-                navLinks[i].className = navLinks[i].className.replace(" active", "");
-            }
-            document.getElementById(pageName).style.display = "block";
-            elmnt.className += " active";
+    function openPage(pageName, elmnt) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tabcontent");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
         }
+        tablinks = document.getElementsByClassName("nav-link");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(pageName).style.display = "block";
+        elmnt.className += " active";
+    }
 
-        function executeDataTable(tableId, columnToSort) {
-            $(document).ready(function () {
-                $(tableId).DataTable({
-                    "order": [[columnToSort, "desc"]],
-                    "pageLength": 5,
-                    "pagingType": "simple"
-                });
-            });
+    function executeDataTable(tableID, minRows) {
+        if ($.fn.DataTable.isDataTable(tableID)) {
+            $(tableID).DataTable().destroy();
         }
+        $(tableID).DataTable({
+            "pageLength": minRows,
+            "ordering": true,
+            "searching": true,
+            "paging": true,
+            "info": true,
+            "lengthChange": false,
+            "language": {
+                "paginate": {
+                    "previous": "<",
+                    "next": ">"
+                }
+            }
+        });
+    }
 
-        function openInNewTab(url) {
-            window.open(url, '_blank').focus();
-        }
+    $(document).ready(function () {
+        $('[data-bs-toggle="tooltip"]').tooltip();
+        executeDataTable('#sm', 6);
+        executeDataTable('#tm', 3);
+        document.getElementById("defaultOpen").click();
+    });
 </script>
 </body>
 </html>
