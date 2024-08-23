@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" rel="stylesheet">
+    <title>RF Metrics Report</title>
+    <style>
+        .sidebar {
+            width: 200px;
+            background: #343a40;
+            padding: 1rem;
+            position: fixed;
+            height: 100%;
+        }
+
+        .sidebar .nav-link {
+            color: #ffffff;
+        }
+
+        .sidebar .nav-link.active {
+            background-color: #495057;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 1rem;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .pie-chart {
+            width: 100%;
+            height: 400px;
+            margin-bottom: 2rem;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .loader {
+            border: 0.5rem solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 0.5rem solid #3498db;
+            width: 5rem;
+            height: 5rem;
+            animation: spin 1s linear infinite;
+            margin: auto;
+            display: block;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tooltip-inner {
+            max-width: none;
+        }
+    </style>
+</head>
+<body>
+<div class="loader" id="loadingDiv"></div>
+
+<nav class="sidebar d-none d-md-block bg-dark">
+    <div class="nav flex-column">
+        <a class="nav-link active" href="#" id="defaultOpen" onclick="openPage('dashboard', this)">
+            <i class="fa fa-dashboard"></i> Dashboard
+        </a>
+        <a class="nav-link" href="#" onclick="openPage('suiteMetrics', this); executeDataTable('#sm', 6);">
+            <i class="fa fa-th-large"></i> Suite Metrics
+        </a>
+        <a class="nav-link" href="#" onclick="openPage('testMetrics', this); executeDataTable('#tm', 3);">
+            <i class="fa fa-list-alt"></i> Test Metrics
+        </a>
+        <a class="nav-link" href="#" onclick="openPage('log', this);">
+            <i class="fa fa-file-text"></i> Robot Logs
+        </a>
+    </div>
+</nav>
+
+<div class="content" id="main">
+    <div class="tabcontent" id="suiteMetrics">
+        <h4><b><i class="fa fa-table"></i> Suite Metrics</b></h4>
+        <hr>
+        <h6 class="text-end">**Click Suite name to view logs</h6>
+        <table class="table table-hover table-bordered" id="sm">
+            <thead>
+            <tr>
+                <th>Suite Name</th>
+                <th>Status</th>
+                <th>Total TC</th>
+                <th>Pass TC</th>
+                <th>Fail TC</th>
+                <th>Skip TC</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Elapsed Time (s)</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for suite in suites %}
+            <tr>
+                <td data-bs-toggle="tooltip" onclick="openInNewTab('log.html#{{ suite['Id'] }}','#{{ suite['Id'] }}')" title="Click to view '{{ suite['Name'] }}' logs">
+                    {{ suite['Name'] }}
+                </td>
+                <td class="{% if suite['Status'] == 'PASS' %}text-success{% elif suite['Status'] == 'FAIL' %}text-danger{% else %}text-warning{% endif %}">{{ suite['Status'] }}
+                </td>
+                <td>{{ suite['Total'] }}</td>
+                <td class="text-success">{{ suite['Pass'] }}</td>
+                <td class="text-danger">{{ suite['Fail'] }}</td>
+                <td class="text-warning">{{ suite['Skip'] }}</td>
+                <td>{{ suite['startTime'] }}</td>
+                <td>{{ suite['endTime'] }}</td>
+                <td>{{ (suite['Time']/1000)|round(2) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="tabcontent" id="testMetrics">
+        <h4><b><i class="fa fa-table"></i> Test Metrics</b></h4>
+        <hr>
+        <h6 class="text-end">**Click Test Case name to view logs</h6>
+        <table class="table table-hover table-bordered" id="tm">
+            <thead>
+            <tr>
+                <th>Suite Name</th>
+                <th>Test Case</th>
+                <th>Status</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Elapsed Time (s)</th>
+                <th>Message</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for test in tests %}
+            <tr>
+                <td>{{ test['Suite Name'] }}</td>
+                <td data-bs-toggle="tooltip" onclick="openInNewTab('log.html#{{ test['Test Id'] }}','#{{ test['Test Id'] }}')" title="Click to view '{{ test['Test Name'] }}' logs">
+                    {{ test['Test Name'] }}
+                </td>
+                <td class="{% if test['Status'] == 'PASS' %}text-success{% elif test['Status'] == 'FAIL' %}text-danger{% else %}text-warning{% endif %}">{{ test['Status'] }}</td>
+                <td>{{ test['startTime'] }}</td>
+                <td>{{ test['endTime'] }}</td>
+                <td>{{ (test['Time']/1000)|round(2) }}</td>
+                <td>{{ test['Message'] }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="tabcontent" id="log">
+        <p class="text-end">
+            ** <b>Report.html</b> and <b>Log.html</b> need to be in the current folder to display here
+        </p>
+        <div class="ratio ratio-16x9">
+            <iframe src="log.html"></iframe>
+        </div>
+    </div>
+
+    <div class="tabcontent" id="dashboard">
+        <h4><b><i class="fa fa-dashboard"></i> Dashboard</b></h4>
+        <hr>
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-dark text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Suite</h5>
+                        <p class="card-text">Statistics</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-primary text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{suite_stats['Total']}}</h5>
+                        <p class="card-text">Total</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{suite_stats['Pass']}}</h5>
+                        <p class="card-text">Passed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{suite_stats['Fail']}}</h5>
+                        <p class="card-text">Failed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-dark text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Test Case</h5>
+                        <p class="card-text">Statistics</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-primary text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{test_stats['Total']}}</h5>
+                        <p class="card-text">Total</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{test_stats['Pass']}}</h5>
+                        <p class="card-text">Passed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{test_stats['Fail']}}</h5>
+                        <p class="card-text">Failed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="pie-chart">
+                    <canvas id="suiteChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="pie-chart">
+                    <canvas id="testChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("loadingDiv").style.display = "none";
+            document.getElementById("defaultOpen").click();
+
+            createPieChart('suiteChart', 'Suite Results', ['Pass', 'Fail'],
+                           [{{ suite_stats['Pass'] }}, {{ suite_stats['Fail'] }}],
+                           {{ suite_stats['Total'] }});
+
+            createPieChart('testChart', 'Test Case Results', ['Pass', 'Fail', 'Skip'],
+                           [{{ test_stats['Pass'] }}, {{ test_stats['Fail'] }}, {{ test_stats['Skip'] }}],
+                           {{ test_stats['Total'] }});
+        });
+
+        function createPieChart(canvasId, title, labels, data, total) {
+            var ctx = document.getElementById(canvasId).getContext('2d');
+            Chart.register(ChartDataLabels);
+            var chart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: title,
+                        data: data,
+                        backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: title
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    var value = tooltipItem.raw;
+                                    var percentage = ((value / total) * 100).toFixed(2);
+                                    return tooltipItem.label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            font: {
+                                weight: 'bold'
+                            },
+                            formatter: function(value, context) {
+                                var percentage = ((value / total) * 100).toFixed(2);
+                                return percentage + '%';
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function openPage(pageName, elmnt) {
+            var i, tabcontent, navLinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            navLinks = document.getElementsByClassName("nav-link");
+            for (i = 0; i < navLinks.length; i++) {
+                navLinks[i].className = navLinks[i].className.replace(" active", "");
+            }
+            document.getElementById(pageName).style.display = "block";
+            elmnt.className += " active";
+        }
+
+        function executeDataTable(tableId, columnToSort) {
+            $(document).ready(function () {
+                $(tableId).DataTable({
+                    "order": [[columnToSort, "desc"]],
+                    "pageLength": 5,
+                    "pagingType": "simple"
+                });
+            });
+        }
+
+        function openInNewTab(url) {
+            window.open(url, '_blank').focus();
+        }
+</script>
+</body>
+</html>
