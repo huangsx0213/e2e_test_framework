@@ -131,11 +131,11 @@
             <i class="fa fa-dashboard"></i>
             <span>Dashboard</span>
         </a>
-        <a class="nav-link" href="#" onclick="openPage('suiteMetrics', this); executeDataTable('#sm', 6);">
+        <a class="nav-link" href="#" onclick="openPage('suiteMetrics', this); executeDataTable('#sm', 10, 6);">
             <i class="fa fa-th-large"></i>
             <span>Suite Metrics</span>
         </a>
-        <a class="nav-link" href="#" onclick="openPage('testMetrics', this); executeDataTable('#tm', 3);">
+        <a class="nav-link" href="#" onclick="openPage('testMetrics', this); executeDataTable('#tm', 10, 3);">
             <i class="fa fa-list-alt"></i>
             <span>Test Metrics</span>
         </a>
@@ -400,17 +400,18 @@
         elmnt.className += " active";
     }
 
-    function executeDataTable(tableID, minRows) {
+    function executeDataTable(tableID, minRows, sortIndex) {
         if ($.fn.DataTable.isDataTable(tableID)) {
             $(tableID).DataTable().destroy();
         }
         $(tableID).DataTable({
-            "pageLength": 10,
+            "pageLength": minRows,
             "ordering": true,
             "searching": true,
             "paging": true,
             "info": true,
-            "lengthChange": true, // 启用“Show entries”下拉菜单
+            "lengthChange": true,
+            "order": [[sortIndex, "asc"]],
             "language": {
                 "paginate": {
                     "previous": "<",
@@ -422,8 +423,8 @@
 
     $(document).ready(function () {
         $('[data-bs-toggle="tooltip"]').tooltip();
-        executeDataTable('#sm', 6);
-        executeDataTable('#tm', 3);
+        executeDataTable('#sm', 10, 6);
+        executeDataTable('#tm', 10, 3);
         document.getElementById("defaultOpen").click();
     });
 </script>
