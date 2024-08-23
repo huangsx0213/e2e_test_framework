@@ -8,23 +8,40 @@
     <title>RF Metrics Report</title>
     <style>
         .sidebar {
-            width: 200px;
+            width: 140px;
             background: #343a40;
-            padding: 1rem;
+            padding: 1rem 0;
             position: fixed;
             height: 100%;
+            overflow-y: auto;
         }
 
         .sidebar .nav-link {
             color: #ffffff;
+            text-align: center;
+            padding: 1rem 0.5rem;
+            transition: all 0.3s ease;
         }
 
+        .sidebar .nav-link i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar .nav-link span {
+            font-size: 0.8rem;
+            display: block;
+        }
+
+        .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
             background-color: #495057;
+            border-left: 4px solid #007bff;
         }
 
         .content {
-            margin-left: 220px;
+            margin-left: 160px;
             padding: 1rem;
         }
 
@@ -69,19 +86,23 @@
 <body>
 <div class="loader" id="loadingDiv"></div>
 
-<nav class="sidebar d-none d-md-block bg-dark">
+<nav class="sidebar d-none d-md-block">
     <div class="nav flex-column">
         <a class="nav-link active" href="#" id="defaultOpen" onclick="openPage('dashboard', this)">
-            <i class="fa fa-dashboard"></i> Dashboard
+            <i class="fa fa-dashboard"></i>
+            <span>Dashboard</span>
         </a>
         <a class="nav-link" href="#" onclick="openPage('suiteMetrics', this); executeDataTable('#sm', 6);">
-            <i class="fa fa-th-large"></i> Suite Metrics
+            <i class="fa fa-th-large"></i>
+            <span>Suite Metrics</span>
         </a>
         <a class="nav-link" href="#" onclick="openPage('testMetrics', this); executeDataTable('#tm', 3);">
-            <i class="fa fa-list-alt"></i> Test Metrics
+            <i class="fa fa-list-alt"></i>
+            <span>Test Metrics</span>
         </a>
         <a class="nav-link" href="#" onclick="openPage('log', this);">
-            <i class="fa fa-file-text"></i> Robot Logs
+            <i class="fa fa-file-text"></i>
+            <span>Robot Logs</span>
         </a>
     </div>
 </nav>
