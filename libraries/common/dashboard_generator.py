@@ -45,6 +45,7 @@ class DashboardGenerator:
             ))
 
 
-# Example usage:
-# generator = DashboardGenerator()
-# generator.generate_dashboard(os.path.join(PROJECT_ROOT, 'report', 'output.xml'))
+if __name__ == '__main__':
+    # Example usage:
+    generator = DashboardGenerator()
+    generator.generate_dashboard(os.path.join(PROJECT_ROOT, 'report', 'output.xml'))
