@@ -98,6 +98,7 @@ class PageObject:
                 'element_name': row['Element Name'],
                 'action': row['Actions'],
                 'parameter_name': row['Parameter Name'].split(',') if row['Parameter Name'] else [],
+                'highlight': row['Highlight'],
                 'screen_capture': row['Screenshot'],
                 'wait': row['Wait']
             }
@@ -113,10 +114,14 @@ class PageObject:
         for action_info in module_actions:
             element_name = action_info['element_name']
             action = action_info['action']
+            highlight = action_info['highlight']
             screen_capture = action_info['screen_capture']
             wait = action_info['wait']
             element = self._find_element(page_name, element_name, action)
             action_params = [parameters.get(param) for param in action_info['parameter_name']]
+
+            if highlight:
+                self.web_actions.highlight_element(element)
 
             self._execute_action(action, element, *action_params)
 
