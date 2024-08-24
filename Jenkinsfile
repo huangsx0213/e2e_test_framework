@@ -50,7 +50,6 @@ pipeline {
                 script {
                     sh '''
                     . venv/bin/activate
-                    cd testing_server
                     nohup python3 server.py > flask.log 2>&1 &
                     echo $! > flask.pid
                     sleep 1  # 等待服务器启动
