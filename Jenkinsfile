@@ -13,7 +13,7 @@ pipeline {
     stages {
         stage('Setup Environment') {
             steps {
-                withPythonEnv('Python-3.11.2') {
+                withPythonEnv('Python-3.11') {
                     script {
                         sh '''
                             python --version
@@ -27,7 +27,7 @@ pipeline {
 
         stage('Update Configuration') {
             steps {
-                withPythonEnv('Python-3.11.2') {
+                withPythonEnv('Python-3.11') {
                     script {
                         def configFile = "configs/${params.TEST_TYPE}_test_config.yaml"
                         sh "python yaml_config_cli.py ${configFile} --update active_environment ${params.ACTIVE_ENVIRONMENT}"
@@ -54,7 +54,7 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                withPythonEnv('Python-3.11.2') {
+                withPythonEnv('Python-3.11') {
                     script {
                         def testCommand = "python main.py --${params.TEST_TYPE}"
                         sh "${testCommand}"
