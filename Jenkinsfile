@@ -99,7 +99,7 @@ pipeline {
             keepAll: true,
             reportDir: 'report',
             reportFiles: 'dashboard.html',
-            reportName: 'Robot Framework Report'
+            reportName: 'Robot Framework Dashboard'
             ])
             publishHTML(target: [
             allowMissing: false,
