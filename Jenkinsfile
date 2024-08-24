@@ -45,6 +45,18 @@ pipeline {
                 }
             }
         }
+        stage('Start Flask Server') {
+            steps {
+                script {
+                    sh '''
+                    . venv/bin/activate
+                    nohup python3 server.py > flask.log 2>&1 &
+                    echo $! > flask.pid
+                    sleep 1  # 等待服务器启动
+                    '''
+                }
+            }
+        }
         stage('Run Tests') {
             steps {
                 script {
@@ -58,6 +70,14 @@ pipeline {
         always {
             archiveArtifacts artifacts: 'report/**/*', allowEmptyArchive: true
             junit 'report/output.xml'
+            script {
+                sh '''
+                if [ -f flask.pid ]; then
+                    kill $(cat flask.pid)
+                    rm flask.pid
+                fi
+                '''
+            }
         }
     }
 }
