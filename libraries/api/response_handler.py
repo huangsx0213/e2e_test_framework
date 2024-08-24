@@ -1,12 +1,13 @@
+import logging
 import json
 import re
 from typing import Any, Union, Tuple
-import pandas as pd
+
 from jsonpath_ng import parse
 import xmltodict
 from requests import Response
-import logging
 from robot.libraries.BuiltIn import BuiltIn
+
 from libraries.common.utility_helpers import UtilityHelpers
 
 builtin_lib = BuiltIn()
@@ -14,48 +15,41 @@ builtin_lib = BuiltIn()
 
 class APIResponseProcessor:
     def process_response(self, response: Union[str, Response]) -> Tuple[str, str]:
-        if isinstance(response, str):
-            content = response.strip()
-        elif isinstance(response, Response):
-            content = response.text.strip()
-        else:
-            raise ValueError(f"{self.__class__.__name__}: Unsupported response type. Expected string or Response object.")
+        try:
+            content = response.text.strip() if isinstance(response, Response) else response.strip()
 
-        if self._is_json(content):
-            return content, 'json'
-        elif self._is_xml(content):
-            content = UtilityHelpers.format_xml(content)
-            return content, 'xml'
-        else:
+            if self._is_json(content):
+                return content, 'json'
+            if self._is_xml(content):
+                return UtilityHelpers.format_xml(content), 'xml'
+
             raise ValueError(f"{self.__class__.__name__}: Response content is neither valid JSON nor XML.")
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error processing response: {str(e)}")
+            raise
 
-    @staticmethod
-    def _is_json(content: str) -> bool:
+    def _is_json(self, content: str) -> bool:
         try:
             json.loads(content)
-            logging.info("APIResponseProcessor: Response content is valid JSON string.")
             return True
         except json.JSONDecodeError:
             return False
 
-    @staticmethod
-    def _is_xml(content: str) -> bool:
+    def _is_xml(self, content: str) -> bool:
         try:
             xmltodict.parse(content)
-            logging.info("APIResponseProcessor: Response content is valid XML string.")
             return True
-        except Exception:
+        except xmltodict.expat.ExpatError:
             return False
 
-    @staticmethod
-    def _get_json_value(json_string: str, json_path: str) -> Any:
+    def _get_json_value(self, json_string: str, json_path: str) -> Any:
         parsed_json = json.loads(json_string)
         jsonpath_expr = parse(f'$.{json_path}')
         matches = [match.value for match in jsonpath_expr.find(parsed_json)]
         if matches:
             return matches[0]
         else:
-            raise ValueError(f"APIResponseProcessor: No match found for JSONPath: {json_path}")
+            raise ValueError(f"{self.__class__.__name__}: No match found for JSONPath: {json_path}")
 
     def _extract_value_from_response(self, response: Union[str, Response], json_path: str) -> Any:
         response_content, response_format = self.process_response(response)
@@ -68,8 +62,7 @@ class APIResponseProcessor:
         else:
             raise ValueError(f"{self.__class__.__name__}: Unsupported response format. Use 'xml' or 'json'.")
 
-    @staticmethod
-    def _compare_diff(actual_diff: float, expected_diff: str) -> bool:
+    def _compare_diff(self, actual_diff: float, expected_diff: str) -> bool:
         expected_operator = expected_diff[0]
         expected_value = float(expected_diff[1:])
 
@@ -78,7 +71,7 @@ class APIResponseProcessor:
         elif expected_operator == '-':
             return actual_diff == -expected_value
         else:
-            raise ValueError(f"APIResponseProcessor: Unsupported operator in expected diff: {expected_operator}")
+            raise ValueError(f"{self.__class__.__name__}: Unsupported operator in expected diff: {expected_operator}")
 
 
 class APIResponseAsserter(APIResponseProcessor):
