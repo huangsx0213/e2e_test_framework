@@ -13,9 +13,8 @@ pipeline {
     stages {
         stage('Setup Environment') {
             steps {
-                withPythonEnv('Python3') {
+                withPythonEnv('/usr/bin/python3.11') {
                     script {
-                        // Create and activate virtual environment
                         sh '''
                             python -m venv venv
                             . venv/bin/activate
@@ -30,7 +29,7 @@ pipeline {
 
         stage('Update Configuration') {
             steps {
-                withPythonEnv('Python3') {
+                withPythonEnv('/usr/bin/python3.11') {
                     script {
                         // Activate virtual environment
                         sh '. venv/bin/activate'
@@ -60,7 +59,7 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                withPythonEnv('Python3') {
+                withPythonEnv('/usr/bin/python3.11') {
                     script {
                         // Activate virtual environment
                         sh '. venv/bin/activate'
