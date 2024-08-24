@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'TEST_TYPE', choices: ['api', 'web', 'e2e'], description: 'Type of test to run')
-        string(name: 'ACTIVE_ENVIRONMENT', defaultValue: 'DEV', description: 'Active environment for testing')
-        string(name: 'TEST_CASES_PATH', defaultValue: 'test_cases/api_test_cases.xlsx', description: 'Path to test cases file')
+        choice(name: 'TEST_TYPE', choices: ['api', 'web', 'e2e'], defaultValue: 'e2e',description: 'Type of test to run')
+        string(name: 'ACTIVE_ENVIRONMENT', defaultValue: 'SIT', description: 'Active environment for testing')
+        string(name: 'TEST_CASES_PATH', defaultValue: 'test_cases/e2e_test_cases.xlsx', description: 'Path to test cases file')
         booleanParam(name: 'CLEAR_SAVED_FIELDS', defaultValue: true, description: 'Clear saved fields after test')
         string(name: 'TC_ID_LIST', defaultValue: '', description: 'Comma-separated list of Test Case IDs to run')
         string(name: 'TAGS', defaultValue: '', description: 'Comma-separated list of tags to filter test cases')
