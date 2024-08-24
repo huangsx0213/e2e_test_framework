@@ -80,8 +80,16 @@ pipeline {
             script {
                 sh '''
                     if [ -f flask.pid ]; then
-                        kill $(cat flask.pid)
+                        PID=$(cat flask.pid)
+                        if ps -p $PID > /dev/null 2>&1; then
+                            echo "Stopping Flask server (PID: $PID)"
+                            kill $PID || true
+                        else
+                            echo "Flask server (PID: $PID) is not running"
+                        fi
                         rm flask.pid
+                    else
+                        echo "flask.pid file not found"
                     fi
                 '''
             }
