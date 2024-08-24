@@ -1,5 +1,6 @@
 pipeline {
     agent any
+
     parameters {
         choice(name: 'TEST_TYPE', choices: ['api', 'web', 'e2e'], description: 'Type of test to run')
         string(name: 'ACTIVE_ENVIRONMENT', defaultValue: 'DEV', description: 'Active environment for testing')
@@ -8,27 +9,29 @@ pipeline {
         string(name: 'TC_ID_LIST', defaultValue: '', description: 'Comma-separated list of Test Case IDs to run')
         string(name: 'TAGS', defaultValue: '', description: 'Comma-separated list of tags to filter test cases')
     }
+
     stages {
         stage('Setup Environment') {
             steps {
                 script {
                     sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    python3 --version
-                    pip3 --version
-                    pip3 install -r requirements.txt
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        python3 --version
+                        pip3 --version
+                        pip3 install -r requirements.txt
                     '''
                 }
             }
         }
+
         stage('Update Configuration') {
             steps {
                 script {
                     def configFile = "configs/${params.TEST_TYPE}_test_config.yaml"
                     sh """
-                    . venv/bin/activate
-                    python3 yaml_config_cli.py ${configFile} --update active_environment ${params.ACTIVE_ENVIRONMENT} --update test_cases_path ${params.TEST_CASES_PATH} --update clear_saved_fields_after_test ${params.CLEAR_SAVED_FIELDS}
+                        . venv/bin/activate
+                        python3 yaml_config_cli.py ${configFile} --update active_environment ${params.ACTIVE_ENVIRONMENT} --update test_cases_path ${params.TEST_CASES_PATH} --update clear_saved_fields_after_test ${params.CLEAR_SAVED_FIELDS}
                     """
                     if (params.TC_ID_LIST) {
                         def tcIdList = params.TC_ID_LIST.split(',')
@@ -45,20 +48,21 @@ pipeline {
                 }
             }
         }
+
         stage('Start Flask Server') {
             steps {
                 script {
                     sh '''
-                    . venv/bin/activate
-                    cd testing_server
-                    ls
-                    nohup python3 server.py > flask.log 2>&1 &
-                    echo $! > flask.pid
-                    sleep 1  # 等待服务器启动
+                        . venv/bin/activate
+                        cd testing_server
+                        nohup python3 server.py > flask.log 2>&1 &
+                        echo $! > flask.pid
+                        sleep 1 # wait for server to start
                     '''
                 }
             }
         }
+
         stage('Run Tests') {
             steps {
                 script {
@@ -68,16 +72,17 @@ pipeline {
             }
         }
     }
+
     post {
         always {
             archiveArtifacts artifacts: 'report/**/*', allowEmptyArchive: true
-            junit 'report/output.xml'
+            robot outputPath: 'report', logFileName: 'log.html', outputFileName: 'output.xml', reportFileName: 'report.html', passThreshold: 100, unstableThreshold: 75
             script {
                 sh '''
-                if [ -f flask.pid ]; then
-                    kill $(cat flask.pid)
-                    rm flask.pid
-                fi
+                    if [ -f flask.pid ]; then
+                        kill $(cat flask.pid)
+                        rm flask.pid
+                    fi
                 '''
             }
         }
