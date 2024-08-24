@@ -16,8 +16,6 @@ pipeline {
                 withPythonEnv('/usr/bin/python3.11') {
                     script {
                         sh '''
-                            python -m venv venv
-                            . venv/bin/activate
                             python --version
                             pip --version
                             pip install -r requirements.txt
@@ -31,9 +29,6 @@ pipeline {
             steps {
                 withPythonEnv('/usr/bin/python3.11') {
                     script {
-                        // Activate virtual environment
-                        sh '. venv/bin/activate'
-
                         def configFile = "configs/${params.TEST_TYPE}_test_config.yaml"
                         sh "python yaml_config_cli.py ${configFile} --update active_environment ${params.ACTIVE_ENVIRONMENT}"
                         sh "python yaml_config_cli.py ${configFile} --update test_cases_path ${params.TEST_CASES_PATH}"
@@ -61,9 +56,6 @@ pipeline {
             steps {
                 withPythonEnv('/usr/bin/python3.11') {
                     script {
-                        // Activate virtual environment
-                        sh '. venv/bin/activate'
-
                         def testCommand = "python main.py --${params.TEST_TYPE}"
                         sh "${testCommand}"
                     }
