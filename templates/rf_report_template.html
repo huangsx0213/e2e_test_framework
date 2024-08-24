@@ -117,8 +117,14 @@
             100% { transform: rotate(360deg); }
         }
 
-        .tooltip-inner {
-            max-width: none;
+        .clickable-link {
+            color: #007bff !important;
+            cursor: pointer;
+        }
+
+        .clickable-link:hover {
+            color: #343a40 !important;
+            text-decoration: none;
         }
     </style>
 </head>
@@ -168,7 +174,7 @@
             <tbody>
             {% for suite in suites %}
             <tr>
-                <td data-bs-toggle="tooltip" onclick="openInNewTab('log.html#{{ suite['Id'] }}','#{{ suite['Id'] }}')" title="Click to view '{{ suite['Name'] }}' logs">
+                <td class="clickable-link" onclick="openInNewTab('log.html#{{ suite['Id'] }}','#{{ suite['Id'] }}')">
                     {{ suite['Name'] }}
                 </td>
                 <td class="{% if suite['Status'] == 'PASS' %}text-success{% elif suite['Status'] == 'FAIL' %}text-danger{% else %}text-warning{% endif %}">{{ suite['Status'] }}
@@ -206,7 +212,7 @@
             {% for test in tests %}
             <tr>
                 <td>{{ test['Suite Name'] }}</td>
-                <td data-bs-toggle="tooltip" onclick="openInNewTab('log.html#{{ test['Test Id'] }}','#{{ test['Test Id'] }}')" title="Click to view '{{ test['Test Name'] }}' logs">
+                <td class="clickable-link" onclick="openInNewTab('log.html#{{ test['Test Id'] }}','#{{ test['Test Id'] }}')">
                     {{ test['Test Name'] }}
                 </td>
                 <td class="{% if test['Status'] == 'PASS' %}text-success{% elif test['Status'] == 'FAIL' %}text-danger{% else %}text-warning{% endif %}">{{ test['Status'] }}</td>
