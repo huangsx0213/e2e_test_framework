@@ -93,6 +93,22 @@ pipeline {
                     fi
                 '''
             }
+            publishHTML(target: [
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            keepAll: true,
+            reportDir: 'report',
+            reportFiles: 'dashboard.html',
+            reportName: 'Robot Framework Report'
+            ])
+            publishHTML(target: [
+            allowMissing: false,
+            alwaysLinkToLastBuild: false,
+            keepAll: true,
+            reportDir: 'report',
+            reportFiles: 'report.html',
+            reportName: 'Robot Framework Report'
+            ])
         }
     }
 }
