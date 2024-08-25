@@ -72,38 +72,44 @@ pipeline {
             }
         }
 
-        stage('Upload to GitHub Pages') {
-            steps {
-                // Use Jenkins credentials to authenticate Git operations
-                withCredentials([sshUserPrivateKey(credentialsId: '806992a3-f7c4-4c83-990f-978e939144f4', keyFileVariable: 'SSH_KEY')]) {
-                    script {
-                        sh '''
-                            # Start the SSH agent and add the key
-                            eval $(ssh-agent -s)
-                            ssh-add ${SSH_KEY}
+stage('Upload to GitHub Pages') {
+    steps {
+        // Use Jenkins credentials to authenticate Git operations
+        withCredentials([sshUserPrivateKey(credentialsId: '806992a3-f7c4-4c83-990f-978e939144f4', keyFileVariable: 'SSH_KEY')]) {
+            script {
+                sh '''
+                    # Start the SSH agent and add the key
+                    eval $(ssh-agent -s)
+                    ssh-add ${SSH_KEY}
 
-                            # Clone the GitHub Pages repository
-                            git clone git@github.com:huangsx0213/huangsx0213.github.io.git
+                    # Check if directory exists
+                    if [ -d "huangsx0213.github.io" ]; then
+                        echo "Directory 'huangsx0213.github.io' exists. Pulling latest changes."
+                        cd huangsx0213.github.io
+                        git pull
+                    else
+                        echo "Cloning repository."
+                        git clone git@github.com:huangsx0213/huangsx0213.github.io.git
+                        cd huangsx0213.github.io
+                    fi
 
-                            # Copy the report files to the 'pages' directory
-                            cp -r report/* huangsx0213.github.io/pages/
+                    # Copy the report files to the 'pages' directory
+                    cp -r ../report/* pages/
 
-                            # Navigate to the repository directory
-                            cd huangsx0213.github.io
+                    # Configure Git user details
+                    git config user.name "huangsx0213"
+                    git config user.email "your-email@example.com"
 
-                            # Configure Git user details
-                            git config user.name "huangsx0213"
-                            git config user.email "jenkins@example.com"
-
-                            # Add, commit, and push the changes
-                            git add .
-                            git commit -m "Update Robot Framework report"
-                            git push
-                        '''
-                    }
-                }
+                    # Add, commit, and push the changes
+                    git add .
+                    git commit -m "Update Robot Framework report"
+                    git push
+                '''
             }
         }
+    }
+}
+
     }
 
     post {
