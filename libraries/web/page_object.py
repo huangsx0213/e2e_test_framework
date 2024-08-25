@@ -13,6 +13,7 @@ from robot.libraries.BuiltIn import BuiltIn
 
 builtin_lib = BuiltIn()
 
+
 class WebDriverSingleton:
     _instance = None
 
@@ -97,7 +98,9 @@ class PageObject:
                 'element_name': row['Element Name'],
                 'action': row['Actions'],
                 'parameter_name': row['Parameter Name'].split(',') if row['Parameter Name'] else [],
-                'screen_capture': row['Screenshot']
+                'highlight': row['Highlight'],
+                'screen_capture': row['Screenshot'],
+                'wait': row['Wait']
             }
             modules.setdefault(row['Page Name'], {}).setdefault(row['Module Name'], []).append(action_info)
         return modules
@@ -111,13 +114,28 @@ class PageObject:
         for action_info in module_actions:
             element_name = action_info['element_name']
             action = action_info['action']
+            highlight = action_info['highlight']
             screen_capture = action_info['screen_capture']
+            wait = action_info['wait']
             element = self._find_element(page_name, element_name, action)
             action_params = [parameters.get(param) for param in action_info['parameter_name']]
 
+            if highlight:
+                self.web_actions.highlight_element(element)
+
             self._execute_action(action, element, *action_params)
+
+            if wait:
+                try:
+                    wait_time = float(wait)
+                    if wait_time > 0:
+                        self.web_actions.wait(wait_time)
+                except ValueError:
+                    logging.warning(f"Invalid wait value: {wait}. Skipping wait.")
+
             if screen_capture:
                 self.web_actions.capture_screenshot()
+
             logging.info("=" * 80)
 
     def _find_element(self, page_name: str, element_name: str, action: str):
@@ -177,7 +195,15 @@ class PageObject:
             'dismiss_alert': self.web_actions.dismiss_alert,
             'get_alert_text': self.web_actions.get_alert_text,
             'highlight_element': self.web_actions.highlight_element,
-            'capture_screenshot': self.web_actions.capture_screenshot,
+            'verify_table_exact': self.web_actions.verify_table_exact,
+            'verify_table_row_exact': self.web_actions.verify_table_row_exact,
+            'verify_specific_cell_exact': self.web_actions.verify_specific_cell_exact,
+            'verify_table_partial': self.web_actions.verify_table_partial,
+            'verify_table_row_partial': self.web_actions.verify_table_row_partial,
+            'verify_specific_cell_partial': self.web_actions.verify_specific_cell_partial,
+            'verify_table_regex': self.web_actions.verify_table_regex,
+            'verify_table_row_regex': self.web_actions.verify_table_row_regex,
+            'verify_specific_cell_regex': self.web_actions.verify_specific_cell_regex,
             'wait': self.web_actions.wait,
         }
 

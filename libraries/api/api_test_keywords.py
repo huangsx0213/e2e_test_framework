@@ -10,7 +10,7 @@ from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
 from libraries.api.headers_generator import HeadersGenerator
 from libraries.api.saved_fields_manager import SavedFieldsManager
-from libraries.api.response_handler import APIResponseAsserter, APIResponseExtractor
+from libraries.api.response_handler import ResponseValidator, ResponseFieldSaver
 from libraries.api.api_test_loader import APITestLoader
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api.deco import keyword, library
@@ -55,8 +55,8 @@ class APITestKeywords:
         self._load_endpoints()
         self.body_generator: BodyGenerator = BodyGenerator(self.api_test_loader)
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
-        self.api_response_asserter: APIResponseAsserter = APIResponseAsserter()
-        self.api_response_extractor: APIResponseExtractor = APIResponseExtractor()
+        self.api_response_asserter: ResponseValidator = ResponseValidator()
+        self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
 
     @keyword
     def clear_saved_fields(self):
@@ -113,7 +113,7 @@ class APITestKeywords:
         response, execution_time = self.send_request(test_case)
         logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time:.2f} seconds")
         self.api_response_asserter.validate_response(test_case['Exp Result'], response)
-        self.api_response_extractor.extract_value(response, test_case)
+        self.response_field_saver.save_fields_to_robot_variables(response, test_case)
         logging.info("============================================")
         return response, execution_time
 
@@ -137,7 +137,7 @@ class APITestKeywords:
 
     def _validate_dynamic_checks(self, test_case, pre_check_responses, post_check_responses):
         logging.info(f"{self.__class__.__name__}: Validating dynamic checks for test case {test_case['TCID']}:")
-        self.api_response_asserter.validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
+        self.api_response_asserter.validate_response_dynamic(test_case, pre_check_responses, post_check_responses)
 
     def send_request(self, test_case):
         ex_endpoint = test_case['Endpoint']
