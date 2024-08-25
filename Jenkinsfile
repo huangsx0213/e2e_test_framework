@@ -98,7 +98,7 @@ stage('Upload to GitHub Pages') {
 
                     # Configure Git user details
                     git config user.name "huangsx0213"
-                    git config user.email "your-email@example.com"
+                    git config user.email "huangsx0213@jenkins.com"
 
                     # Add, commit, and push the changes
                     git add .
