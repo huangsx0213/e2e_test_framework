@@ -1,9 +1,9 @@
 import os
 import argparse
-from robot.api import TestSuite
 from robot.reporting import ResultWriter
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.api.api_robot_generator import APIRobotCasesGenerator
+from libraries.robot.robot_dashboard_generator import DashboardGenerator
 from libraries.web.web_robot_generator import WebUIRobotCasesGenerator
 from libraries.e2e.e2e_robot_generator import E2ERobotCasesGenerator
 
@@ -19,6 +19,10 @@ def run_test_suite(suite):
         report=report_file,
         log=log_file
     )
+    # Generate dashboard
+    robot_output_path = os.path.join(PROJECT_ROOT, 'report', 'output.xml')
+    dashboard_generator = DashboardGenerator()
+    dashboard_generator.generate_dashboard(robot_output_path)
 
 def create_api_suite():
     rcg = APIRobotCasesGenerator()
@@ -39,17 +43,15 @@ if __name__ == "__main__":
     parser.add_argument('--e2e', action='store_true', help='Run E2E tests')
     args = parser.parse_args()
 
-    main_suite = TestSuite('Main Test Suite')
-
     if args.api:
-        main_suite.suites.append(create_api_suite())
+        suite_to_run = create_api_suite()
     if args.web:
-        main_suite.suites.append(create_web_suite())
+        suite_to_run = create_web_suite()
     if args.e2e:
-        main_suite.suites.append(create_e2e_suite())
+        suite_to_run = create_e2e_suite()
 
-    # If no specific test type is specified, run all tests
+    # If no specific test type is specified, run default E2E tests
     if not (args.api or args.web or args.e2e):
-        main_suite.suites.append(create_e2e_suite())
+        suite_to_run = create_e2e_suite()
 
-    run_test_suite(main_suite)
+    run_test_suite(suite_to_run)

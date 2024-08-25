@@ -2,6 +2,8 @@ import base64
 import datetime
 import logging
 import time
+from typing import List, Dict, Union
+
 from robot.libraries.BuiltIn import BuiltIn
 from selenium.common import NoSuchElementException, TimeoutException
 from selenium.webdriver import ActionChains
@@ -327,6 +329,149 @@ class WebElementActions:
             time.sleep(0.25)
 
         logging.info(f"{self.__class__.__name__}: Finished highlighting element: {element_desc}")
+
+    def verify_table_exact(self, table_element: WebElement, expected_data: List[Dict[str, str]]):
+        """
+        Verify the entire table data using exact matching.
+        Args:
+            table_element (WebElement): The WebElement representing the table to be verified.
+            expected_data (List[Dict[str, str]]): A list of dictionaries, where each dictionary
+                represents a row in the table. The keys are column names and values are the
+                expected cell contents.
+        Raises:
+            AssertionError: If the table data does not exactly match the expected data.
+        """
+        logging.info(f"{self.__class__.__name__}: Verifying entire table with exact match")
+        self.table_verifier.verify_table(table_element, expected_data, match_type='exact')
+        logging.info(f"{self.__class__.__name__}: Table verification (exact match) completed")
+
+    def verify_table_row_exact(self, table_element: WebElement, row_index: int, expected_data: Dict[str, str]):
+        """
+        Verify a specific row in the table using exact matching.
+        Args:
+            table_element (WebElement): The WebElement representing the table to be verified.
+            row_index (int): The index of the row to verify (1-based index).
+            expected_data (Dict[str, str]): A dictionary where keys are column names and values
+                are the expected cell contents for the specified row.
+        Raises:
+            AssertionError: If the row data does not exactly match the expected data.
+            ValueError: If the row_index is out of range.
+        """
+        logging.info(f"{self.__class__.__name__}: Verifying table row at index {row_index} with exact match")
+        self.table_verifier.verify_table_row(table_element, row_index, expected_data, match_type='exact')
+        logging.info(f"{self.__class__.__name__}: Table row verification (exact match) completed")
+
+    def verify_specific_cell_exact(self, table_element: WebElement, row_index: int, column: Union[str, int], expected_value: str):
+        """
+        Verify a specific cell in the table using exact matching.
+        Args:
+            table_element (WebElement): The WebElement representing the table to be verified.
+            row_index (int): The index of the row containing the cell to verify (1-based index).
+            column (Union[str, int]): The column name (str) or index (int, 1-based) of the cell to verify.
+            expected_value (str): The expected content of the cell.
+        Raises:
+            AssertionError: If the cell content does not exactly match the expected value.
+            ValueError: If the row_index or column is out of range.
+        """
+        logging.info(f"{self.__class__.__name__}: Verifying specific cell at row {row_index}, column {column} with exact match")
+        self.table_verifier.verify_specific_cell(table_element, row_index, column, expected_value, match_type='exact')
+        logging.info(f"{self.__class__.__name__}: Specific cell verification (exact match) completed")
+
+    # Partial match methods
+    def verify_table_partial(self, table_element: WebElement, expected_data: List[Dict[str, str]]):
+        """
+        Verify the entire table data using partial matching.
+        Args:
+            table_element (WebElement): The WebElement representing the table to be verified.
+            expected_data (List[Dict[str, str]]): A list of dictionaries, where each dictionary
+                represents a row in the table. The keys are column names and values are the
+                expected partial cell contents.
+        Raises:
+            AssertionError: If any cell in the table does not contain the expected partial content.
+        """
+        logging.info(f"{self.__class__.__name__}: Verifying entire table with partial match")
+        self.table_verifier.verify_table(table_element, expected_data, match_type='partial')
+        logging.info(f"{self.__class__.__name__}: Table verification (partial match) completed")
+
+    def verify_table_row_partial(self, table_element: WebElement, row_index: int, expected_data: Dict[str, str]):
+        """
+        Verify a specific row in the table using partial matching.
+        Args:
+            table_element (WebElement): The WebElement representing the table to be verified.
+            row_index (int): The index of the row to verify (1-based index).
+            expected_data (Dict[str, str]): A dictionary where keys are column names and values
+                are the expected partial cell contents for the specified row.
+        Raises:
+            AssertionError: If any cell in the row does not contain the expected partial content.
+            ValueError: If the row_index is out of range.
+        """
+        logging.info(f"{self.__class__.__name__}: Verifying table row at index {row_index} with partial match")
+        self.table_verifier.verify_table_row(table_element, row_index, expected_data, match_type='partial')
+        logging.info(f"{self.__class__.__name__}: Table row verification (partial match) completed")
+
+    def verify_specific_cell_partial(self, table_element: WebElement, row_index: int, column: Union[str, int], expected_value: str):
+        """
+        Verify a specific cell in the table using partial matching.
+        Args:
+            table_element (WebElement): The WebElement representing the table to be verified.
+            row_index (int): The index of the row containing the cell to verify (1-based index).
+            column (Union[str, int]): The column name (str) or index (int, 1-based) of the cell to verify.
+            expected_value (str): The expected partial content of the cell.
+        Raises:
+            AssertionError: If the cell content does not contain the expected partial value.
+            ValueError: If the row_index or column is out of range.
+        """
+        logging.info(f"{self.__class__.__name__}: Verifying specific cell at row {row_index}, column {column} with partial match")
+        self.table_verifier.verify_specific_cell(table_element, row_index, column, expected_value, match_type='partial')
+        logging.info(f"{self.__class__.__name__}: Specific cell verification (partial match) completed")
+
+    # Regex match methods
+    def verify_table_regex(self, table_element: WebElement, expected_data: List[Dict[str, str]]):
+        """
+        Verify the entire table data using regex matching.
+        Args:
+            table_element (WebElement): The WebElement representing the table to be verified.
+            expected_data (List[Dict[str, str]]): A list of dictionaries, where each dictionary
+                represents a row in the table. The keys are column names and values are the
+                regex patterns to match against cell contents.
+        Raises:
+            AssertionError: If any cell in the table does not match the corresponding regex pattern.
+        """
+        logging.info(f"{self.__class__.__name__}: Verifying entire table with regex match")
+        self.table_verifier.verify_table(table_element, expected_data, match_type='regex')
+        logging.info(f"{self.__class__.__name__}: Table verification (regex match) completed")
+
+    def verify_table_row_regex(self, table_element: WebElement, row_index: int, expected_data: Dict[str, str]):
+        """
+        Verify a specific row in the table using regex matching.
+        Args:
+            table_element (WebElement): The WebElement representing the table to be verified.
+            row_index (int): The index of the row to verify (1-based index).
+            expected_data (Dict[str, str]): A dictionary where keys are column names and values
+                are the regex patterns to match against cell contents for the specified row.
+        Raises:
+            AssertionError: If any cell in the row does not match the corresponding regex pattern.
+            ValueError: If the row_index is out of range.
+        """
+        logging.info(f"{self.__class__.__name__}: Verifying table row at index {row_index} with regex match")
+        self.table_verifier.verify_table_row(table_element, row_index, expected_data, match_type='regex')
+        logging.info(f"{self.__class__.__name__}: Table row verification (regex match) completed")
+
+    def verify_specific_cell_regex(self, table_element: WebElement, row_index: int, column: Union[str, int], expected_value: str):
+        """
+        Verify a specific cell in the table using regex matching.
+        Args:
+            table_element (WebElement): The WebElement representing the table to be verified.
+            row_index (int): The index of the row containing the cell to verify (1-based index).
+            column (Union[str, int]): The column name (str) or index (int, 1-based) of the cell to verify.
+            expected_value (str): The regex pattern to match against the cell content.
+        Raises:
+            AssertionError: If the cell content does not match the regex pattern.
+            ValueError: If the row_index or column is out of range.
+        """
+        logging.info(f"{self.__class__.__name__}: Verifying specific cell at row {row_index}, column {column} with regex match")
+        self.table_verifier.verify_specific_cell(table_element, row_index, column, expected_value, match_type='regex')
+        logging.info(f"{self.__class__.__name__}: Specific cell verification (regex match) completed")
 
     def wait(self, seconds):
         logging.info(f"{self.__class__.__name__}: Waiting for {seconds} seconds")
