@@ -74,26 +74,33 @@ pipeline {
 
         stage('Upload to GitHub Pages') {
             steps {
-                script {
-                    sh '''
-                        # Clone the GitHub Pages repository
-                        git clone git@github.com:huangsx0213/huangsx0213.github.io.git
+                // Use Jenkins credentials to authenticate Git operations
+                withCredentials([sshUserPrivateKey(credentialsId: '806992a3-f7c4-4c83-990f-978e939144f4', keyFileVariable: 'SSH_KEY')]) {
+                    script {
+                        sh '''
+                            # Start the SSH agent and add the key
+                            eval $(ssh-agent -s)
+                            ssh-add ${SSH_KEY}
 
-                        # Copy the report files to the 'pages' directory
-                        cp -r report/* huangsx0213.github.io/pages/
+                            # Clone the GitHub Pages repository
+                            git clone git@github.com:huangsx0213/huangsx0213.github.io.git
 
-                        # Navigate to the repository directory
-                        cd huangsx0213.github.io
+                            # Copy the report files to the 'pages' directory
+                            cp -r report/* huangsx0213.github.io/pages/
 
-                        # Configure Git user details
-                        git config user.name "Vick"
-                        git config user.email "jenkins@example.com"
+                            # Navigate to the repository directory
+                            cd huangsx0213.github.io
 
-                        # Add, commit, and push the changes
-                        git add .
-                        git commit -m "Update Robot Framework report"
-                        git push
-                    '''
+                            # Configure Git user details
+                            git config user.name "huangsx0213"
+                            git config user.email "jenkins@example.com"
+
+                            # Add, commit, and push the changes
+                            git add .
+                            git commit -m "Update Robot Framework report"
+                            git push
+                        '''
+                    }
                 }
             }
         }
