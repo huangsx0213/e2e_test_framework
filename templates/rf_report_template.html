@@ -15,6 +15,22 @@
             position: fixed;
             height: 100%;
             overflow-y: auto;
+            transition: transform 0.3s ease-in-out;
+            z-index: 1000;
+        }
+
+        @media (max-width: 767.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .content {
+                margin-left: 0 !important;
+            }
         }
 
         .sidebar .nav-link {
@@ -126,12 +142,33 @@
             color: #343a40 !important;
             text-decoration: none;
         }
+
+        #menu-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1001;
+            display: none;
+            background-color: transparent;
+            color: #343a40;
+            border: none;
+        }
+
+        @media (max-width: 767.98px) {
+            #menu-toggle {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
 <div class="loader" id="loadingDiv"></div>
 
-<nav class="sidebar d-none d-md-block">
+<button id="menu-toggle" class="btn btn-primary">
+    <i class="fas fa-bars"></i>
+</button>
+
+<nav class="sidebar" id="sidebar">
     <div class="nav flex-column">
         <a class="nav-link active" href="#" id="defaultOpen" onclick="openPage('dashboard', this)">
             <i class="fa fa-dashboard"></i>
@@ -338,10 +375,15 @@
                            [{{ suite_stats['Pass'] }}, {{ suite_stats['Fail'] }}],
                            {{ suite_stats['Total'] }});
 
-            createPieChart('testChart', 'Test Case Results', ['Pass', 'Fail', 'Skip'],
-                           [{{ test_stats['Pass'] }}, {{ test_stats['Fail'] }}, {{ test_stats['Skip'] }}],
-                           {{ test_stats['Total'] }});
+        createPieChart('testChart', 'Test Case Results', ['Pass', 'Fail', 'Skip'],
+                       [{{ test_stats['Pass'] }}, {{ test_stats['Fail'] }}, {{ test_stats['Skip'] }}],
+                       {{ test_stats['Total'] }});
+
+        // Toggle sidebar on menu button click
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
         });
+    });
 
         function createPieChart(canvasId, title, labels, data, total) {
             var ctx = document.getElementById(canvasId).getContext('2d');
@@ -404,6 +446,11 @@
         }
         document.getElementById(pageName).style.display = "block";
         elmnt.className += " active";
+
+        // Hide sidebar on page change for mobile devices
+        if (window.innerWidth <= 767.98) {
+            document.getElementById('sidebar').classList.remove('show');
+        }
     }
 
     function executeDataTable(tableID, minRows, sortIndex) {
