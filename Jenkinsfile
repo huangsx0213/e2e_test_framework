@@ -71,6 +71,32 @@ pipeline {
                 }
             }
         }
+
+        stage('Upload to GitHub Pages') {
+            steps {
+                script {
+                    sh '''
+                        # Clone the GitHub Pages repository
+                        git clone git@github.com:huangsx0213/huangsx0213.github.io.git
+
+                        # Copy the report files to the 'pages' directory
+                        cp -r report/* huangsx0213.github.io/pages/
+
+                        # Navigate to the repository directory
+                        cd huangsx0213.github.io
+
+                        # Configure Git user details
+                        git config user.name "Vick"
+                        git config user.email "jenkins@example.com"
+
+                        # Add, commit, and push the changes
+                        git add .
+                        git commit -m "Update Robot Framework report"
+                        git push
+                    '''
+                }
+            }
+        }
     }
 
     post {
@@ -94,14 +120,13 @@ pipeline {
                 '''
             }
             publishHTML(target: [
-            allowMissing: false,
-            alwaysLinkToLastBuild: false,
-            keepAll: true,
-            reportDir: 'report',
-            reportFiles: 'dashboard.html',
-            reportName: 'Robot Framework Dashboard'
+                allowMissing: false,
+                alwaysLinkToLastBuild: false,
+                keepAll: true,
+                reportDir: 'report',
+                reportFiles: 'dashboard.html',
+                reportName: 'Robot Framework Dashboard'
             ])
-
         }
     }
 }
