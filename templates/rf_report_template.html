@@ -145,8 +145,8 @@
 
         #menu-toggle {
             position: fixed;
-            top: 10px;
-            right: 10px;
+            top: 33px;
+            left: 5px;
             z-index: 1001;
             display: none;
             background-color: transparent;
@@ -273,91 +273,91 @@
     </div>
 
     <div class="tabcontent" id="dashboard">
-        <h4><b><i class="fa fa-dashboard"></i> Dashboard</b></h4>
-        <hr>
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-dark text-white text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">Suite</h5>
-                        <p class="card-text">Statistics</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-primary text-white text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">{{suite_stats['Total']}}</h5>
-                        <p class="card-text">Total</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">{{suite_stats['Pass']}}</h5>
-                        <p class="card-text">Passed</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-danger text-white text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">{{suite_stats['Fail']}}</h5>
-                        <p class="card-text">Failed</p>
-                    </div>
+    <h4><b><i class="fa fa-dashboard"></i> Dashboard</b></h4>
+    <hr>
+    <div class="row mb-4">
+        <div class="col-sm-3 col-md-3 mb-3">
+            <div class="card bg-dark text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Suite</h5>
+                    <p class="card-text">Statistics</p>
                 </div>
             </div>
         </div>
-
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-dark text-white text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">Test Case</h5>
-                        <p class="card-text">Statistics</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-primary text-white text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">{{test_stats['Total']}}</h5>
-                        <p class="card-text">Total</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">{{test_stats['Pass']}}</h5>
-                        <p class="card-text">Passed</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-danger text-white text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">{{test_stats['Fail']}}</h5>
-                        <p class="card-text">Failed</p>
-                    </div>
+        <div class="col-sm-3 col-md-3 mb-3">
+            <div class="card bg-primary text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{suite_stats['Total']}}</h5>
+                    <p class="card-text">Total</p>
                 </div>
             </div>
         </div>
-
-        <div class="row">
-            <div class="col-md-6">
-                <div class="pie-chart">
-                    <canvas id="suiteChart"></canvas>
+        <div class="col-sm-3 col-md-3 mb-3">
+            <div class="card bg-success text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{suite_stats['Pass']}}</h5>
+                    <p class="card-text">Passed</p>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="pie-chart">
-                    <canvas id="testChart"></canvas>
+        </div>
+        <div class="col-sm-3 col-md-3 mb-3">
+            <div class="card bg-danger text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{suite_stats['Fail']}}</h5>
+                    <p class="card-text">Failed</p>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="row mb-4">
+        <div class="col-sm-3 col-md-3 mb-3">
+            <div class="card bg-dark text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Test Case</h5>
+                    <p class="card-text">Statistics</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 mb-3">
+            <div class="card bg-primary text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{test_stats['Total']}}</h5>
+                    <p class="card-text">Total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 mb-3">
+            <div class="card bg-success text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{test_stats['Pass']}}</h5>
+                    <p class="card-text">Passed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3 col-md-3 mb-3">
+            <div class="card bg-danger text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{test_stats['Fail']}}</h5>
+                    <p class="card-text">Failed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-6 col-md-6 mb-4">
+            <div class="pie-chart">
+                <canvas id="suiteChart"></canvas>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-6 mb-4">
+            <div class="pie-chart">
+                <canvas id="testChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
