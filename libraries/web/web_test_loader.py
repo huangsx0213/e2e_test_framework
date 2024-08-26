@@ -1,5 +1,7 @@
 import json
 import logging
+import os
+
 import pandas as pd
 
 
@@ -216,5 +218,52 @@ class WebTestLoader:
     def get_web_environments(self):
         """
         Retrieve all web environments from the WebEnvironments sheet.
+        Perform data integrity and correctness validation.
         """
-        return self.get_data_by_sheet_name('WebEnvironments')
+        web_environments = self.get_data_by_sheet_name('WebEnvironments')
+
+        if web_environments.empty:
+            logging.error("WebTestLoader: WebEnvironments sheet is empty or does not exist.")
+            return pd.DataFrame()
+
+        required_columns = ['Environment', 'Browser', 'IsRemote', 'RemoteURL', 'ChromePath', 'ChromeDriverPath', 'EdgePath', 'EdgeDriverPath', 'BrowserOptions']
+        missing_columns = set(required_columns) - set(web_environments.columns)
+        if missing_columns:
+            logging.error(f"WebTestLoader: Missing required columns in WebEnvironments sheet: {', '.join(missing_columns)}")
+            return pd.DataFrame()
+
+        for index, row in web_environments.iterrows():
+            if pd.isna(row['Environment']) or row['Environment'] == '':
+                logging.error(f"WebTestLoader: Empty Environment name in row {index + 2}")
+
+            if row['Browser'].lower() not in ['chrome', 'edge']:
+                logging.error(f"WebTestLoader: Invalid Browser '{row['Browser']}' in row {index + 2}. Must be 'chrome' or 'edge'.")
+
+            if not isinstance(row['IsRemote'], bool):
+                logging.error(f"WebTestLoader: IsRemote must be a boolean value in row {index + 2}")
+
+            if row['IsRemote']:
+                if pd.isna(row['RemoteURL']) or row['RemoteURL'] == '':
+                    logging.error(f"WebTestLoader: RemoteURL is required when IsRemote is True in row {index + 2}")
+            else:
+                if row['Browser'].lower() == 'chrome':
+                    for path_column in ['ChromePath', 'ChromeDriverPath']:
+                        if pd.isna(row[path_column]) or row[path_column] == '':
+                            logging.error(f"WebTestLoader: {path_column} is required when IsRemote is False and Browser is Chrome in row {index + 2}")
+                        elif not os.path.exists(row[path_column]):
+                            logging.warning(f"WebTestLoader: {path_column} '{row[path_column]}' does not exist in row {index + 2}")
+                elif row['Browser'].lower() == 'edge':
+                    for path_column in ['EdgePath', 'EdgeDriverPath']:
+                        if pd.isna(row[path_column]) or row[path_column] == '':
+                            logging.error(f"WebTestLoader: {path_column} is required when IsRemote is False and Browser is Edge in row {index + 2}")
+                        elif not os.path.exists(row[path_column]):
+                            logging.warning(f"WebTestLoader: {path_column} '{row[path_column]}' does not exist in row {index + 2}")
+
+            try:
+                if not pd.isna(row['BrowserOptions']) and row['BrowserOptions'] != '':
+                    json.loads(row['BrowserOptions'])
+            except json.JSONDecodeError:
+                logging.error(f"WebTestLoader: Invalid JSON in BrowserOptions in row {index + 2}")
+
+        logging.info("WebTestLoader: WebEnvironments data validation completed.")
+        return web_environments
