@@ -1,41 +1,28 @@
 import json
 import logging
-import os
-
 import pandas as pd
+import os
+from typing import Dict, List
 
 
 class WebTestLoader:
     def __init__(self, excel_path):
-        """
-        Initialize the WebTestLoader with the path to the Excel file.
-        Load the data and validate it.
-        """
         self.excel_path = excel_path
         self.data = self._load_excel_data()
         self._validate_data()
 
-    def _load_excel_data(self):
-        """
-        Load all relevant sheets from the Excel file into memory.
-        Returns a dictionary with sheet names as keys and DataFrames as values.
-        """
+    def _load_excel_data(self) -> Dict[str, pd.DataFrame]:
         sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments']
         return {sheet: pd.read_excel(self.excel_path, sheet_name=sheet).fillna("") for sheet in sheets}
 
     def _validate_data(self):
-        """
-        Execute all data validation methods to ensure data integrity and consistency.
-        """
         self._validate_test_cases()
         self._validate_test_steps()
         self._validate_page_objects()
         self._validate_test_data()
+        self._validate_web_environments()
 
     def _validate_test_cases(self):
-        """
-        Validate that all test cases have corresponding test steps.
-        """
         test_cases = self.get_data_by_sheet_name('TestCases')
         test_steps = self.get_data_by_sheet_name('TestSteps')
 
@@ -46,10 +33,6 @@ class WebTestLoader:
                 logging.error(f"WebTestLoader: Case ID '{case_id}' does not have any steps defined in the TestSteps sheet.")
 
     def _validate_test_steps(self):
-        """
-        Validate that all Page Name and Module Name combinations in TestSteps exist in PageModules.
-        Also validate parameters for each step.
-        """
         test_steps = self.get_data_by_sheet_name('TestSteps')
         page_modules = self.get_data_by_sheet_name('PageModules')
 
@@ -61,10 +44,6 @@ class WebTestLoader:
             self._validate_parameters(row)
 
     def _validate_parameters(self, step_row):
-        """
-        Validate that parameters in test steps match those defined in PageModules.
-        Also check if all parameters have corresponding data in TestData.
-        """
         page_modules = self.get_data_by_sheet_name('PageModules')
         test_data = self.get_data_by_sheet_name('TestData')
 
@@ -93,9 +72,6 @@ class WebTestLoader:
                     logging.error(f"No data provided for parameter '{param}' in TestData for Case ID '{step_row['Case ID']}'")
 
     def _validate_page_objects(self):
-        """
-        Validate that all Element Names in PageModules have corresponding locators in the Locators sheet.
-        """
         page_objects = self.get_data_by_sheet_name('PageModules')
         locators = self.get_data_by_sheet_name('Locators')
 
@@ -105,9 +81,6 @@ class WebTestLoader:
                 logging.error(f"WebTestLoader: Element '{row['Element Name']}' on page '{row['Page Name']}' not found in Locators sheet.")
 
     def _validate_test_data(self):
-        """
-        Validate that all Case IDs in TestData have corresponding steps in TestSteps.
-        """
         test_data = self.get_data_by_sheet_name('TestData')
         test_steps = self.get_data_by_sheet_name('TestSteps')
 
@@ -116,121 +89,18 @@ class WebTestLoader:
             if row['Case ID'] not in case_ids_in_steps:
                 logging.error(f"WebTestLoader: Test data for Case ID '{row['Case ID']}' does not have corresponding test steps.")
 
-    def get_data_by_sheet_name(self, sheet_name):
-        """
-        Retrieve data for a specific sheet.
-        Returns an empty DataFrame if the sheet doesn't exist.
-        """
-        return self.data.get(sheet_name, pd.DataFrame())
-
-    def filter_cases(self, tcid_list=None, tags=None):
-        """
-        Filter test cases based on provided case IDs and tags.
-        Only returns cases where 'Run' column is 'Y'.
-        """
-        test_cases = self.get_test_cases()
-
-        if tcid_list:
-            test_cases = test_cases[test_cases['Case ID'].isin(tcid_list)]
-
-        if tags:
-            test_cases = test_cases[test_cases['Tags'].apply(lambda x: any(tag in x for tag in tags))]
-
-        test_cases = test_cases[test_cases['Run'] == 'Y']
-
-        return test_cases
-
-    def get_test_cases(self):
-        """
-        Retrieve all test cases from the TestCases sheet.
-        """
-        return self.get_data_by_sheet_name('TestCases')
-
-    def get_test_steps(self, case_id):
-        """
-        Retrieve test steps for a specific case ID.
-        Logs a warning if no steps are found.
-        """
-        test_steps = self.get_data_by_sheet_name('TestSteps')
-        result = test_steps[test_steps['Case ID'] == case_id]
-        if result.empty:
-            logging.warning(f"WebTestLoader: No test steps found for case ID: {case_id}")
-        return result
-
-    def get_test_data(self, case_id):
-        test_data = self.get_data_by_sheet_name('TestData')
-        case_data = test_data[test_data['Case ID'] == case_id]
-
-        test_steps = self.get_test_steps(case_id)
-        non_api_steps = test_steps[test_steps['Module Name'] != 'API']
-
-        if case_data.empty and not non_api_steps.empty:
-            logging.warning(f"WebTestLoader: No test data found for case ID: {case_id}")
-
-        grouped_data = case_data.groupby('Data Set')
-
-        data_sets = []
-        for _, group in grouped_data:
-            data_set = {}
-            for _, row in group.iterrows():
-                value = self._parse_value(row['Value'], row['Data Type'])
-                data_set[row['Parameter Name']] = value
-            data_sets.append(data_set)
-
-        return data_sets
-
-    def _parse_value(self, value, data_type):
-        if data_type.lower() == 'json':
-            try:
-                return json.loads(value)
-            except json.JSONDecodeError:
-                logging.error(f"Invalid JSON string: {value}")
-                return value  # 返回原始字符串，以防解析失败
-        elif data_type.lower() == 'integer':
-            try:
-                return int(value)
-            except ValueError:
-                logging.error(f"Invalid integer value: {value}")
-                return value
-        elif data_type.lower() == 'float':
-            try:
-                return float(value)
-            except ValueError:
-                logging.error(f"Invalid float value: {value}")
-                return value
-        elif data_type.lower() == 'boolean':
-            return value.lower() in ('true', 'yes', '1', 'on')
-        else:
-            return value  # 默认作为字符串处理
-
-    def get_page_objects(self):
-        """
-        Retrieve all page objects from the PageModules sheet.
-        """
-        return self.get_data_by_sheet_name('PageModules')
-
-    def get_locators(self):
-        """
-        Retrieve all locators from the Locators sheet.
-        """
-        return self.get_data_by_sheet_name('Locators')
-
-    def get_web_environments(self):
-        """
-        Retrieve all web environments from the WebEnvironments sheet.
-        Perform data integrity and correctness validation.
-        """
+    def _validate_web_environments(self):
         web_environments = self.get_data_by_sheet_name('WebEnvironments')
 
         if web_environments.empty:
             logging.error("WebTestLoader: WebEnvironments sheet is empty or does not exist.")
-            return pd.DataFrame()
+            return
 
         required_columns = ['Environment', 'Browser', 'IsRemote', 'RemoteURL', 'ChromePath', 'ChromeDriverPath', 'EdgePath', 'EdgeDriverPath', 'BrowserOptions']
         missing_columns = set(required_columns) - set(web_environments.columns)
         if missing_columns:
             logging.error(f"WebTestLoader: Missing required columns in WebEnvironments sheet: {', '.join(missing_columns)}")
-            return pd.DataFrame()
+            return
 
         for index, row in web_environments.iterrows():
             if pd.isna(row['Environment']) or row['Environment'] == '':
@@ -266,4 +136,84 @@ class WebTestLoader:
                 logging.error(f"WebTestLoader: Invalid JSON in BrowserOptions in row {index + 2}")
 
         logging.info("WebTestLoader: WebEnvironments data validation completed.")
-        return web_environments
+
+    def get_data_by_sheet_name(self, sheet_name: str) -> pd.DataFrame:
+        return self.data.get(sheet_name, pd.DataFrame())
+
+    def filter_cases(self, tcid_list: List[str] = None, tags: List[str] = None) -> pd.DataFrame:
+        test_cases = self.get_test_cases()
+
+        if tcid_list:
+            test_cases = test_cases[test_cases['Case ID'].isin(tcid_list)]
+
+        if tags:
+            test_cases = test_cases[test_cases['Tags'].apply(lambda x: any(tag in str(x).split(',') for tag in tags))]
+
+        test_cases = test_cases[test_cases['Run'] == 'Y']
+
+        return test_cases
+
+    def get_test_cases(self) -> pd.DataFrame:
+        return self.get_data_by_sheet_name('TestCases')
+
+    def get_test_steps(self, case_id: str) -> pd.DataFrame:
+        test_steps = self.get_data_by_sheet_name('TestSteps')
+        result = test_steps[test_steps['Case ID'] == case_id]
+        if result.empty:
+            logging.warning(f"WebTestLoader: No test steps found for case ID: {case_id}")
+        return result
+
+    def get_test_data(self, case_id: str) -> List[Dict]:
+        test_data = self.get_data_by_sheet_name('TestData')
+        case_data = test_data[test_data['Case ID'] == case_id]
+
+        test_steps = self.get_test_steps(case_id)
+        non_api_steps = test_steps[test_steps['Module Name'] != 'API']
+
+        if case_data.empty and not non_api_steps.empty:
+            logging.warning(f"WebTestLoader: No test data found for case ID: {case_id}")
+
+        grouped_data = case_data.groupby('Data Set')
+
+        data_sets = []
+        for _, group in grouped_data:
+            data_set = {}
+            for _, row in group.iterrows():
+                value = self._parse_value(row['Value'], row['Data Type'])
+                data_set[row['Parameter Name']] = value
+            data_sets.append(data_set)
+
+        return data_sets
+
+    def _parse_value(self, value: str, data_type: str):
+        if data_type.lower() == 'json':
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                logging.error(f"Invalid JSON string: {value}")
+                return value
+        elif data_type.lower() == 'integer':
+            try:
+                return int(value)
+            except ValueError:
+                logging.error(f"Invalid integer value: {value}")
+                return value
+        elif data_type.lower() == 'float':
+            try:
+                return float(value)
+            except ValueError:
+                logging.error(f"Invalid float value: {value}")
+                return value
+        elif data_type.lower() == 'boolean':
+            return value.lower() in ('true', 'yes', '1', 'on')
+        else:
+            return value
+
+    def get_page_objects(self) -> pd.DataFrame:
+        return self.get_data_by_sheet_name('PageModules')
+
+    def get_locators(self) -> pd.DataFrame:
+        return self.get_data_by_sheet_name('Locators')
+
+    def get_web_environments(self) -> pd.DataFrame:
+        return self.get_data_by_sheet_name('WebEnvironments')
