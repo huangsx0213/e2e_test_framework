@@ -36,8 +36,9 @@ class WebTestLoader:
         test_steps = self.get_data_by_sheet_name('TestSteps')
         page_modules = self.get_data_by_sheet_name('PageModules')
 
-        page_module_combinations = set(zip(page_modules['Page Name'], page_modules['Module Name']))
-        for _, row in test_steps.iterrows():
+        page_module_combinations = set(zip(page_modules[page_modules['Run'] == 'Y']['Page Name'],
+                                           page_modules[page_modules['Run'] == 'Y']['Module Name']))
+        for _, row in test_steps[test_steps['Run'] == 'Y'].iterrows():
             if (row['Page Name'], row['Module Name']) not in page_module_combinations and row['Module Name'] != 'API':
                 logging.error(
                     f"WebTestLoader: Invalid Page Name '{row['Page Name']}' and Module Name '{row['Module Name']}' combination in TestSteps for Case ID '{row['Case ID']}'.")
@@ -76,10 +77,9 @@ class WebTestLoader:
         locators = self.get_data_by_sheet_name('Locators')
 
         locator_map = set(zip(locators['Page Name'], locators['Element Name']))
-        for _, row in page_objects.iterrows():
+        for _, row in page_objects[page_objects['Run'] == 'Y'].iterrows():
             if row['Element Name'] and (row['Page Name'], row['Element Name']) not in locator_map:
                 logging.error(f"WebTestLoader: Element '{row['Element Name']}' on page '{row['Page Name']}' not found in Locators sheet.")
-
     def _validate_test_data(self):
         test_data = self.get_data_by_sheet_name('TestData')
         test_steps = self.get_data_by_sheet_name('TestSteps')
@@ -158,10 +158,11 @@ class WebTestLoader:
 
     def get_test_steps(self, case_id: str) -> pd.DataFrame:
         test_steps = self.get_data_by_sheet_name('TestSteps')
-        result = test_steps[test_steps['Case ID'] == case_id]
+        result = test_steps[(test_steps['Case ID'] == case_id) & (test_steps['Run'] == 'Y')]
         if result.empty:
             logging.warning(f"WebTestLoader: No test steps found for case ID: {case_id}")
         return result
+
 
     def get_test_data(self, case_id: str) -> List[Dict]:
         test_data = self.get_data_by_sheet_name('TestData')
@@ -210,7 +211,8 @@ class WebTestLoader:
             return value
 
     def get_page_objects(self) -> pd.DataFrame:
-        return self.get_data_by_sheet_name('PageModules')
+        page_objects = self.get_data_by_sheet_name('PageModules')
+        return page_objects[page_objects['Run'] == 'Y']
 
     def get_locators(self) -> pd.DataFrame:
         return self.get_data_by_sheet_name('Locators')
