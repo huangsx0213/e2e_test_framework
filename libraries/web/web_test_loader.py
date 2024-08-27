@@ -12,7 +12,7 @@ class WebTestLoader:
         self._validate_data()
 
     def _load_excel_data(self) -> Dict[str, pd.DataFrame]:
-        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments']
+        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments', 'CustomActions']
         return {sheet: pd.read_excel(self.excel_path, sheet_name=sheet).fillna("") for sheet in sheets}
 
     def _validate_data(self):
@@ -21,6 +21,7 @@ class WebTestLoader:
         self._validate_page_objects()
         self._validate_test_data()
         self._validate_web_environments()
+        self._validate_custom_actions()
 
     def _validate_test_cases(self):
         test_cases = self.get_data_by_sheet_name('TestCases')
@@ -136,6 +137,23 @@ class WebTestLoader:
                 logging.error(f"WebTestLoader: Invalid JSON in BrowserOptions in row {index + 2}")
 
         logging.info("WebTestLoader: WebEnvironments data validation completed.")
+    def _validate_custom_actions(self):
+        custom_actions = self.get_data_by_sheet_name('CustomActions')
+        if custom_actions.empty:
+            logging.warning("WebTestLoader: CustomActions sheet is empty.")
+            return
+
+        required_columns = ['Action Name', 'Python Code']
+        missing_columns = set(required_columns) - set(custom_actions.columns)
+        if missing_columns:
+            logging.error(f"WebTestLoader: Missing required columns in CustomActions sheet: {', '.join(missing_columns)}")
+            return
+
+        for index, row in custom_actions.iterrows():
+            if pd.isna(row['Action Name']) or row['Action Name'] == '':
+                logging.error(f"WebTestLoader: Empty Action Name in CustomActions row {index + 2}")
+            if pd.isna(row['Python Code']) or row['Python Code'] == '':
+                logging.error(f"WebTestLoader: Empty Python Code for action '{row['Action Name']}' in CustomActions row {index + 2}")
 
     def get_data_by_sheet_name(self, sheet_name: str) -> pd.DataFrame:
         return self.data.get(sheet_name, pd.DataFrame())
@@ -219,3 +237,7 @@ class WebTestLoader:
 
     def get_web_environments(self) -> pd.DataFrame:
         return self.get_data_by_sheet_name('WebEnvironments')
+
+    def get_custom_actions(self) -> Dict[str, str]:
+        custom_actions_df = self.get_data_by_sheet_name('CustomActions')
+        return dict(zip(custom_actions_df['Action Name'], custom_actions_df['Python Code']))

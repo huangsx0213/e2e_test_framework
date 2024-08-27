@@ -9,6 +9,7 @@ from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
 from libraries.web.web_test_loader import WebTestLoader
 from libraries.web.webdriver_factory import WebDriverFactory
+from libraries.web.custom_action_executor import CustomActionExecutor
 from robot.libraries.BuiltIn import BuiltIn
 
 builtin_lib = BuiltIn()
@@ -79,6 +80,7 @@ class PageObject:
         self.page_elements = self._load_page_elements()
         self.page_modules = self._load_page_modules()
 
+        self.custom_action_executor = CustomActionExecutor(self.web_test_loader.get_custom_actions())
     def _load_webdriver(self):
         active_env_config = self.env_config['environments'][self.test_config['active_environment']]
         driver = WebDriverSingleton.get_instance(active_env_config)
@@ -207,8 +209,8 @@ class PageObject:
             'wait': self.web_actions.wait,
         }
 
-        if action not in action_map:
-            raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
+        # if action not in action_map:
+        #     raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
 
         # Create a new list to store the modified arguments
         new_args = []
@@ -228,7 +230,12 @@ class PageObject:
             # Add the processed (or original) argument to the new list
             new_args.append(arg)
 
-        return action_map[action](element, *new_args, **kwargs) if element else action_map[action](*new_args, **kwargs)
+        if action in action_map:
+            return action_map[action](element, *args, **kwargs) if element else action_map[action](*args, **kwargs)
+        elif action in self.custom_action_executor.custom_actions:
+            return self.custom_action_executor.execute_custom_action(action, element, self.web_actions, *args, **kwargs)
+        else:
+            raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
 
     @keyword
     def close_browser(self):
