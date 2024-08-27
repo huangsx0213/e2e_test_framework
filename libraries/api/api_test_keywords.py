@@ -27,8 +27,6 @@ class APITestKeywords:
         self._load_configuration(test_config_path, test_cases_path)
         self._initialize_components()
 
-
-
     def _load_configuration(self, test_config_path, test_cases_path):
 
         self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api_test_config.yaml')
@@ -95,7 +93,6 @@ class APITestKeywords:
             if check_with_tcids:
                 pre_check_responses = self._execute_check_with_cases(check_with_tcids)
                 response, execution_time = self._execute_single_test_case(test_case)
-                sleep(3)
                 post_check_responses = self._execute_check_with_cases(check_with_tcids)
                 self._validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
             else:
@@ -114,6 +111,10 @@ class APITestKeywords:
         logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time:.2f} seconds")
         self.api_response_asserter.validate_response(test_case['Exp Result'], response)
         self.response_field_saver.save_fields_to_robot_variables(response, test_case)
+        wait = float(test_case['Wait']) if test_case['Wait'] != '' else 0
+        if wait > 0:
+            sleep(wait)
+            logging.info(f"{self.__class__.__name__}: Waiting for results of {test_case['TCID']} in {wait} seconds.")
         logging.info("============================================")
         return response, execution_time
 

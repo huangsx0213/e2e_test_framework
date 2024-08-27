@@ -93,12 +93,13 @@ class E2ERobotCasesGenerator:
     @staticmethod
     def extract_parameters(data_set: Dict, parameter_names: str) -> Dict:
         parameters = {}
-        for name in parameter_names.split(','):
-            if name in data_set:
-                value = data_set[name]
-                # Add type conversion here if needed
-                parameters[name] = value
-            else:
-                logging.warning(f"E2ERobotCasesGenerator: Parameter {name} not found in data set")
-        logging.info(f"E2ERobotCasesGenerator: Extracted parameters: {parameters}")
+        if parameter_names != '':
+            for name in parameter_names.split(','):
+                if name in data_set:
+                    value = data_set[name]
+                    # Add type conversion here if needed
+                    parameters[name] = value
+                else:
+                    logging.warning(f"E2ERobotCasesGenerator: Parameter {name} not found in data set")
+            logging.info(f"E2ERobotCasesGenerator: Extracted parameters: {parameters}")
         return parameters

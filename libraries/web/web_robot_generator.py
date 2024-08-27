@@ -77,12 +77,13 @@ class WebUIRobotCasesGenerator:
     @staticmethod
     def extract_parameters(data_set: Dict, parameter_names: str) -> Dict:
         parameters = {}
-        for name in parameter_names.split(','):
-            if name in data_set:
-                value = data_set[name]
-                # Add type conversion here if needed
-                parameters[name] = value
-            else:
-                logging.warning(f"WebUIRobotCasesGenerator: Parameter {name} not found in data set")
-        logging.info(f"WebUIRobotCasesGenerator: Extracted parameters: {parameters}")
+        if parameter_names != '':
+            for name in parameter_names.split(','):
+                if name in data_set:
+                    value = data_set[name]
+                    # Add type conversion here if needed
+                    parameters[name] = value
+                else:
+                    logging.warning(f"WebUIRobotCasesGenerator: Parameter {name} not found in data set")
+            logging.info(f"WebUIRobotCasesGenerator: Extracted parameters: {parameters}")
         return parameters
