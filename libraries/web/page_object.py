@@ -231,9 +231,9 @@ class PageObject:
             new_args.append(arg)
 
         if action in action_map:
-            return action_map[action](element, *args, **kwargs) if element else action_map[action](*args, **kwargs)
+            return action_map[action](element, *new_args, **kwargs) if element else action_map[action](*new_args, **kwargs)
         elif action in self.custom_action_executor.custom_actions:
-            return self.custom_action_executor.execute_custom_action(action, element, self.web_actions, *args, **kwargs)
+            return self.custom_action_executor.execute_custom_action(action, element, self.web_actions, *new_args, **kwargs)
         else:
             raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
 
