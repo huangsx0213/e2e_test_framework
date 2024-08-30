@@ -221,6 +221,8 @@ class PageObject:
             'js_scroll_into_view': self.web_actions.js_scroll_into_view,
             'js_select_option': self.web_actions.js_select_option,
             'js_hover': self.web_actions.js_hover,
+            'capture_element_value': self.web_actions.capture_element_value,
+            'assert_value_change': self.web_actions.assert_value_change,
         }
 
         if action not in action_map and action not in self.custom_action_executor.custom_actions:

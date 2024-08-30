@@ -7,6 +7,7 @@ from PIL import Image
 from typing import List, Dict, Union
 from functools import wraps
 
+from numpy.ma.core import around
 from robot.libraries.BuiltIn import BuiltIn
 from selenium.common import NoSuchElementException, TimeoutException
 from selenium.webdriver import ActionChains
@@ -488,7 +489,8 @@ class WebElementActions:
             logging.error(f"{self.__class__.__name__}: Error selecting checkbox: {str(e)}")
             raise
 
-    def select_multiple_table_row_checkboxes(self, table_locator: Union[tuple, WebElement], identifier_column: Union[str, int], identifier_values: List[str], checkbox_column: int = 1):
+    def select_multiple_table_row_checkboxes(self, table_locator: Union[tuple, WebElement], identifier_column: Union[str, int], identifier_values: List[str],
+                                             checkbox_column: int = 1):
         logging.info(f"{self.__class__.__name__}: Selecting checkboxes for multiple rows with {identifier_column}: {identifier_values}")
         try:
             table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
@@ -564,7 +566,6 @@ class WebElementActions:
         url = self.driver.current_url
         logging.info(f"{self.__class__.__name__}: Current URL is: '{url}'")
         return url
-
 
     def execute_async_script(self, script, *args):
         logging.info(f"{self.__class__.__name__}: Executing asynchronous JavaScript: {script}, Arguments: {args}")
@@ -642,6 +643,7 @@ class WebElementActions:
         logs = self.driver.get_log(log_type)
         logging.info(f"{self.__class__.__name__}: Retrieved {len(logs)} log entries")
         return logs
+
     def js_click(self, element):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Clicking element using JavaScript: {element_desc}")
@@ -694,3 +696,38 @@ class WebElementActions:
             "arguments[0].dispatchEvent(event);", element
         )
         logging.info(f"{self.__class__.__name__}: Hovered over element successfully using JavaScript: {element_desc}")
+
+    @wait_and_perform(default_condition="visibility")
+    def capture_element_value(self, element, variable_name):
+        element_desc = self._get_element_description(element)
+        logging.info(f"{self.__class__.__name__}: Capturing value from element: {element_desc}")
+        value = self.get_text(element)
+        self.builtin.set_global_variable(f"${{{variable_name}}}", value)
+        logging.info(f"{self.__class__.__name__}: Saved value '{value}' to variable ${{{variable_name}}}")
+        return value
+
+    @wait_and_perform(default_condition="visibility")
+    def assert_value_change(self, element, initial_value_variable, expected_change):
+        element_desc = self._get_element_description(element)
+        logging.info(f"{self.__class__.__name__}: Asserting value change for element: {element_desc}")
+
+        initial_value = float(self.builtin.get_variable_value(f"${{{initial_value_variable}}}"))
+        current_value = float(self.get_text(element))
+        actual_change = around(current_value - initial_value, 2)
+        expected_change = float(expected_change)
+
+        logging.info(f"{self.__class__.__name__}: Actual diff: {actual_change}, Expected diff: {expected_change}")
+
+        if not self._compare_diff(actual_change, expected_change):
+            raise AssertionError(f"{self.__class__.__name__}: Dynamic check failed for element: {element_desc}")
+
+    def _compare_diff(self, actual_diff: float, expected_diff: str) -> bool:
+        expected_operator = expected_diff[0]
+        expected_value = float(expected_diff[1:])
+
+        if expected_operator == '+':
+            return actual_diff == expected_value
+        elif expected_operator == '-':
+            return actual_diff == -expected_value
+        else:
+            raise ValueError(f"{self.__class__.__name__}: Unsupported operator in expected diff: {expected_operator}")
