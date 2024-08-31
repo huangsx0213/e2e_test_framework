@@ -1,5 +1,7 @@
+import logging
 import os
 import argparse
+
 from robot.reporting import ResultWriter
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.api.api_robot_generator import APIRobotCasesGenerator
@@ -7,34 +9,52 @@ from libraries.robot.robot_dashboard_generator import DashboardGenerator
 from libraries.web.web_robot_generator import WebUIRobotCasesGenerator
 from libraries.e2e.e2e_robot_generator import E2ERobotCasesGenerator
 
-def run_test_suite(suite):
-    # Run the test suite and generate report XML
-    output_xml = os.path.join(PROJECT_ROOT, 'report', 'output.xml')
-    report_file = os.path.join(PROJECT_ROOT, 'report', 'report.html')
-    log_file = os.path.join(PROJECT_ROOT, 'report', 'log.html')
-    suite.run(output=output_xml)
 
-    # Generate log and report
-    ResultWriter(output_xml).write_results(
-        report=report_file,
-        log=log_file
-    )
-    # Generate dashboard
-    robot_output_path = os.path.join(PROJECT_ROOT, 'report', 'output.xml')
+class ExitOnFailureListener:
+    ROBOT_LISTENER_API_VERSION = 3
+
+    def __init__(self):
+        self.exit_on_failure = False
+
+    def end_test(self, data, result):
+        if 'smoke test' in [tag.lower() for tag in result.tags] and result.status == 'FAIL':
+            self.exit_on_failure = True
+
+    def start_suite(self, data, result):
+        if self.exit_on_failure:
+            logging.error('ExitOnFailureListener: Smoke test failed. Exiting...')
+            data.tests.clear()
+
+
+def run_test_suite(suite):
+    listener = ExitOnFailureListener()
+    output_dir = os.path.join(PROJECT_ROOT, 'report')
+    output_xml = os.path.join(output_dir, 'output.xml')
+    report_file = os.path.join(output_dir, 'report.html')
+    log_file = os.path.join(output_dir, 'log.html')
+
+    suite.run(output=output_xml, listener=listener)
+
+    ResultWriter(output_xml).write_results(report=report_file, log=log_file)
+
     dashboard_generator = DashboardGenerator()
-    dashboard_generator.generate_dashboard(robot_output_path)
+    dashboard_generator.generate_dashboard(output_xml)
+
 
 def create_api_suite():
     rcg = APIRobotCasesGenerator()
     return rcg.create_test_suite()
 
+
 def create_web_suite():
     rcg = WebUIRobotCasesGenerator()
     return rcg.create_test_suite()
 
+
 def create_e2e_suite():
     rcg = E2ERobotCasesGenerator()
     return rcg.create_test_suite()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run API, Web UI, or E2E tests.')
@@ -45,13 +65,11 @@ if __name__ == "__main__":
 
     if args.api:
         suite_to_run = create_api_suite()
-    if args.web:
+    elif args.web:
         suite_to_run = create_web_suite()
-    if args.e2e:
+    elif args.e2e:
         suite_to_run = create_e2e_suite()
-
-    # If no specific test type is specified, run default E2E tests
-    if not (args.api or args.web or args.e2e):
+    else:
         suite_to_run = create_e2e_suite()
 
     run_test_suite(suite_to_run)
