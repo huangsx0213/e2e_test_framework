@@ -37,12 +37,15 @@ class WebDriverSingleton:
 
 
 @library
+@library
 class PageObject:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root = PROJECT_ROOT
         self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web_test_config.yaml')
         self.test_cases_path = test_cases_path or os.path.join(self.project_root, 'test_cases', 'web_test_cases.xlsx')
 
+        self._web_actions_instance = None
+        self._driver = None
         self._load_configuration()
         self._initialize_components()
 
@@ -75,17 +78,23 @@ class PageObject:
     def _initialize_components(self):
         self.locators_df = self.web_test_loader.get_locators()
         self.page_object_df = self.web_test_loader.get_page_objects()
-        self.driver = self._load_webdriver()
-        self.web_actions = WebElementActions(self.driver)
         self.page_elements = self._load_page_elements()
         self.page_modules = self._load_page_modules()
-
         self.custom_action_executor = CustomActionExecutor(self.web_test_loader.get_custom_actions())
-    def _load_webdriver(self):
-        active_env_config = self.env_config['environments'][self.test_config['active_environment']]
-        driver = WebDriverSingleton.get_instance(active_env_config)
-        driver.minimize_window()
-        return driver
+
+    @property
+    def driver(self):
+        if self._driver is None:
+            active_env_config = self.env_config['environments'][self.test_config['active_environment']]
+            self._driver = WebDriverSingleton.get_instance(active_env_config)
+            # self._driver.minimize_window()
+        return self._driver
+
+    @property
+    def web_actions(self):
+        if self._web_actions_instance is None:
+            self._web_actions_instance = WebElementActions(self.driver)
+        return self._web_actions_instance
 
     def _load_page_elements(self) -> Dict[str, Dict[str, Tuple[str, str]]]:
         elements = {}
@@ -263,4 +272,4 @@ class PageObject:
         if skip_on_sanity_check_failure:
             BuiltIn().skip(message)
         else:
-            logging.info(f"{self.__class__.__name__}: No need to skip on sanity check success.")
+            logging.info(f"{self.__class__.__name__}: Sanity check succeeded, continuing with the test.")

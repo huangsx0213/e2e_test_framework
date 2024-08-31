@@ -387,8 +387,8 @@
             document.getElementById("loadingDiv").style.display = "none";
             document.getElementById("defaultOpen").click();
 
-            createPieChart('suiteChart', 'Suite Results', ['Pass', 'Fail'],
-                           [{{ suite_stats['Pass'] }}, {{ suite_stats['Fail'] }}],
+            createPieChart('suiteChart', 'Suite Results', ['Pass', 'Fail', 'Skip'],
+                           [{{ suite_stats['Pass'] }}, {{ suite_stats['Fail'] }},{{ suite_stats['Skip'] }}],
                            {{ suite_stats['Total'] }});
 
         createPieChart('testChart', 'Test Case Results', ['Pass', 'Fail', 'Skip'],
