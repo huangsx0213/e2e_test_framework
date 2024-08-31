@@ -31,7 +31,9 @@ pipeline {
                     def configFile = "configs/${params.TEST_TYPE}_test_config.yaml"
                     sh """
                         . venv/bin/activate
-                        python3 yaml_config_cli.py ${configFile} --update active_environment ${params.ACTIVE_ENVIRONMENT} --update test_cases_path ${params.TEST_CASES_PATH} --update clear_saved_fields_after_test ${params.CLEAR_SAVED_FIELDS}
+                        python3 yaml_config_cli.py ${configFile} --update active_environment ${params.ACTIVE_ENVIRONMENT}
+                        python3 yaml_config_cli.py ${configFile} --update test_cases_path ${params.TEST_CASES_PATH}
+                        python3 yaml_config_cli.py ${configFile} --update clear_saved_fields_after_test ${params.CLEAR_SAVED_FIELDS}
                     """
                     if (params.TC_ID_LIST) {
                         def tcIdList = params.TC_ID_LIST.split(',')

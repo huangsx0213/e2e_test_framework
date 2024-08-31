@@ -1,25 +1,44 @@
-
 # Automated Testing Framework User Manual
 
 ## Table of Contents
-1. Installation and Setup
-2. Configuration
-3. Test Case Excel Structure
-4. Writing Test Cases
-5. Running Tests
-6. Viewing Results
-7. Best Practices
-8. Troubleshooting
-9. Advanced Features
-10. Maintenance and Updates
+1. Framework Features
+2. Installation and Setup
+3. Configuration
+4. API Test Cases Excel Structure
+5. Web UI Test Cases Excel Structure
+6. Writing Test Cases
+7. Running Tests
+8. Viewing Results
+9. Best Practices
+10. Troubleshooting
+11. Advanced Features
+12. Maintenance and Updates
 
-## 1. Installation and Setup
+## 1. Framework Features
 
-### 1.1 Python and pip
+This automated testing framework offers the following features:
+
+1. Multi-type Testing Support: Supports API testing, Web UI testing, and End-to-End (E2E) testing.
+2. Flexible Configuration: Uses YAML files for configuration, making it easy to modify and maintain.
+3. Data-Driven: Manages test cases using Excel files, supporting parameterized testing.
+4. Dynamic Value Support: Supports dynamically generated values in API tests, such as UUID, timestamps, etc.
+5. Variable Management: Supports sharing and reusing variables between test cases.
+6. Page Object Model: Uses page object pattern in Web UI testing, improving code reusability and maintainability.
+7. Custom Operations: Supports defining and using custom Python operations in Web UI tests.
+8. Detailed Logs and Reports: Generates detailed HTML reports and logs, including failure screenshots.
+9. Flexible Test Case Selection: Supports filtering specific tests by tags or test case IDs.
+10. Environment Management: Supports multi-environment configuration, making it easy to switch between different environments.
+11. Error Handling and Retry Mechanism: Implements robust error handling and test retry logic.
+12. CI-Friendly: Easy to integrate into CI/CD processes.
+13. Extensibility: Modular framework design, easy to add new features and customize.
+
+## 2. Installation and Setup
+
+### 2.1 Python and pip
 
 Ensure you have Python 3.7 or higher installed. You can download it from [python.org](https://www.python.org/downloads/).
 
-### 1.2 Required Python Packages
+### 2.2 Required Python Packages
 
 Install the required packages using pip:
 
@@ -39,97 +58,230 @@ jinja2
 jsonpath-ng
 lxml
 selenium
+pillow
+numpy
 ```
 
-### 1.3 WebDriver Setup
+### 2.3 WebDriver Setup
 
 For Web UI testing, ensure you have the appropriate WebDriver installed and configured in your system PATH:
 - ChromeDriver for Google Chrome
 - EdgeDriver for Microsoft Edge
 
-## 2. Configuration
+### 2.4 Project Structure
 
-### 2.1 API Test Configuration (api_test_config.yaml)
+Ensure your project follows this structure:
+```
+project_root/
+├── configs/
+│   ├── api_test_config.yaml
+│   ├── web_test_config.yaml
+│   ├── e2e_test_config.yaml
+│   └── logging_config.yaml
+├── libraries/
+│   ├── api/
+│   ├── web/
+│   ├── e2e/
+│   ├── robot/
+│   └── common/
+├── test_cases/
+│   ├── api_test_cases.xlsx
+│   ├── web_test_cases.xlsx
+│   └── e2e_test_cases.xlsx
+├── templates/
+│   └── rf_report_template.html
+├── report/
+├── main.py
+├── yaml_config_cli.py
+└── requirements.txt
+```
 
-- `active_environment`: Set the active environment (e.g., DEV, SIT, UAT, PROD)
-- `test_cases_path`: Specify the path to the Excel file containing API test cases
-- `clear_saved_fields_after_test`: Set to true/false to clear saved fields after each test
-- `tc_id_list`: List of specific Test Case IDs to run (leave empty to run all)
-- `tags`: List of tags to filter test cases (leave empty to run all)
+## 3. Configuration
 
-### 2.2 Web UI Test Configuration (web_test_config.yaml)
+### 3.1 API Test Configuration (api_test_config.yaml)
 
-- `active_environment`: Set the active environment (e.g., DEV, SIT, UAT, PROD)
-- `test_cases_path`: Specify the path to the Excel file containing Web UI test cases
-- `tc_id_list`: List of specific Test Case IDs to run (leave empty to run all)
-- `tags`: List of tags to filter test cases (leave empty to run all)
+```yaml
+active_environment: DEV
+test_cases_path: 'test_cases/api_test_cases.xlsx'
+clear_saved_fields_after_test: true
+tc_id_list: []
+tags: []
+```
 
-### 2.3 E2E Test Configuration (e2e_test_config.yaml)
+- `active_environment`: Currently active test environment (e.g., DEV, SIT, UAT, PROD)
+- `test_cases_path`: Path to the API test cases Excel file
+- `clear_saved_fields_after_test`: Whether to clear saved fields after each test
+- `tc_id_list`: List of specific test case IDs to execute
+- `tags`: List of tags to filter test cases
 
-- `active_environment`: Set the active environment (e.g., DEV, SIT, UAT, PROD)
-- `test_cases_path`: Specify the path to the Excel file containing E2E test cases
-- `tc_id_list`: List of specific Test Case IDs to run (leave empty to run all)
-- `tags`: List of tags to filter test cases (leave empty to run all)
+### 3.2 Web UI Test Configuration (web_test_config.yaml)
 
-## 3. Test Case Excel Structure
+```yaml
+active_environment: SIT
+test_case_path: 'test_cases/web_test_cases.xlsx'
+tc_id_list: []
+tags: []
+```
 
-### 3.1 API Test Cases Excel
+- `active_environment`: Currently active test environment
+- `test_case_path`: Path to the Web UI test cases Excel file
+- `tc_id_list`: List of specific test case IDs to execute
+- `tags`: List of tags to filter test cases
 
-#### Sheets:
+### 3.3 End to end Test Configuration (e2e_test_config.yaml)
+
+```yaml
+active_environment: SIT
+test_case_path: 'test_cases/e2e_test_cases.xlsx'
+tc_id_list: []
+tags: []
+```
+
+- `active_environment`: Currently active test environment
+- `test_case_path`: Path to the End-to-End test cases Excel file
+- `tc_id_list`: List of specific test case IDs to execute
+- `tags`: List of tags to filter test cases
+- 
+### 3.4 Using yaml_config_cli.py
+
+You can use the `yaml_config_cli.py` script to modify configuration files from the command line. For example:
+
+```bash
+python yaml_config_cli.py configs/api_test_config.yaml --update active_environment PROD
+python yaml_config_cli.py configs/api_test_config.yaml --add-to-list tc_id_list TC001
+python yaml_config_cli.py configs/api_test_config.yaml --remove-from-list tags deprecated
+```
+
+## 4. API Test Cases Excel Structure
+
+### 4.1 Sheets:
 1. API: Main test case information
 2. BodyTemplates: Request body templates
 3. BodyDefaults: Default values for request bodies
 4. Headers: Header templates
 5. Endpoints: Environment-specific endpoint configurations
 
-#### API Sheet Columns:
-- TCID: Unique test case ID
-- Name: Test case name
-- Descriptions: Test case description
-- Run: 'Y' to include in test run, 'N' to exclude
-- Tags: Comma-separated tags for filtering
-- Endpoint: Endpoint name (must match Endpoints sheet)
-- Headers: Header template name (must match Headers sheet)
-- Body Template: Body template name (must match BodyTemplates sheet)
-- Body Default: Default body name (must match BodyDefaults sheet)
-- Body User-defined Fields: Custom fields for the request body (JSON format)
-- Exp Result: Expected results (use JSONPath for assertions)
-- Save Fields: Fields to save from the response (use JSONPath)
-- Conditions: Special conditions (e.g., [Checkwith], [TestSetup], [TestTeardown])
+### 4.2 API Sheet Columns:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| TCID | Unique test case identifier | String, e.g., "TC001" | Must be unique |
+| Name | Test case name | String | Descriptive name |
+| Descriptions | Test case description | String | Detailed explanation of test purpose |
+| Run | Whether to execute this case | "Y" or "N" | Y means execute, N means skip |
+| Tags | Case tags | Comma-separated string | For categorizing and filtering cases |
+| Endpoint | API endpoint name | String | Must match definitions in Endpoints sheet |
+| Headers | Request header template name | String | Must match definitions in Headers sheet |
+| Body Template | Request body template name | String | Must match definitions in BodyTemplates sheet |
+| Body Default | Default request body name | String | Must match definitions in BodyDefaults sheet |
+| Body User-defined Fields | Custom request body fields | JSON format string | Overrides or adds to default request body |
+| Exp Result | Expected results | JSONPath expressions | Used to validate response content |
+| Save Fields | Save response fields | JSONPath expressions | Used to save specific fields from the response |
+| Conditions | Special conditions | Specific format string | E.g., [Checkwith], [TestSetup], [TestTeardown] |
+| Wait | Wait time after test execution | Number (seconds) | Pause execution for specified time |
 
-### 3.2 Web UI Test Cases Excel
+### 4.3 BodyTemplates Sheet:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| TemplateName | Template name | String | Unique identifier |
+| Content | Template content | JSON or XML format string | Can include Jinja2 template syntax |
+| Format | Template format | "json" or "xml" | Specifies the format of the template |
 
-#### Sheets:
+### 4.4 BodyDefaults Sheet:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| Name | Default value name | String | Unique identifier |
+| Content | Default value content | JSON format string | Provides default request body content |
+
+### 4.5 Headers Sheet:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| HeaderName | Header template name | String | Unique identifier |
+| Content | Header content | YAML format string | Defines request headers |
+
+### 4.6 Endpoints Sheet:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| Environment | Environment name | DEV, SIT, UAT, PROD, etc. | Corresponds to active_environment in config file |
+| Endpoint | Endpoint name | String | Unique identifier |
+| Method | HTTP method | GET, POST, PUT, DELETE, PATCH | Specifies request method |
+| Path | Request path | URL path string | Can include path parameters |
+
+## 5. Web UI Test Cases Excel Structure
+
+### 5.1 Sheets:
 1. TestCases: Main test case information
 2. TestSteps: Steps for each test case
 3. TestData: Test data for parameterization
 4. Locators: Element locators
 5. PageModules: Page object definitions
 6. WebEnvironments: Environment-specific configurations
+7. CustomActions: Custom Python actions
 
-#### TestCases Sheet Columns:
-- Case ID: Unique test case ID
-- Name: Test case name
-- Descriptions: Test case description
-- Run: 'Y' to include in test run, 'N' to exclude
-- Tags: Comma-separated tags for filtering
+### 5.2 TestCases Sheet:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| Case ID | Unique test case identifier | String, e.g., "UITC001" | Must be unique |
+| Name | Test case name | String | Descriptive name |
+| Descriptions | Test case description | String | Detailed explanation of test purpose |
+| Run | Whether to execute this case | "Y" or "N" | Y means execute, N means skip |
+| Tags | Case tags | Comma-separated string | For categorizing and filtering cases |
 
-#### TestSteps Sheet Columns:
-- Case ID: Corresponding test case ID
-- Step Order: Order of execution
-- Page Name: Page object name
-- Module Name: Module name within the page object
-- Parameter Name: Comma-separated parameter names
+### 5.3 TestSteps Sheet:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| Case ID | Corresponding test case ID | String | Must match Case ID in TestCases |
+| Step ID | Unique identifier for each step | Integer | Defines execution order of steps |
+| Page Name | Page object name | String | Must match definitions in PageModules |
+| Module Name | Module name | String | Specific module within the page object |
+| Parameter Name | Parameter names | Comma-separated string | Corresponds to parameters in TestData |
+| Run | Whether to execute this step | "Y" or "N" | Y means execute, N means skip |
 
-#### TestData Sheet Columns:
-- Case ID: Corresponding test case ID
-- Data Set: Data set identifier
-- Parameter Name: Name of the parameter
-- Value: Value for the parameter
+### 5.4 TestData Sheet:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| Case ID | Corresponding test case ID | String | Must match Case ID in TestCases |
+| Data Set | Data set identifier | String | Used to distinguish multiple sets of test data |
+| Parameter Name | Parameter name | String | Corresponds to parameters in TestSteps |
+| Value | Parameter value | Any type | Actual test data |
+| Data Type | Data type | string, integer, json, etc. | Specifies the data type of the parameter |
 
-## 4. Writing Test Cases
+### 5.5 Locators Sheet:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| Page | Page name | String | Corresponds to pages in PageModules |
+| Element Name | Element name | String | Unique identifier |
+| Locator Type | Location method | id, name, xpath, css, etc. | Selenium-supported location methods |
+| Locator Value | Location value | String | Specific location expression |
 
-### 4.1 API Test Cases
+### 5.6 PageModules Sheet:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| Page Name | Page name | String | Unique identifier |
+| Module Name | Module name | String | Functional module within the page |
+| Element Name | Element name | String | Corresponds to Element Name in Locators |
+| Actions | Action name | String | E.g., click, input, verify, etc. |
+| Parameter Name | Parameters | Comma-separated string | Parameters needed for the action |
+| Highlight | Whether to highlight the element | "Y" or "N" | Y means highlight, N means don't highlight |
+| Screenshot | Whether to take a screenshot | "Y" or "N" | Y means take screenshot, N means don't |
+| Wait | Wait time after action (in seconds) | Number | Pause execution for specified time |
+| Run | Whether to execute this action | "Y" or "N" | Y means execute, N means skip |
+
+### 5.7 WebEnvironments Sheet:
+| Column Name | Description | Possible Values | Logic |
+|-------------|-------------|-----------------|-------|
+| Environment | Environment name | DEV, SIT, UAT, PROD, etc. | Corresponds to active_environment in config file |
+| URL | Environment URL | Complete URL string | Base URL of the test environment |
+| Browser | Browser type | chrome, firefox, edge, etc. | Specifies the browser to use |
+
+### 5.8 CustomActions Sheet:
+| Column Name   | Description              | Possible Values | Logic |
+|---------------|--------------------------|-----------------|-------|
+| Action Name   | Custom action name       | String | Unique identifier |
+| CustomAction1 | CustomAction python code | String | Custom python to be executed |
+
+## 6. Writing Test Cases
+
+### 6.1 API Test Cases
 
 1. Fill in the API sheet with test case details.
 2. Create body templates in the BodyTemplates sheet.
@@ -163,12 +315,7 @@ Body User-defined Fields: {"user_id": "${USER_ID}", "timestamp": "{{timestamp}}"
 Exp Result: $.response.status=${EXPECTED_STATUS}
 ```
 
-In this example:
-- `${USER_ID}` will be replaced with the value of the USER_ID variable from the Robot Framework scope.
-- `{{timestamp}}` will be replaced with a dynamically generated timestamp.
-- `${EXPECTED_STATUS}` in the Exp Result will be replaced with the value of the EXPECTED_STATUS variable from the Robot Framework scope.
-
-### 4.2 Web UI Test Cases
+### 6.2 Web UI Test Cases
 
 1. Fill in the TestCases sheet with test case details.
 2. Define test steps in the TestSteps sheet.
@@ -176,34 +323,38 @@ In this example:
 4. Define element locators in the Locators sheet.
 5. Create page objects and modules in the PageModules sheet.
 6. Configure environments in the WebEnvironments sheet.
+7. Define custom actions in the CustomActions sheet if needed.
 
-## 5. Running Tests
+## 7. Running Tests
 
-### 5.1 API Tests
+### 7.1 API Tests
 ```bash
 python main.py --api
 ```
 
-### 5.2 Web UI Tests
+### 7.2 Web UI Tests
 ```bash
 python main.py --web
 ```
 
-### 5.3 E2E Tests
+### 7.3 E2E Tests
 ```bash
 python main.py --e2e
 ```
 
+### 7.4 Running Specific Test Cases or Tags
 
+You can specify test case IDs or tags in the respective configuration files (api_test_config.yaml, web_test_config.yaml, e2e_test_config.yaml) to run specific tests.
 
-## 6. Viewing Results
+## 8. Viewing Results
 
 - Test results are generated in the `report` folder.
 - Open `report.html` for a detailed test report.
 - Check `log.html` for step-by-step execution logs.
 - Screenshots for Web UI tests are embedded in the logs.
+- A custom dashboard (dashboard.html) is generated with test statistics and charts.
 
-## 7. Best Practices
+## 9. Best Practices
 
 1. Use meaningful test case IDs and names.
 2. Leverage tags for easy filtering and organization.
@@ -214,18 +365,18 @@ python main.py --e2e
 7. Implement proper error handling and logging in test scripts.
 8. Regularly review and optimize test suites for efficiency.
 
-## 8. Troubleshooting
+## 10. Troubleshooting
 
 - Check log files for detailed error messages.
 - Verify configuration files for correct settings.
 - Ensure all required dependencies are installed.
 - Validate Excel file structure and content.
 - Check for proper WebDriver setup for Web UI tests.
-- If you encounter "ModuleNotFoundError", ensure you've installed all required packages (see Section 1.2).
+- If you encounter "ModuleNotFoundError", ensure you've installed all required packages (see Section 2.2).
 
-## 9. Advanced Features
+## 11. Advanced Features
 
-### 9.1 Dynamic Values in API Tests
+### 11.1 Dynamic Values in API Tests
 
 The framework supports the use of dynamic values in two key areas of API tests:
 
@@ -244,18 +395,11 @@ Exp Result: $.status_code=200
 $.response.user.name=${EXPECTED_USER_NAME}
 ```
 
-In this example:
-- `${AUTH_TOKEN}` and `${CURRENT_USER_ID}` in the Body User-defined Fields will be replaced with their respective values from the Robot Framework variable scope.
-- `${EXPECTED_USER_NAME}` in the Exp Result will be replaced with the actual expected user name from the Robot Framework variable scope.
+### 11.2 Custom Python Actions in Web UI Tests
 
-#### Benefits:
-- Increased test case reusability across different environments or scenarios.
-- Easier management of test data and expected results.
-- Support for data-driven testing when combined with Robot Framework's variable files or command-line variable setting.
+You can define custom Python actions in the CustomActions sheet of the Web UI test cases Excel file. These actions can be called from your test steps to perform complex operations or validations.
 
-Remember to set these variables in your Robot Framework test suite setup, or pass them as arguments when running your tests for this feature to work effectively.
-
-## 10. Maintenance and Updates
+## 12. Maintenance and Updates
 
 - Regularly update your Python packages to ensure compatibility and security:
   ```bash

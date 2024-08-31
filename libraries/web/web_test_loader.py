@@ -1,39 +1,29 @@
 import json
 import logging
 import pandas as pd
+import os
+from typing import Dict, List
 
 
 class WebTestLoader:
     def __init__(self, excel_path):
-        """
-        Initialize the WebTestLoader with the path to the Excel file.
-        Load the data and validate it.
-        """
         self.excel_path = excel_path
         self.data = self._load_excel_data()
         self._validate_data()
 
-    def _load_excel_data(self):
-        """
-        Load all relevant sheets from the Excel file into memory.
-        Returns a dictionary with sheet names as keys and DataFrames as values.
-        """
-        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments']
+    def _load_excel_data(self) -> Dict[str, pd.DataFrame]:
+        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments', 'CustomActions']
         return {sheet: pd.read_excel(self.excel_path, sheet_name=sheet).fillna("") for sheet in sheets}
 
     def _validate_data(self):
-        """
-        Execute all data validation methods to ensure data integrity and consistency.
-        """
         self._validate_test_cases()
         self._validate_test_steps()
         self._validate_page_objects()
         self._validate_test_data()
+        self._validate_web_environments()
+        self._validate_custom_actions()
 
     def _validate_test_cases(self):
-        """
-        Validate that all test cases have corresponding test steps.
-        """
         test_cases = self.get_data_by_sheet_name('TestCases')
         test_steps = self.get_data_by_sheet_name('TestSteps')
 
@@ -44,25 +34,18 @@ class WebTestLoader:
                 logging.error(f"WebTestLoader: Case ID '{case_id}' does not have any steps defined in the TestSteps sheet.")
 
     def _validate_test_steps(self):
-        """
-        Validate that all Page Name and Module Name combinations in TestSteps exist in PageModules.
-        Also validate parameters for each step.
-        """
         test_steps = self.get_data_by_sheet_name('TestSteps')
         page_modules = self.get_data_by_sheet_name('PageModules')
 
-        page_module_combinations = set(zip(page_modules['Page Name'], page_modules['Module Name']))
-        for _, row in test_steps.iterrows():
+        page_module_combinations = set(zip(page_modules[page_modules['Run'] == 'Y']['Page Name'],
+                                           page_modules[page_modules['Run'] == 'Y']['Module Name']))
+        for _, row in test_steps[test_steps['Run'] == 'Y'].iterrows():
             if (row['Page Name'], row['Module Name']) not in page_module_combinations and row['Module Name'] != 'API':
                 logging.error(
                     f"WebTestLoader: Invalid Page Name '{row['Page Name']}' and Module Name '{row['Module Name']}' combination in TestSteps for Case ID '{row['Case ID']}'.")
             self._validate_parameters(row)
 
     def _validate_parameters(self, step_row):
-        """
-        Validate that parameters in test steps match those defined in PageModules.
-        Also check if all parameters have corresponding data in TestData.
-        """
         page_modules = self.get_data_by_sheet_name('PageModules')
         test_data = self.get_data_by_sheet_name('TestData')
 
@@ -91,21 +74,14 @@ class WebTestLoader:
                     logging.error(f"No data provided for parameter '{param}' in TestData for Case ID '{step_row['Case ID']}'")
 
     def _validate_page_objects(self):
-        """
-        Validate that all Element Names in PageModules have corresponding locators in the Locators sheet.
-        """
         page_objects = self.get_data_by_sheet_name('PageModules')
         locators = self.get_data_by_sheet_name('Locators')
 
         locator_map = set(zip(locators['Page Name'], locators['Element Name']))
-        for _, row in page_objects.iterrows():
+        for _, row in page_objects[page_objects['Run'] == 'Y'].iterrows():
             if row['Element Name'] and (row['Page Name'], row['Element Name']) not in locator_map:
                 logging.error(f"WebTestLoader: Element '{row['Element Name']}' on page '{row['Page Name']}' not found in Locators sheet.")
-
     def _validate_test_data(self):
-        """
-        Validate that all Case IDs in TestData have corresponding steps in TestSteps.
-        """
         test_data = self.get_data_by_sheet_name('TestData')
         test_steps = self.get_data_by_sheet_name('TestSteps')
 
@@ -114,48 +90,99 @@ class WebTestLoader:
             if row['Case ID'] not in case_ids_in_steps:
                 logging.error(f"WebTestLoader: Test data for Case ID '{row['Case ID']}' does not have corresponding test steps.")
 
-    def get_data_by_sheet_name(self, sheet_name):
-        """
-        Retrieve data for a specific sheet.
-        Returns an empty DataFrame if the sheet doesn't exist.
-        """
+    def _validate_web_environments(self):
+        web_environments = self.get_data_by_sheet_name('WebEnvironments')
+
+        if web_environments.empty:
+            logging.error("WebTestLoader: WebEnvironments sheet is empty or does not exist.")
+            return
+
+        required_columns = ['Environment', 'Browser', 'IsRemote', 'RemoteURL', 'ChromePath', 'ChromeDriverPath', 'EdgePath', 'EdgeDriverPath', 'BrowserOptions']
+        missing_columns = set(required_columns) - set(web_environments.columns)
+        if missing_columns:
+            logging.error(f"WebTestLoader: Missing required columns in WebEnvironments sheet: {', '.join(missing_columns)}")
+            return
+
+        for index, row in web_environments.iterrows():
+            if pd.isna(row['Environment']) or row['Environment'] == '':
+                logging.error(f"WebTestLoader: Empty Environment name in row {index + 2}")
+
+            if row['Browser'].lower() not in ['chrome', 'edge']:
+                logging.error(f"WebTestLoader: Invalid Browser '{row['Browser']}' in row {index + 2}. Must be 'chrome' or 'edge'.")
+
+            if not isinstance(row['IsRemote'], bool):
+                logging.error(f"WebTestLoader: IsRemote must be a boolean value in row {index + 2}")
+
+            if row['IsRemote']:
+                if pd.isna(row['RemoteURL']) or row['RemoteURL'] == '':
+                    logging.error(f"WebTestLoader: RemoteURL is required when IsRemote is True in row {index + 2}")
+            else:
+                if row['Browser'].lower() == 'chrome':
+                    for path_column in ['ChromePath', 'ChromeDriverPath']:
+                        if pd.isna(row[path_column]) or row[path_column] == '':
+                            logging.error(f"WebTestLoader: {path_column} is required when IsRemote is False and Browser is Chrome in row {index + 2}")
+                        elif not os.path.exists(row[path_column]):
+                            logging.warning(f"WebTestLoader: {path_column} '{row[path_column]}' does not exist in row {index + 2}")
+                elif row['Browser'].lower() == 'edge':
+                    for path_column in ['EdgePath', 'EdgeDriverPath']:
+                        if pd.isna(row[path_column]) or row[path_column] == '':
+                            logging.error(f"WebTestLoader: {path_column} is required when IsRemote is False and Browser is Edge in row {index + 2}")
+                        elif not os.path.exists(row[path_column]):
+                            logging.warning(f"WebTestLoader: {path_column} '{row[path_column]}' does not exist in row {index + 2}")
+
+            try:
+                if not pd.isna(row['BrowserOptions']) and row['BrowserOptions'] != '':
+                    json.loads(row['BrowserOptions'])
+            except json.JSONDecodeError:
+                logging.error(f"WebTestLoader: Invalid JSON in BrowserOptions in row {index + 2}")
+
+        logging.info("WebTestLoader: WebEnvironments data validation completed.")
+    def _validate_custom_actions(self):
+        custom_actions = self.get_data_by_sheet_name('CustomActions')
+        if custom_actions.empty:
+            logging.warning("WebTestLoader: CustomActions sheet is empty.")
+            return
+
+        required_columns = ['Action Name', 'Python Code']
+        missing_columns = set(required_columns) - set(custom_actions.columns)
+        if missing_columns:
+            logging.error(f"WebTestLoader: Missing required columns in CustomActions sheet: {', '.join(missing_columns)}")
+            return
+
+        for index, row in custom_actions.iterrows():
+            if pd.isna(row['Action Name']) or row['Action Name'] == '':
+                logging.error(f"WebTestLoader: Empty Action Name in CustomActions row {index + 2}")
+            if pd.isna(row['Python Code']) or row['Python Code'] == '':
+                logging.error(f"WebTestLoader: Empty Python Code for action '{row['Action Name']}' in CustomActions row {index + 2}")
+
+    def get_data_by_sheet_name(self, sheet_name: str) -> pd.DataFrame:
         return self.data.get(sheet_name, pd.DataFrame())
 
-    def filter_cases(self, tcid_list=None, tags=None):
-        """
-        Filter test cases based on provided case IDs and tags.
-        Only returns cases where 'Run' column is 'Y'.
-        """
+    def filter_cases(self, tcid_list: List[str] = None, tags: List[str] = None) -> pd.DataFrame:
         test_cases = self.get_test_cases()
 
         if tcid_list:
             test_cases = test_cases[test_cases['Case ID'].isin(tcid_list)]
 
         if tags:
-            test_cases = test_cases[test_cases['Tags'].apply(lambda x: any(tag in x for tag in tags))]
+            test_cases = test_cases[test_cases['Tags'].apply(lambda x: any(tag in str(x).split(',') for tag in tags))]
 
         test_cases = test_cases[test_cases['Run'] == 'Y']
 
         return test_cases
 
-    def get_test_cases(self):
-        """
-        Retrieve all test cases from the TestCases sheet.
-        """
+    def get_test_cases(self) -> pd.DataFrame:
         return self.get_data_by_sheet_name('TestCases')
 
-    def get_test_steps(self, case_id):
-        """
-        Retrieve test steps for a specific case ID.
-        Logs a warning if no steps are found.
-        """
+    def get_test_steps(self, case_id: str) -> pd.DataFrame:
         test_steps = self.get_data_by_sheet_name('TestSteps')
-        result = test_steps[test_steps['Case ID'] == case_id]
+        result = test_steps[(test_steps['Case ID'] == case_id) & (test_steps['Run'] == 'Y')]
         if result.empty:
             logging.warning(f"WebTestLoader: No test steps found for case ID: {case_id}")
         return result
 
-    def get_test_data(self, case_id):
+
+    def get_test_data(self, case_id: str) -> List[Dict]:
         test_data = self.get_data_by_sheet_name('TestData')
         case_data = test_data[test_data['Case ID'] == case_id]
 
@@ -177,13 +204,13 @@ class WebTestLoader:
 
         return data_sets
 
-    def _parse_value(self, value, data_type):
+    def _parse_value(self, value: str, data_type: str):
         if data_type.lower() == 'json':
             try:
                 return json.loads(value)
             except json.JSONDecodeError:
                 logging.error(f"Invalid JSON string: {value}")
-                return value  # 返回原始字符串，以防解析失败
+                return value
         elif data_type.lower() == 'integer':
             try:
                 return int(value)
@@ -199,22 +226,18 @@ class WebTestLoader:
         elif data_type.lower() == 'boolean':
             return value.lower() in ('true', 'yes', '1', 'on')
         else:
-            return value  # 默认作为字符串处理
+            return value
 
-    def get_page_objects(self):
-        """
-        Retrieve all page objects from the PageModules sheet.
-        """
-        return self.get_data_by_sheet_name('PageModules')
+    def get_page_objects(self) -> pd.DataFrame:
+        page_objects = self.get_data_by_sheet_name('PageModules')
+        return page_objects[page_objects['Run'] == 'Y']
 
-    def get_locators(self):
-        """
-        Retrieve all locators from the Locators sheet.
-        """
+    def get_locators(self) -> pd.DataFrame:
         return self.get_data_by_sheet_name('Locators')
 
-    def get_web_environments(self):
-        """
-        Retrieve all web environments from the WebEnvironments sheet.
-        """
+    def get_web_environments(self) -> pd.DataFrame:
         return self.get_data_by_sheet_name('WebEnvironments')
+
+    def get_custom_actions(self) -> Dict[str, str]:
+        custom_actions_df = self.get_data_by_sheet_name('CustomActions')
+        return dict(zip(custom_actions_df['Action Name'], custom_actions_df['Python Code']))

@@ -5,7 +5,7 @@ html_template = '''<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Automatic Testing Framework</title>
+    <title>E2E Automatic Testing Framework</title>
     <style>
         body {{
             font-family: Arial, sans-serif;

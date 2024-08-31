@@ -96,7 +96,7 @@ class ResponseValidator(ResponseHandler):
 
                 actual_value = round(float(post_value) - float(pre_value), 2)
 
-                logging.info(f"{self.__class__.__name__}: Actual diff: {actual_value}, Expected diff: {expected_value}")
+                logging.info(f"{self.__class__.__name__}: Actual diff: {actual_value}, Expected diff: {round(float(expected_value),2)}")
 
                 if not self._compare_diff(actual_value, expected_value):
                     raise AssertionError(f"{self.__class__.__name__}: Dynamic check failed for {tcid}.{json_path}. Expected: {expected_value}, Actual: {actual_value}")

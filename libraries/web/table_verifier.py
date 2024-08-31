@@ -137,6 +137,53 @@ class TableVerifier:
 
         self.logger.info(f"Verified column '{column}': {actual_value}")
 
+    def select_table_row_checkbox(self, table_element, identifier_column, identifier_value, checkbox_column=1):
+        """
+        Select the checkbox in a specific row based on an identifier value in a specific column.
+
+        :param table_element: WebElement of the table
+        :param identifier_column: Column name or index (1-based if index) containing the identifier
+        :param identifier_value: Value to identify the row
+        :param checkbox_column: Column index (1-based) of the checkbox (default is 1, assuming checkbox is in the first column)
+        """
+        try:
+            rows = table_element.find_elements(By.TAG_NAME, "tr")
+            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.TAG_NAME, "th")]
+
+            identifier_index = self._get_cell_index(headers, identifier_column)
+            checkbox_index = checkbox_column - 1  # Convert to 0-based index
+
+            for row in rows[1:]:  # Skip header row
+                cells = row.find_elements(By.TAG_NAME, "td")
+                if identifier_index < len(cells) and cells[identifier_index].text.strip() == identifier_value:
+                    if checkbox_index < len(cells):
+                        checkbox = cells[checkbox_index].find_element(By.TAG_NAME, "input")
+                        if checkbox.get_attribute("type") == "checkbox":
+                            if not checkbox.is_selected():
+                                checkbox.click()
+                            self.logger.info(f"Checkbox selected for row with {identifier_column}: {identifier_value}")
+                            return
+                    else:
+                        raise ValueError(
+                            f"Checkbox column index {checkbox_column} is out of range. Row has {len(cells)} cells.")
+
+            raise ValueError(f"No row found with {identifier_column}: {identifier_value}")
+
+        except Exception as e:
+            self.logger.error(f"Error selecting row checkbox: {str(e)}")
+            raise
+
+    def select_multiple_table_row_checkboxes(self, table_element, identifier_column, identifier_values, checkbox_column=1):
+        """
+        Select checkboxes in multiple rows based on identifier values in a specific column.
+
+        :param table_element: WebElement of the table
+        :param identifier_column: Column name or index (1-based if index) containing the identifier
+        :param identifier_values: List of values to identify the rows
+        :param checkbox_column: Column index (1-based) of the checkbox (default is 1, assuming checkbox is in the first column)
+        """
+        for identifier_value in identifier_values:
+            self.select_table_row_checkbox(table_element, identifier_column, identifier_value, checkbox_column)
 # 使用示例
 # table_verifier = TableVerifier(driver)
 # table_element = driver.find_element(By.ID, 'myTable')

@@ -9,6 +9,7 @@ from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
 from libraries.web.web_test_loader import WebTestLoader
 from libraries.web.webdriver_factory import WebDriverFactory
+from libraries.web.custom_action_executor import CustomActionExecutor
 from robot.libraries.BuiltIn import BuiltIn
 
 builtin_lib = BuiltIn()
@@ -79,6 +80,7 @@ class PageObject:
         self.page_elements = self._load_page_elements()
         self.page_modules = self._load_page_modules()
 
+        self.custom_action_executor = CustomActionExecutor(self.web_test_loader.get_custom_actions())
     def _load_webdriver(self):
         active_env_config = self.env_config['environments'][self.test_config['active_environment']]
         driver = WebDriverSingleton.get_instance(active_env_config)
@@ -117,13 +119,13 @@ class PageObject:
             highlight = action_info['highlight']
             screen_capture = action_info['screen_capture']
             wait = action_info['wait']
-            element = self._find_element(page_name, element_name, action)
+            locator = self.page_elements[page_name][element_name] if element_name else None
             action_params = [parameters.get(param) for param in action_info['parameter_name']]
 
             if highlight:
-                self.web_actions.highlight_element(element)
+                self.web_actions.highlight_element(locator)
 
-            self._execute_action(action, element, *action_params)
+            self._execute_action(action, locator, *action_params)
 
             if wait:
                 try:
@@ -138,30 +140,8 @@ class PageObject:
 
             logging.info("=" * 80)
 
-    def _find_element(self, page_name: str, element_name: str, action: str):
-        if not element_name:
-            return None
 
-        locator = self.page_elements[page_name][element_name]
-        condition = {
-            'click': 'clickable',
-            'select_by_value': 'clickable',
-            'select_by_visible_text': 'clickable',
-            'select_by_index': 'clickable',
-            'double_click': 'clickable',
-            'right_click': 'clickable',
-            'send_keys': 'visibility',
-            'clear': 'visibility',
-            'hover': 'visibility',
-            'highlight_element': 'visibility',
-            'switch_to_frame': 'presence'
-        }.get(action, 'presence')
-
-        element = self.web_actions.wait_for_element(locator, condition=condition)
-        logging.debug(f"{self.__class__.__name__}: Located element {locator} for action: {action}")
-        return element
-
-    def _execute_action(self, action: str, element, *args, **kwargs):
+    def _execute_action(self, action: str, locator, *args, **kwargs):
         action_map = {
             'open_url': self.web_actions.open_url,
             'send_keys': self.web_actions.send_keys,
@@ -186,8 +166,12 @@ class PageObject:
             'element_text_should_contains': self.web_actions.element_text_should_contains,
             'title_should_be': self.web_actions.title_should_be,
             'title_should_contains': self.web_actions.title_should_contains,
-            'wait_for_text_to_be_present': self.web_actions.wait_for_text_to_be_present,
+            'wait_for_element_present': self.web_actions.wait_for_element_present,
+            'wait_for_element_visible': self.web_actions.wait_for_element_visible,
+            'wait_for_element_clickable': self.web_actions.wait_for_element_clickable,
+            'wait_for_text_present_in_element': self.web_actions.wait_for_text_present_in_element,
             'wait_for_element_to_disappear': self.web_actions.wait_for_element_to_disappear,
+            'wait_for_staleness_of': self.web_actions.wait_for_staleness_of,
             'switch_to_frame': self.web_actions.switch_to_frame,
             'switch_to_default_content': self.web_actions.switch_to_default_content,
             'execute_script': self.web_actions.execute_script,
@@ -204,10 +188,44 @@ class PageObject:
             'verify_table_regex': self.web_actions.verify_table_regex,
             'verify_table_row_regex': self.web_actions.verify_table_row_regex,
             'verify_specific_cell_regex': self.web_actions.verify_specific_cell_regex,
+            'select_table_row_checkbox': self.web_actions.select_table_row_checkbox,
+            'select_multiple_table_row_checkboxes': self.web_actions.select_multiple_table_row_checkboxes,
             'wait': self.web_actions.wait,
+            'capture_screenshot': self.web_actions.capture_screenshot,
+            'get_element_size': self.web_actions.get_element_size,
+            'get_element_location': self.web_actions.get_element_location,
+            'get_css_value': self.web_actions.get_css_value,
+            'switch_to_window': self.web_actions.switch_to_window,
+            'get_window_handles': self.web_actions.get_window_handles,
+            'close_current_window': self.web_actions.close_current_window,
+            'refresh_page': self.web_actions.refresh_page,
+            'go_back': self.web_actions.go_back,
+            'go_forward': self.web_actions.go_forward,
+            'get_current_url': self.web_actions.get_current_url,
+            'execute_async_script': self.web_actions.execute_async_script,
+            'get_property': self.web_actions.get_property,
+            'set_window_size': self.web_actions.set_window_size,
+            'maximize_window': self.web_actions.maximize_window,
+            'minimize_window': self.web_actions.minimize_window,
+            'fullscreen_window': self.web_actions.fullscreen_window,
+            'get_accessible_name': self.web_actions.get_accessible_name,
+            'get_aria_role': self.web_actions.get_aria_role,
+            'add_cookie': self.web_actions.add_cookie,
+            'get_cookie': self.web_actions.get_cookie,
+            'delete_cookie': self.web_actions.delete_cookie,
+            'delete_all_cookies': self.web_actions.delete_all_cookies,
+            'get_log': self.web_actions.get_log,
+            'js_click': self.web_actions.js_click,
+            'js_send_keys': self.web_actions.js_send_keys,
+            'js_clear': self.web_actions.js_clear,
+            'js_scroll_into_view': self.web_actions.js_scroll_into_view,
+            'js_select_option': self.web_actions.js_select_option,
+            'js_hover': self.web_actions.js_hover,
+            'capture_element_value': self.web_actions.capture_element_value,
+            'assert_value_change': self.web_actions.assert_value_change,
         }
 
-        if action not in action_map:
+        if action not in action_map and action not in self.custom_action_executor.custom_actions:
             raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
 
         # Create a new list to store the modified arguments
@@ -228,7 +246,12 @@ class PageObject:
             # Add the processed (or original) argument to the new list
             new_args.append(arg)
 
-        return action_map[action](element, *new_args, **kwargs) if element else action_map[action](*new_args, **kwargs)
+        if action in action_map:
+            return action_map[action](locator, *new_args, **kwargs) if locator else action_map[action](*new_args, **kwargs)
+        elif action in self.custom_action_executor.custom_actions:
+            return self.custom_action_executor.execute_custom_action(action, locator, self.web_actions, *new_args, **kwargs)
+        else:
+            raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
 
     @keyword
     def close_browser(self):

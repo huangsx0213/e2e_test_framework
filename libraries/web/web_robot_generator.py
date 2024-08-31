@@ -62,26 +62,28 @@ class WebUIRobotCasesGenerator:
 
     def create_test_steps(self, robot_test, test_steps: List[Dict], data_set: Dict):
         for _, step in test_steps.iterrows():
-            page_name = step['Page Name']
-            module_name = step['Module Name']
-            parameters = self.extract_parameters(data_set, step['Parameter Name'])
+            if step['Run'] == 'Y':
+                page_name = step['Page Name']
+                module_name = step['Module Name']
+                parameters = self.extract_parameters(data_set, step['Parameter Name'])
 
-            try:
-                logging.info(f"{self.__class__.__name__}: Creating web step: {page_name}.{module_name}")
-                robot_test.body.create_keyword(name='execute_module', args=[page_name, module_name, parameters])
-            except Exception as e:
-                logging.error(f"{self.__class__.__name__}: Error Creating web step {page_name}.{module_name}: {str(e)}")
-                raise
+                try:
+                    logging.info(f"{self.__class__.__name__}: Creating web step: {page_name}.{module_name}")
+                    robot_test.body.create_keyword(name='execute_module', args=[page_name, module_name, parameters])
+                except Exception as e:
+                    logging.error(f"{self.__class__.__name__}: Error Creating web step {page_name}.{module_name}: {str(e)}")
+                    raise
 
     @staticmethod
     def extract_parameters(data_set: Dict, parameter_names: str) -> Dict:
         parameters = {}
-        for name in parameter_names.split(','):
-            if name in data_set:
-                value = data_set[name]
-                # Add type conversion here if needed
-                parameters[name] = value
-            else:
-                logging.warning(f"WebUIRobotCasesGenerator: Parameter {name} not found in data set")
-        logging.info(f"WebUIRobotCasesGenerator: Extracted parameters: {parameters}")
+        if parameter_names != '':
+            for name in parameter_names.split(','):
+                if name in data_set:
+                    value = data_set[name]
+                    # Add type conversion here if needed
+                    parameters[name] = value
+                else:
+                    logging.warning(f"WebUIRobotCasesGenerator: Parameter {name} not found in data set")
+            logging.info(f"WebUIRobotCasesGenerator: Extracted parameters: {parameters}")
         return parameters
