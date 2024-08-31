@@ -31,6 +31,7 @@ This automated testing framework offers the following features:
 11. Error Handling and Retry Mechanism: Implements robust error handling and test retry logic.
 12. CI-Friendly: Easy to integrate into CI/CD processes.
 13. Extensibility: Modular framework design, easy to add new features and customize.
+14. Sanity Check Feature: Supports automatic skipping of subsequent tests if a designated sanity check test fails.
 
 ## 2. Installation and Setup
 
@@ -179,6 +180,19 @@ python yaml_config_cli.py configs/api_test_config.yaml --remove-from-list tags d
 | Conditions | Special conditions | Specific format string | E.g., [Checkwith], [TestSetup], [TestTeardown] |
 | Wait | Wait time after test execution | Number (seconds) | Pause execution for specified time |
 
+#### Sanity Check:
+To designate a test case as a sanity check:
+1. In the 'Tags' column of the API sheet, include the tag 'sanity check' (case-insensitive).
+2. If a test case with the 'sanity check' tag fails, all subsequent test cases will be automatically skipped.
+
+Example:
+```
+TCID | Name           | ... | Tags
+-----|----------------|-----|----------------
+TC001| Sanity Check   | ... | critical, sanity check
+TC002| Regular Test   | ... | regression
+```
+
 ### 4.3 BodyTemplates Sheet:
 | Column Name | Description | Possible Values | Logic |
 |-------------|-------------|-----------------|-------|
@@ -225,6 +239,19 @@ python yaml_config_cli.py configs/api_test_config.yaml --remove-from-list tags d
 | Descriptions | Test case description | String | Detailed explanation of test purpose |
 | Run | Whether to execute this case | "Y" or "N" | Y means execute, N means skip |
 | Tags | Case tags | Comma-separated string | For categorizing and filtering cases |
+
+#### Sanity Check:
+To designate a test case as a sanity check:
+1. In the 'Tags' column of the TestCases sheet, include the tag 'sanity check' (case-insensitive).
+2. If a test case with the 'sanity check' tag fails, all subsequent test cases will be automatically skipped.
+
+Example:
+```
+Case ID | Name           | ... | Tags
+--------|----------------|-----|----------------
+UITC001 | Sanity Check   | ... | critical, sanity check
+UITC002 | Regular Test   | ... | regression
+```
 
 ### 5.3 TestSteps Sheet:
 | Column Name | Description | Possible Values | Logic |
@@ -364,6 +391,8 @@ You can specify test case IDs or tags in the respective configuration files (api
 6. Use parameterization to create data-driven tests.
 7. Implement proper error handling and logging in test scripts.
 8. Regularly review and optimize test suites for efficiency.
+9. Use the 'sanity check' tag for critical tests that, if failed, should prevent further testing.
+10. Order your test cases so that sanity checks run first, followed by other tests.
 
 ## 10. Troubleshooting
 
@@ -398,6 +427,28 @@ $.response.user.name=${EXPECTED_USER_NAME}
 ### 11.2 Custom Python Actions in Web UI Tests
 
 You can define custom Python actions in the CustomActions sheet of the Web UI test cases Excel file. These actions can be called from your test steps to perform complex operations or validations.
+
+### 11.3 Sanity Check Implementation
+
+The framework now supports a 'sanity check' feature:
+
+- Tests tagged with 'sanity check' (case-insensitive) are treated as critical tests.
+- If a sanity check test fails, all subsequent tests in the suite will be automatically skipped.
+- This feature helps to quickly identify fundamental issues and saves time by not running further tests when basic functionality fails.
+
+To use this feature:
+1. Add the tag 'sanity check' to critical test cases in your Excel file.
+2. Run your test suite as usual.
+3. If a sanity check fails, you'll see skip messages for subsequent tests in the logs.
+
+Example log output when a sanity check fails:
+```
+FAIL: Sanity Check Test
+SKIP: Subsequent Test 1 - Skip current test TC002 due to Sanity Check failure
+SKIP: Subsequent Test 2 - Skip current test TC003 due to Sanity Check failure
+```
+
+This feature is automatically enabled and requires no additional configuration beyond tagging your tests appropriately.
 
 ## 12. Maintenance and Updates
 
