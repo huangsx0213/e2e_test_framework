@@ -256,3 +256,11 @@ class PageObject:
     @keyword
     def close_browser(self):
         WebDriverSingleton.quit()
+
+    @keyword
+    def sanity_check(self,message: str = None) -> None:
+        skip_on_sanity_check_failure = BuiltIn().get_variable_value('${skip_on_sanity_check_failure}', default=False)
+        if skip_on_sanity_check_failure:
+            BuiltIn().skip(message)
+        else:
+            logging.info(f"{self.__class__.__name__}: No need to skip on sanity check success.")

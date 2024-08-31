@@ -76,6 +76,7 @@ class E2ERobotCasesGenerator:
 
             try:
                 logging.info(f"{self.__class__.__name__}: Creating e2e step: {page_name}.{module_name}")
+                robot_ui_test.body.create_keyword(name='sanity_check', args=[f"Skip current test {step['Case ID']} due to Sanity Check failure"])
                 if module_name == 'API':
                     self.child_suite.tests.remove(robot_ui_test)
                     self.child_suite.name = f"APISubSuite.{page_name}.{step['Case ID']}"

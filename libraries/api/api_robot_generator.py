@@ -44,6 +44,7 @@ class APIRobotCasesGenerator:
         for _, test_case in filtered_cases.iterrows():
             robot_api_test_name = f"API.{test_case['TCID']}.{test_case['Name']}"
             robot_api_test = self.api_suite.tests.create(name=robot_api_test_name, doc=test_case['Descriptions'])
+            robot_api_test.body.create_keyword(name='api_sanity_check', args=[f"Skip current test {test_case['TCID']} due to Sanity Check failure"])
             # Add tags
             if 'Tags' in test_case and pd.notna(test_case['Tags']):
                 tags = [tag.strip() for tag in test_case['Tags'].split(',')]

@@ -2,6 +2,7 @@ import logging
 import os
 import argparse
 
+from robot.libraries.BuiltIn import BuiltIn
 from robot.reporting import ResultWriter
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.api.api_robot_generator import APIRobotCasesGenerator
@@ -17,13 +18,9 @@ class ExitOnFailureListener:
         self.exit_on_failure = False
 
     def end_test(self, data, result):
-        if 'smoke test' in [tag.lower() for tag in result.tags] and result.status == 'FAIL':
+        if 'sanity check' in [tag.lower() for tag in result.tags] and result.status == 'FAIL':
             self.exit_on_failure = True
-
-    def start_suite(self, data, result):
-        if self.exit_on_failure:
-            logging.error('ExitOnFailureListener: Smoke test failed. Exiting...')
-            data.tests.clear()
+            BuiltIn().set_global_variable('${skip_on_sanity_check_failure}', True)
 
 
 def run_test_suite(suite):

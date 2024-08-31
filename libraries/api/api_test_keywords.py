@@ -55,7 +55,13 @@ class APITestKeywords:
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
         self.api_response_asserter: ResponseValidator = ResponseValidator()
         self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
-
+    @keyword
+    def api_sanity_check(self,message: str = None) -> None:
+        skip_on_sanity_check_failure = BuiltIn().get_variable_value('${skip_on_sanity_check_failure}', default=False)
+        if skip_on_sanity_check_failure:
+            BuiltIn().skip(message)
+        else:
+            logging.info(f"{self.__class__.__name__}: No need to skip on sanity check success.")
     @keyword
     def clear_saved_fields(self):
         if self.test_config.get('clear_saved_fields_after_test', False):
