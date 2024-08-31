@@ -61,7 +61,7 @@ class APITestKeywords:
         if skip_on_sanity_check_failure:
             BuiltIn().skip(message)
         else:
-            logging.info(f"{self.__class__.__name__}: No need to skip on sanity check success.")
+            logging.info(f"{self.__class__.__name__}: Sanity check succeeded, continuing with the test.")
     @keyword
     def clear_saved_fields(self):
         if self.test_config.get('clear_saved_fields_after_test', False):
