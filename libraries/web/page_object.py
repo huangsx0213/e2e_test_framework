@@ -267,9 +267,9 @@ class PageObject:
         WebDriverSingleton.quit()
 
     @keyword
-    def sanity_check(self,message: str = None) -> None:
+    def sanity_check(self) -> None:
         skip_on_sanity_check_failure = BuiltIn().get_variable_value('${skip_on_sanity_check_failure}', default=False)
         if skip_on_sanity_check_failure:
-            BuiltIn().skip(message)
+            BuiltIn().skip("Skipping current test as sanity check failed.")
         else:
             logging.info(f"{self.__class__.__name__}: Sanity check succeeded, continuing with the test.")

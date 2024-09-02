@@ -56,10 +56,10 @@ class APITestKeywords:
         self.api_response_asserter: ResponseValidator = ResponseValidator()
         self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
     @keyword
-    def api_sanity_check(self,message: str = None) -> None:
+    def api_sanity_check(self) -> None:
         skip_on_sanity_check_failure = BuiltIn().get_variable_value('${skip_on_sanity_check_failure}', default=False)
         if skip_on_sanity_check_failure:
-            BuiltIn().skip(message)
+            BuiltIn().skip("Skipping current test as sanity check failed.")
         else:
             logging.info(f"{self.__class__.__name__}: Sanity check succeeded, continuing with the test.")
     @keyword

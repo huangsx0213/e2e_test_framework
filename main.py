@@ -9,6 +9,7 @@ from libraries.web.web_robot_generator import WebUIRobotCasesGenerator
 from libraries.e2e.e2e_robot_generator import E2ERobotCasesGenerator
 from libraries.api.api_robot_generator import APIRobotCasesGenerator
 
+
 class ExitOnFailureListener:
     ROBOT_LISTENER_API_VERSION = 3
 

@@ -55,6 +55,7 @@ class E2ERobotCasesGenerator:
         for data_set_index, data_set in enumerate(test_data_sets, 1):
             test_name = f"UI.{test_case['Case ID']}.{test_case['Name']}.{data_set_index}"
             robot_ui_test = self.child_suite.tests.create(name=test_name)
+            robot_ui_test.body.create_keyword(name='sanity_check', args=[])
             if 'Tags' in test_case and pd.notna(test_case['Tags']):
                 tags = [tag.strip() for tag in test_case['Tags'].split(',')]
                 for tag in tags:
@@ -76,7 +77,7 @@ class E2ERobotCasesGenerator:
 
             try:
                 logging.info(f"{self.__class__.__name__}: Creating e2e step: {page_name}.{module_name}")
-                robot_ui_test.body.create_keyword(name='sanity_check', args=[f"Skip current test {step['Case ID']} due to Sanity Check failure"])
+
                 if module_name == 'API':
                     self.child_suite.tests.remove(robot_ui_test)
                     self.child_suite.name = f"APISubSuite.{page_name}.{step['Case ID']}"
