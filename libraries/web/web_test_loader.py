@@ -4,12 +4,23 @@ import pandas as pd
 import os
 from typing import Dict, List
 
-
 class WebTestLoader:
+    _instances = {}
+
+    def __new__(cls, excel_path):
+        if excel_path not in cls._instances:
+            instance = super().__new__(cls)
+            instance.__init__(excel_path)
+            cls._instances[excel_path] = instance
+        return cls._instances[excel_path]
+
     def __init__(self, excel_path):
+        if hasattr(self, 'initialized'):
+            return
         self.excel_path = excel_path
         self.data = self._load_excel_data()
         self._validate_data()
+        self.initialized = True
 
     def _load_excel_data(self) -> Dict[str, pd.DataFrame]:
         sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments', 'CustomActions']
@@ -81,6 +92,7 @@ class WebTestLoader:
         for _, row in page_objects[page_objects['Run'] == 'Y'].iterrows():
             if row['Element Name'] and (row['Page Name'], row['Element Name']) not in locator_map:
                 logging.error(f"WebTestLoader: Element '{row['Element Name']}' on page '{row['Page Name']}' not found in Locators sheet.")
+
     def _validate_test_data(self):
         test_data = self.get_data_by_sheet_name('TestData')
         test_steps = self.get_data_by_sheet_name('TestSteps')
@@ -137,6 +149,7 @@ class WebTestLoader:
                 logging.error(f"WebTestLoader: Invalid JSON in BrowserOptions in row {index + 2}")
 
         logging.info("WebTestLoader: WebEnvironments data validation completed.")
+
     def _validate_custom_actions(self):
         custom_actions = self.get_data_by_sheet_name('CustomActions')
         if custom_actions.empty:
@@ -180,7 +193,6 @@ class WebTestLoader:
         if result.empty:
             logging.warning(f"WebTestLoader: No test steps found for case ID: {case_id}")
         return result
-
 
     def get_test_data(self, case_id: str) -> List[Dict]:
         test_data = self.get_data_by_sheet_name('TestData')

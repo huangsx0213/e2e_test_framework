@@ -3,7 +3,7 @@ import logging
 import os
 import re
 from typing import Dict, Tuple, List
-from robot.api.deco import keyword, library
+from robot.api.deco import keyword
 from libraries.web.web_element_actions import WebElementActions
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
@@ -36,8 +36,6 @@ class WebDriverSingleton:
             logging.info("WebDriverSingleton: WebDriver instance closed")
 
 
-@library
-@library
 class PageObject:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root = PROJECT_ROOT
@@ -148,7 +146,6 @@ class PageObject:
                 self.web_actions.capture_screenshot()
 
             logging.info("=" * 80)
-
 
     def _execute_action(self, action: str, locator, *args, **kwargs):
         action_map = {

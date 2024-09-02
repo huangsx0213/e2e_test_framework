@@ -4,13 +4,24 @@ import pandas as pd
 import yaml
 from typing import List, Dict
 
-
 class APITestLoader:
+    _instances = {}
+
+    def __new__(cls, excel_path: str):
+        if excel_path not in cls._instances:
+            instance = super().__new__(cls)
+            instance.__init__(excel_path)
+            cls._instances[excel_path] = instance
+        return cls._instances[excel_path]
+
     def __init__(self, excel_path: str):
+        if hasattr(self, 'initialized'):
+            return
         self.excel_path = excel_path
         self.data: Dict[str, pd.DataFrame] = {}
         self._load_all_excel_data()
         self.validate_excel_structure()
+        self.initialized = True
 
     def _load_all_excel_data(self):
         try:
