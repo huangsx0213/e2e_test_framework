@@ -103,7 +103,7 @@ class WebElementActions:
         self.driver.get(url)
         logging.info(f"{self.__class__.__name__}: URL opened successfully: {url}")
 
-    @wait_and_perform(default_condition="visibility")
+    @wait_and_perform(default_condition="presence")
     def send_keys(self, element, value):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Sending keys to element: {element_desc}")
@@ -118,7 +118,7 @@ class WebElementActions:
         element.click()
         logging.info(f"{self.__class__.__name__}: Element clicked successfully: {element_desc}")
 
-    @wait_and_perform(default_condition="visibility")
+    @wait_and_perform(default_condition="presence")
     def clear(self, element):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Clearing element: {element_desc}")
@@ -183,7 +183,7 @@ class WebElementActions:
             "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center', inline: 'nearest'});", element)
         logging.info(f"{self.__class__.__name__}: Scrolled to element successfully: {element_desc}")
 
-    @wait_and_perform(default_condition="visibility")
+    @wait_and_perform(default_condition="presence")
     def get_text(self, element):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Getting text from element: {element_desc}")
@@ -200,7 +200,7 @@ class WebElementActions:
             f"{self.__class__.__name__}: Attribute '{attribute_name}' value: '{attribute_value}' for element: {element_desc}")
         return attribute_value
 
-    @wait_and_perform(default_condition="visibility")
+    @wait_and_perform(default_condition="presence")
     def element_text_should_be(self, element, expected_text):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Checking if element text matches expected: {element_desc}, expected text: '{expected_text}'")
@@ -208,7 +208,7 @@ class WebElementActions:
         assert actual_text == expected_text, f"{self.__class__.__name__}: Expected text: '{expected_text}' is not matching actual text: '{actual_text}'"
         logging.info(f"{self.__class__.__name__}: Element text matches expected: '{expected_text}', Actual text: '{actual_text}'")
 
-    @wait_and_perform(default_condition="visibility")
+    @wait_and_perform(default_condition="presence")
     def element_text_should_contains(self, element, expected_text):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Checking if element text contains expected: {element_desc}, expected text: '{expected_text}'")
@@ -393,7 +393,7 @@ class WebElementActions:
             logging.error(f"{self.__class__.__name__}: Failed to capture screenshot: {str(e)}")
             BuiltIn().log(f"{self.__class__.__name__}: Failed to capture screenshot: {str(e)}", level="ERROR")
 
-    @wait_and_perform(default_condition="presence")
+    @wait_and_perform(default_condition="visibility")
     def highlight_element(self, element, duration=2, color="lightgreen", border="3px solid red"):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Highlighting element: {element_desc}")
@@ -644,30 +644,35 @@ class WebElementActions:
         logging.info(f"{self.__class__.__name__}: Retrieved {len(logs)} log entries")
         return logs
 
+    @wait_and_perform(default_condition="clickable")
     def js_click(self, element):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Clicking element using JavaScript: {element_desc}")
         self.driver.execute_script("arguments[0].click();", element)
         logging.info(f"{self.__class__.__name__}: Element clicked successfully using JavaScript: {element_desc}")
 
+    @wait_and_perform(default_condition="presence")
     def js_send_keys(self, element, value):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Sending keys to element using JavaScript: {element_desc}")
         self.driver.execute_script(f"arguments[0].value = '{value}';", element)
         logging.info(f"{self.__class__.__name__}: Keys sent successfully using JavaScript: {element_desc}")
 
+    @wait_and_perform(default_condition="presence")
     def js_clear(self, element):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Clearing element using JavaScript: {element_desc}")
         self.driver.execute_script("arguments[0].value = '';", element)
         logging.info(f"{self.__class__.__name__}: Element cleared successfully using JavaScript: {element_desc}")
 
+    @wait_and_perform(default_condition="presence")
     def js_scroll_into_view(self, element):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Scrolling element into view using JavaScript: {element_desc}")
         self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
         logging.info(f"{self.__class__.__name__}: Element scrolled into view successfully using JavaScript: {element_desc}")
 
+    @wait_and_perform(default_condition="presence")
     def js_select_option(self, select_element, option_text):
         element_desc = self._get_element_description(select_element)
         logging.info(f"{self.__class__.__name__}: Selecting option '{option_text}' using JavaScript: {element_desc}")
@@ -684,6 +689,7 @@ class WebElementActions:
         )
         logging.info(f"{self.__class__.__name__}: Option selected successfully using JavaScript: {element_desc}")
 
+    @wait_and_perform(default_condition="visibility")
     def js_hover(self, element):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Hovering over element using JavaScript: {element_desc}")
@@ -697,7 +703,7 @@ class WebElementActions:
         )
         logging.info(f"{self.__class__.__name__}: Hovered over element successfully using JavaScript: {element_desc}")
 
-    @wait_and_perform(default_condition="visibility")
+    @wait_and_perform(default_condition="presence")
     def capture_element_value(self, element, variable_name):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Capturing value from element: {element_desc}")
@@ -706,7 +712,7 @@ class WebElementActions:
         logging.info(f"{self.__class__.__name__}: Saved value '{value}' to variable ${{{variable_name}}}")
         return value
 
-    @wait_and_perform(default_condition="visibility")
+    @wait_and_perform(default_condition="presence")
     def assert_value_change(self, element, initial_value_variable, expected_change):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Asserting value change for element: {element_desc}")
