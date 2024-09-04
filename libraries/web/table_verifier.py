@@ -1,8 +1,6 @@
 import logging
 from selenium.webdriver.common.by import By
-
 import re
-
 
 class TableVerifier:
     def __init__(self, driver):
@@ -19,14 +17,14 @@ class TableVerifier:
         """
         try:
             rows = table_element.find_elements(By.TAG_NAME, "tr")
-            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.TAG_NAME, "th")]
+            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.XPATH, ".//th | .//td")]
 
             for row_index, expected_row in enumerate(expected_data, start=1):
                 if row_index >= len(rows):
                     raise ValueError(f"Not enough rows in table. Expected at least {row_index}, but found {len(rows) - 1}")
 
                 row = rows[row_index]
-                cells = row.find_elements(By.TAG_NAME, "td")
+                cells = row.find_elements(By.XPATH, ".//td|.//th")
 
                 for column, expected_value in expected_row.items():
                     cell_index = self._get_cell_index(headers, column)
@@ -52,13 +50,13 @@ class TableVerifier:
         """
         try:
             rows = table_element.find_elements(By.TAG_NAME, "tr")
-            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.TAG_NAME, "th")]
+            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.XPATH, ".//th | .//td")]
 
             if row_index < 1 or row_index >= len(rows):
                 raise ValueError(f"Invalid row index: {row_index}. Table has {len(rows) - 1} data rows.")
 
             row = rows[row_index]
-            cells = row.find_elements(By.TAG_NAME, "td")
+            cells = row.find_elements(By.XPATH, ".//td|.//th")
 
             for column, expected_value in expected_data.items():
                 cell_index = self._get_cell_index(headers, column)
@@ -85,13 +83,13 @@ class TableVerifier:
         """
         try:
             rows = table_element.find_elements(By.TAG_NAME, "tr")
-            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.TAG_NAME, "th")]
+            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.XPATH, ".//th | .//td")]
 
             if row_index < 1 or row_index >= len(rows):
                 raise ValueError(f"Invalid row index: {row_index}. Table has {len(rows) - 1} data rows.")
 
             row = rows[row_index]
-            cells = row.find_elements(By.TAG_NAME, "td")
+            cells = row.find_elements(By.XPATH, ".//td|.//th")
 
             cell_index = self._get_cell_index(headers, column)
             if cell_index >= len(cells):
@@ -125,13 +123,13 @@ class TableVerifier:
         """
         if match_type == 'exact':
             assert actual_value == expected_value, f"Mismatch in column '{column}'. Expected: {expected_value}, Actual: {actual_value}"
-            logging.info(f"Verified column '{column}': expected: {expected_value}, actual: {actual_value}")
+            self.logger.info(f"Verified column '{column}': expected: {expected_value}, actual: {actual_value}")
         elif match_type == 'partial':
             assert expected_value in actual_value, f"Value '{expected_value}' not found in column '{column}'. Actual: {actual_value}"
-            logging.info(f"Verified column '{column}': partial match: {expected_value} in {actual_value}")
+            self.logger.info(f"Verified column '{column}': partial match: {expected_value} in {actual_value}")
         elif match_type == 'regex':
             assert re.search(expected_value, actual_value), f"Regex '{expected_value}' did not match in column '{column}'. Actual: {actual_value}"
-            logging.info(f"Verified column '{column}': regex match: {expected_value} in {actual_value}")
+            self.logger.info(f"Verified column '{column}': regex match: {expected_value} in {actual_value}")
         else:
             raise ValueError(f"Invalid match_type: {match_type}")
 
@@ -148,13 +146,13 @@ class TableVerifier:
         """
         try:
             rows = table_element.find_elements(By.TAG_NAME, "tr")
-            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.TAG_NAME, "th")]
+            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.XPATH, ".//th | .//td")]
 
             identifier_index = self._get_cell_index(headers, identifier_column)
             checkbox_index = checkbox_column - 1  # Convert to 0-based index
 
             for row in rows[1:]:  # Skip header row
-                cells = row.find_elements(By.TAG_NAME, "td")
+                cells = row.find_elements(By.XPATH, ".//td|.//th")
                 if identifier_index < len(cells) and cells[identifier_index].text.strip() == identifier_value:
                     if checkbox_index < len(cells):
                         checkbox = cells[checkbox_index].find_element(By.TAG_NAME, "input")
@@ -184,37 +182,3 @@ class TableVerifier:
         """
         for identifier_value in identifier_values:
             self.select_table_row_checkbox(table_element, identifier_column, identifier_value, checkbox_column)
-# 使用示例
-# table_verifier = TableVerifier(driver)
-# table_element = driver.find_element(By.ID, 'myTable')
-
-# 验证整个表格
-# table_verifier.verify_table(
-#     table_element,
-#     expected_data=[
-#         {'Name': 'John Doe', 'Age': '30', 'Email': r'^[\w\.-]+@[\w\.-]+\.\w+$'},
-#         {'Name': 'Jane Smith', 'Age': '25', 'Email': r'^[\w\.-]+@[\w\.-]+\.\w+$'}
-#     ],
-#     match_type='regex'
-# )
-
-# 验证特定行
-# table_verifier.verify_table_row(
-#     table_element,
-#     row_index=2,
-#     expected_data={
-#         'Name': 'Jane Smith',
-#         'Age': '25',
-#         'Email': r'^[\w\.-]+@[\w\.-]+\.\w+$'
-#     },
-#     match_type='regex'
-# )
-
-# 验证特定单元格
-# table_verifier.verify_specific_cell(
-#     table_element,
-#     row_index=2,
-#     column='Email',
-#     expected_value=r'^[\w\.-]+@[\w\.-]+\.\w+$',
-#     match_type='regex'
-# )
