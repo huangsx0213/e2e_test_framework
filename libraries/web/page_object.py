@@ -149,6 +149,7 @@ class PageObject:
 
     def _execute_action(self, action: str, locator, *args, **kwargs):
         action_map = {
+            # Basic operations
             'open_url': self.web_actions.open_url,
             'send_keys': self.web_actions.send_keys,
             'click': self.web_actions.click,
@@ -163,28 +164,48 @@ class PageObject:
             'scroll_to_element': self.web_actions.scroll_to_element,
             'get_text': self.web_actions.get_text,
             'get_attribute': self.web_actions.get_attribute,
+
+            # Element state verification
+            'element_text_should_be': self.web_actions.element_text_should_be,
+            'element_text_should_contains': self.web_actions.element_text_should_contains,
+            'title_should_be': self.web_actions.title_should_be,
+            'title_should_contains': self.web_actions.title_should_contains,
             'is_element_present': self.web_actions.is_element_present,
             'is_element_visible': self.web_actions.is_element_visible,
             'is_element_clickable': self.web_actions.is_element_clickable,
             'is_element_selected': self.web_actions.is_element_selected,
             'is_element_enabled': self.web_actions.is_element_enabled,
-            'element_text_should_be': self.web_actions.element_text_should_be,
-            'element_text_should_contains': self.web_actions.element_text_should_contains,
-            'title_should_be': self.web_actions.title_should_be,
-            'title_should_contains': self.web_actions.title_should_contains,
+
+            # Wait operations
             'wait_for_element_present': self.web_actions.wait_for_element_present,
             'wait_for_element_visible': self.web_actions.wait_for_element_visible,
             'wait_for_element_clickable': self.web_actions.wait_for_element_clickable,
             'wait_for_text_present_in_element': self.web_actions.wait_for_text_present_in_element,
             'wait_for_element_to_disappear': self.web_actions.wait_for_element_to_disappear,
             'wait_for_staleness_of': self.web_actions.wait_for_staleness_of,
+            'wait': self.web_actions.wait,
+
+            # Frame and window operations
             'switch_to_frame': self.web_actions.switch_to_frame,
             'switch_to_default_content': self.web_actions.switch_to_default_content,
+            'switch_to_window': self.web_actions.switch_to_window,
+            'get_window_handles': self.web_actions.get_window_handles,
+            'close_current_window': self.web_actions.close_current_window,
+
+            # JavaScript execution
             'execute_script': self.web_actions.execute_script,
+            'execute_async_script': self.web_actions.execute_async_script,
+
+            # Alert operations
             'accept_alert': self.web_actions.accept_alert,
             'dismiss_alert': self.web_actions.dismiss_alert,
             'get_alert_text': self.web_actions.get_alert_text,
+
+            # Screenshot and highlight
+            'capture_screenshot': self.web_actions.capture_screenshot,
             'highlight_element': self.web_actions.highlight_element,
+
+            # Table operations
             'verify_table_exact': self.web_actions.verify_table_exact,
             'verify_table_row_exact': self.web_actions.verify_table_row_exact,
             'verify_specific_cell_exact': self.web_actions.verify_specific_cell_exact,
@@ -194,39 +215,54 @@ class PageObject:
             'verify_table_regex': self.web_actions.verify_table_regex,
             'verify_table_row_regex': self.web_actions.verify_table_row_regex,
             'verify_specific_cell_regex': self.web_actions.verify_specific_cell_regex,
+            'verify_table_is_empty': self.web_actions.verify_table_is_empty,
+            'verify_unique_column_values': self.web_actions.verify_unique_column_values,
+            'verify_value_in_table': self.web_actions.verify_value_in_table,
+            'verify_row_count': self.web_actions.verify_row_count,
+            'verify_column_sorted': self.web_actions.verify_column_sorted,
             'select_table_row_checkbox': self.web_actions.select_table_row_checkbox,
             'select_multiple_table_row_checkboxes': self.web_actions.select_multiple_table_row_checkboxes,
-            'wait': self.web_actions.wait,
-            'capture_screenshot': self.web_actions.capture_screenshot,
+
+            # Element properties and styles
             'get_element_size': self.web_actions.get_element_size,
             'get_element_location': self.web_actions.get_element_location,
             'get_css_value': self.web_actions.get_css_value,
-            'switch_to_window': self.web_actions.switch_to_window,
-            'get_window_handles': self.web_actions.get_window_handles,
-            'close_current_window': self.web_actions.close_current_window,
+            'get_property': self.web_actions.get_property,
+
+            # Browser navigation
             'refresh_page': self.web_actions.refresh_page,
             'go_back': self.web_actions.go_back,
             'go_forward': self.web_actions.go_forward,
             'get_current_url': self.web_actions.get_current_url,
-            'execute_async_script': self.web_actions.execute_async_script,
-            'get_property': self.web_actions.get_property,
+
+            # Window management
             'set_window_size': self.web_actions.set_window_size,
             'maximize_window': self.web_actions.maximize_window,
             'minimize_window': self.web_actions.minimize_window,
             'fullscreen_window': self.web_actions.fullscreen_window,
+
+            # Accessibility
             'get_accessible_name': self.web_actions.get_accessible_name,
             'get_aria_role': self.web_actions.get_aria_role,
+
+            # Cookie operations
             'add_cookie': self.web_actions.add_cookie,
             'get_cookie': self.web_actions.get_cookie,
             'delete_cookie': self.web_actions.delete_cookie,
             'delete_all_cookies': self.web_actions.delete_all_cookies,
+
+            # Log retrieval
             'get_log': self.web_actions.get_log,
+
+            # JavaScript enhanced operations
             'js_click': self.web_actions.js_click,
             'js_send_keys': self.web_actions.js_send_keys,
             'js_clear': self.web_actions.js_clear,
             'js_scroll_into_view': self.web_actions.js_scroll_into_view,
             'js_select_option': self.web_actions.js_select_option,
             'js_hover': self.web_actions.js_hover,
+
+            # Value capture and assertion
             'capture_element_value': self.web_actions.capture_element_value,
             'assert_value_change': self.web_actions.assert_value_change,
         }

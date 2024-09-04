@@ -2,6 +2,7 @@ import logging
 from selenium.webdriver.common.by import By
 import re
 
+
 class TableVerifier:
     def __init__(self, driver):
         self.driver = driver
@@ -135,6 +136,130 @@ class TableVerifier:
 
         self.logger.info(f"Verified column '{column}': {actual_value}")
 
+    def verify_table_is_empty(self, table_element):
+        """
+        Verify that the table contains no data rows.
+
+        :param table_element: WebElement of the table
+        """
+        try:
+            rows = table_element.find_elements(By.TAG_NAME, "tr")
+            assert len(rows) == 1, f"Table is not empty. Found {len(rows) - 1} data rows."
+
+            self.logger.info("Table is empty as expected.")
+        except Exception as e:
+            self.logger.error(f"Error verifying if table is empty: {str(e)}")
+            raise
+
+    def verify_unique_column_values(self, table_element, column):
+        """
+        Verify that all values in a specific column are unique.
+
+        :param table_element: WebElement of the table
+        :param column: Column name or index to verify uniqueness
+        """
+        try:
+            rows = table_element.find_elements(By.TAG_NAME, "tr")
+            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.XPATH, ".//th | .//td")]
+
+            column_index = self._get_cell_index(headers, column)
+            values = set()
+
+            for row in rows[1:]:  # Skip header row
+                cells = row.find_elements(By.XPATH, ".//td|.//th")
+                if column_index < len(cells):
+                    value = cells[column_index].text.strip()
+                    assert value not in values, f"Duplicate value found in column '{column}': {value}"
+                    values.add(value)
+
+            self.logger.info(f"All values in column '{column}' are unique.")
+        except Exception as e:
+            self.logger.error(f"Error verifying unique values in column: {str(e)}")
+            raise
+
+    def verify_value_in_table(self, table_element, search_value):
+        """
+        Verify if a specific value exists in the table.
+
+        :param table_element: WebElement of the table
+        :param search_value: The value to search for in the table
+        """
+        try:
+            rows = table_element.find_elements(By.TAG_NAME, "tr")
+
+            for row in rows[1:]:  # Skip header row
+                cells = row.find_elements(By.XPATH, ".//td|.//th")
+                for cell in cells:
+                    if search_value in cell.text.strip():
+                        self.logger.info(f"Value '{search_value}' found in table.")
+                        return True
+
+            raise ValueError(f"Value '{search_value}' not found in the table.")
+        except Exception as e:
+            self.logger.error(f"Error verifying presence of value in table: {str(e)}")
+            raise
+
+    def verify_row_count(self, table_element, expected_row_count):
+        """
+        Verify the number of rows in the table (excluding the header row).
+
+        :param table_element: WebElement of the table
+        :param expected_row_count: The expected number of data rows
+        """
+        try:
+            rows = table_element.find_elements(By.TAG_NAME, "tr")
+            actual_row_count = len(rows) - 1  # Exclude header row
+
+            assert actual_row_count == expected_row_count, \
+                f"Row count mismatch. Expected: {expected_row_count}, Actual: {actual_row_count}"
+
+            self.logger.info(f"Row count verified successfully: {actual_row_count}")
+        except Exception as e:
+            self.logger.error(f"Error verifying row count: {str(e)}")
+            raise
+
+    def verify_column_sorted(self, table_element, column, expected_order='ascending', strip_spaces=True):
+        """
+        Verify if a specific column in the table is sorted in the expected order.
+
+        :param table_element: WebElement of the table
+        :param column: Column name (or 1-based index) to verify sorting
+        :param expected_order: Expected sorting order, either 'ascending' or 'descending' (default is 'ascending')
+        :param strip_spaces: Boolean to determine whether to remove leading/trailing spaces from cell values (default is True)
+        """
+        try:
+            # Retrieve all rows and headers of the table
+            rows = table_element.find_elements(By.TAG_NAME, "tr")
+            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.XPATH, ".//th | .//td")]
+
+            # Get the index of the target column
+            column_index = self._get_cell_index(headers, column)
+
+            # Collect all values from the target column (skipping the header row)
+            column_data = []
+            for row in rows[1:]:
+                cells = row.find_elements(By.XPATH, ".//td|.//th")
+                if column_index < len(cells):
+                    cell_text = cells[column_index].text.strip()
+                    if strip_spaces:
+                        cell_text = cell_text.strip()  # Optionally strip spaces
+                    column_data.append(cell_text)
+                else:
+                    raise ValueError(f"Column '{column}' is out of range. This row has {len(cells)} columns.")
+
+            # Sort the column data based on the expected order
+            sorted_data = sorted(column_data)
+            if expected_order == 'descending':
+                sorted_data.reverse()
+
+            # Validate if the column data is sorted as expected
+            assert column_data == sorted_data, f"Column '{column}' is not sorted in {expected_order} order."
+
+            self.logger.info(f"Column '{column}' is correctly sorted in {expected_order} order.")
+        except Exception as e:
+            self.logger.error(f"Error verifying sorting for column '{column}': {str(e)}")
+            raise
+
     def select_table_row_checkbox(self, table_element, identifier_column, identifier_value, checkbox_column=1):
         """
         Select the checkbox in a specific row based on an identifier value in a specific column.
@@ -182,3 +307,4 @@ class TableVerifier:
         """
         for identifier_value in identifier_values:
             self.select_table_row_checkbox(table_element, identifier_column, identifier_value, checkbox_column)
+

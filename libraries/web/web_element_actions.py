@@ -502,6 +502,62 @@ class WebElementActions:
             logging.error(f"{self.__class__.__name__}: Error selecting multiple checkboxes: {str(e)}")
             raise
 
+    def verify_table_is_empty(self, table_locator: Union[tuple, WebElement]):
+        logging.info(f"{self.__class__.__name__}: Verifying table is empty")
+        try:
+            table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
+            table_desc = self._get_element_description(table_element)
+            self.table_verifier.verify_table_is_empty(table_element)
+            logging.info(f"{self.__class__.__name__}: Table empty verification completed successfully for table: {table_desc}")
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error verifying table is empty: {str(e)}")
+            raise
+
+    def verify_unique_column_values(self, table_locator: Union[tuple, WebElement], column: Union[str, int]):
+        logging.info(f"{self.__class__.__name__}: Verifying unique values in column: {column}")
+        try:
+            table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
+            table_desc = self._get_element_description(table_element)
+            self.table_verifier.verify_unique_column_values(table_element, column)
+            logging.info(f"{self.__class__.__name__}: Unique column values verification completed successfully for table: {table_desc}, column: {column}")
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error verifying unique column values: {str(e)}")
+            raise
+
+    def verify_value_in_table(self, table_locator: Union[tuple, WebElement], search_value: str):
+        logging.info(f"{self.__class__.__name__}: Verifying value '{search_value}' exists in table")
+        try:
+            table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
+            table_desc = self._get_element_description(table_element)
+            result = self.table_verifier.verify_value_in_table(table_element, search_value)
+            logging.info(f"{self.__class__.__name__}: Value verification in table completed successfully for table: {table_desc}")
+            return result
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error verifying value in table: {str(e)}")
+            raise
+
+    def verify_row_count(self, table_locator: Union[tuple, WebElement], expected_row_count: int):
+        logging.info(f"{self.__class__.__name__}: Verifying row count: expected {expected_row_count}")
+        try:
+            table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
+            table_desc = self._get_element_description(table_element)
+            self.table_verifier.verify_row_count(table_element, expected_row_count)
+            logging.info(f"{self.__class__.__name__}: Row count verification completed successfully for table: {table_desc}")
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error verifying row count: {str(e)}")
+            raise
+
+    def verify_column_sorted(self, table_locator: Union[tuple, WebElement], column: Union[str, int], expected_order='ascending', strip_spaces=True):
+        logging.info(f"{self.__class__.__name__}: Verifying column '{column}' is sorted in {expected_order} order")
+        try:
+            table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
+            table_desc = self._get_element_description(table_element)
+            self.table_verifier.verify_column_sorted(table_element, column, expected_order, strip_spaces)
+            logging.info(f"{self.__class__.__name__}: Column sorting verification completed successfully for table: {table_desc}, column: {column}")
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error verifying column sorting: {str(e)}")
+            raise
+
     def wait(self, seconds):
         logging.info(f"{self.__class__.__name__}: Waiting for {seconds} seconds")
         time.sleep(int(seconds))
