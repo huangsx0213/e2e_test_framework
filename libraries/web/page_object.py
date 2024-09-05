@@ -4,7 +4,7 @@ import os
 import re
 from typing import Dict, Tuple, List
 from robot.api.deco import keyword
-from libraries.web.web_element_actions import WebElementActions
+from libraries.web.web_actions import WebElementActions
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
 from libraries.web.web_test_loader import WebTestLoader
@@ -105,7 +105,7 @@ class PageObject:
         for _, row in self.page_object_df.iterrows():
             action_info = {
                 'element_name': row['Element Name'],
-                'action': row['Actions'],
+                'web_action': row['Actions'],
                 'parameter_name': row['Parameter Name'].split(',') if row['Parameter Name'] else [],
                 'highlight': row['Highlight'],
                 'screen_capture': row['Screenshot'],
@@ -122,7 +122,7 @@ class PageObject:
 
         for action_info in module_actions:
             element_name = action_info['element_name']
-            action = action_info['action']
+            action = action_info['web_action']
             highlight = action_info['highlight']
             screen_capture = action_info['screen_capture']
             wait = action_info['wait']
@@ -223,12 +223,6 @@ class PageObject:
             'select_table_row_checkbox': self.web_actions.select_table_row_checkbox,
             'select_multiple_table_row_checkboxes': self.web_actions.select_multiple_table_row_checkboxes,
 
-            # Element properties and styles
-            'get_element_size': self.web_actions.get_element_size,
-            'get_element_location': self.web_actions.get_element_location,
-            'get_css_value': self.web_actions.get_css_value,
-            'get_property': self.web_actions.get_property,
-
             # Browser navigation
             'refresh_page': self.web_actions.refresh_page,
             'go_back': self.web_actions.go_back,
@@ -241,18 +235,11 @@ class PageObject:
             'minimize_window': self.web_actions.minimize_window,
             'fullscreen_window': self.web_actions.fullscreen_window,
 
-            # Accessibility
-            'get_accessible_name': self.web_actions.get_accessible_name,
-            'get_aria_role': self.web_actions.get_aria_role,
-
             # Cookie operations
             'add_cookie': self.web_actions.add_cookie,
             'get_cookie': self.web_actions.get_cookie,
             'delete_cookie': self.web_actions.delete_cookie,
             'delete_all_cookies': self.web_actions.delete_all_cookies,
-
-            # Log retrieval
-            'get_log': self.web_actions.get_log,
 
             # JavaScript enhanced operations
             'js_click': self.web_actions.js_click,
@@ -268,7 +255,7 @@ class PageObject:
         }
 
         if action not in action_map and action not in self.custom_action_executor.custom_actions:
-            raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
+            raise ValueError(f"{self.__class__.__name__}: Unsupported web_action: {action}")
 
         # Create a new list to store the modified arguments
         new_args = []
@@ -283,7 +270,7 @@ class PageObject:
                         # Replace the ${...} placeholder with the actual value
                         arg = arg.replace(f'${{{match}}}', str(replacement_value))
 
-                        logging.info(f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for action: {action}")
+                        logging.info(f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for web_action: {action}")
 
             # Add the processed (or original) argument to the new list
             new_args.append(arg)
@@ -293,7 +280,7 @@ class PageObject:
         elif action in self.custom_action_executor.custom_actions:
             return self.custom_action_executor.execute_custom_action(action, locator, self.web_actions, *new_args, **kwargs)
         else:
-            raise ValueError(f"{self.__class__.__name__}: Unsupported action: {action}")
+            raise ValueError(f"{self.__class__.__name__}: Unsupported web_action: {action}")
 
     @keyword
     def close_browser(self):

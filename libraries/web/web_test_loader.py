@@ -166,7 +166,7 @@ class WebTestLoader:
             if pd.isna(row['Action Name']) or row['Action Name'] == '':
                 logging.error(f"WebTestLoader: Empty Action Name in CustomActions row {index + 2}")
             if pd.isna(row['Python Code']) or row['Python Code'] == '':
-                logging.error(f"WebTestLoader: Empty Python Code for action '{row['Action Name']}' in CustomActions row {index + 2}")
+                logging.error(f"WebTestLoader: Empty Python Code for web_element_actions '{row['Action Name']}' in CustomActions row {index + 2}")
 
     def get_data_by_sheet_name(self, sheet_name: str) -> pd.DataFrame:
         return self.data.get(sheet_name, pd.DataFrame())
