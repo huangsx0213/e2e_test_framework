@@ -174,7 +174,7 @@ python yaml_config_cli.py configs/api_test_config.yaml --remove-from-list tags d
 | Headers | Request header template name | String | Must match definitions in Headers sheet |
 | Body Template | Request body template name | String | Must match definitions in BodyTemplates sheet |
 | Body Default | Default request body name | String | Must match definitions in BodyDefaults sheet |
-| Body User-defined Fields | Custom request body fields | JSON format string | Overrides or adds to default request body |
+| Body Override | Custom request body fields | JSON format string | Overrides or adds to default request body |
 | Exp Result | Expected results | JSONPath expressions | Used to validate response content |
 | Save Fields | Save response fields | JSONPath expressions | Used to save specific fields from the response |
 | Conditions | Special conditions | Specific format string | E.g., [Checkwith], [TestSetup], [TestTeardown] |
@@ -319,7 +319,7 @@ UITC002 | Regular Test   | ... | regression
 #### Body-related fields:
 - Body Template: Use Jinja2 syntax for dynamic values.
 - Body Default: Provide default values in JSON format.
-- Body User-defined Fields: Override default values or add new fields in JSON format.
+- Body Override: Override default values or add new fields in JSON format.
   - Supports dynamic values using `${variable_name}` syntax.
   - These variables are replaced with actual values from the Robot Framework variable scope.
 - Use `{{variable_name}}` in templates for dynamic values.
@@ -338,7 +338,7 @@ UITC002 | Regular Test   | ... | regression
 
 #### Example of using dynamic values:
 ```
-Body User-defined Fields: {"user_id": "${USER_ID}", "timestamp": "{{timestamp}}"}
+Body Override: {"user_id": "${USER_ID}", "timestamp": "{{timestamp}}"}
 Exp Result: $.response.status=${EXPECTED_STATUS}
 ```
 
@@ -409,7 +409,7 @@ You can specify test case IDs or tags in the respective configuration files (api
 
 The framework supports the use of dynamic values in two key areas of API tests:
 
-1. Body User-defined Fields
+1. Body Override
 2. Expected Results (Exp Result)
 
 #### Usage:
@@ -419,7 +419,7 @@ The framework supports the use of dynamic values in two key areas of API tests:
 
 #### Example:
 ```yaml
-Body User-defined Fields: {"token": "${AUTH_TOKEN}", "user_id": "${CURRENT_USER_ID}"}
+Body Override: {"token": "${AUTH_TOKEN}", "user_id": "${CURRENT_USER_ID}"}
 Exp Result: $.status_code=200
 $.response.user.name=${EXPECTED_USER_NAME}
 ```

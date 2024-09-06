@@ -21,8 +21,8 @@ class BodyGenerator:
 
             template_content, template_format = self.load_template(test_case['Body Template'])
             default_values = self.load_default_values(test_case['Body Default'])
-            user_defined_fields = self.parse_user_defined_fields(test_case['Body User-defined Fields'])
-            logging.info(f"{self.__class__.__name__}:Body user-defined fields for test case {test_case['TCID']}: \n{user_defined_fields}")
+            user_defined_fields = self.parse_user_defined_fields(test_case['Body Override'])
+            logging.info(f"{self.__class__.__name__}:Body Override for test case {test_case['TCID']}: \n{user_defined_fields}")
             combined_data = self.merge_values(default_values, user_defined_fields, test_case)
             request_data = self.generate_dynamic_values(combined_data, test_case)
             logging.info(f"{self.__class__.__name__}:Request data for test case {test_case['TCID']}: \n{self.format_json(request_data)}")

@@ -43,18 +43,18 @@ class SavedFieldsManager:
     def apply_saved_fields(self, test_case, saved_fields: Dict) -> None:
         try:
             for key, value in saved_fields.items():
-                for column in ['Body User-defined Fields', 'Exp Result']:
+                for column in ['Body Override', 'Exp Result']:
                     if column in test_case and test_case[column] != '':
                         lines = test_case[column].splitlines()
                         replaced_lines = [line.replace(f"${{{key}}}", str(value)) for line in lines]
                         test_case[column] = "\n".join(replaced_lines)
         except Exception as e:
-            logging.error(f"{self.__class__.__name__}: Failed to apply saved fields to [Body User-defined Fields], [Exp Result]: {str(e)}")
+            logging.error(f"{self.__class__.__name__}: Failed to apply saved fields to [Body Override], [Exp Result]: {str(e)}")
             raise
 
     def apply_suite_variables(self, test_case) -> None:
         try:
-            for key in ['Body User-defined Fields', 'Exp Result']:
+            for key in ['Body Override', 'Exp Result']:
                 matches = re.findall(r'\$\{[^}]+\}', test_case[key])
                 for match in matches:
                     replacement_value = builtin_lib.get_variable_value(match)
