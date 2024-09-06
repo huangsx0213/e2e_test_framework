@@ -57,7 +57,7 @@ class SavedFieldsManager:
             for key in ['Body User-defined Fields', 'Exp Result']:
                 matches = re.findall(r'\$\{[^}]+\}', test_case[key])
                 for match in matches:
-                    replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
+                    replacement_value = builtin_lib.get_variable_value(match)
                     test_case[key] = test_case[key].replace(match, str(replacement_value))
                     logging.info(f"{self.__class__.__name__}: [{key}] Replaced {match} variable value {replacement_value}")
 
