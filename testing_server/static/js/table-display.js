@@ -16,10 +16,10 @@ function displayTable(page) {
     $.each(pageData, function(index, item) {
         var row = $("<tr>");
         row.append($("<td>").append($("<input>", {type: "checkbox", class: "rowCheckbox", "data-id": item.id})));
-        row.append($("<td>").text(item.lastName || ''));
-        row.append($("<td>").text(item.firstName || ''));
+        row.append($("<td>").text(item.referenceNo || ''));
+        row.append($("<td>").text(item.name || ''));
         row.append($("<td>").text(item.email || ''));
-        row.append($("<td>").text(item.due || ''));
+        row.append($("<td>").text(item.amount || ''));
         row.append($("<td>").text(item.website || ''));
         row.append($("<td>").text(item.status || ''));
         row.append($("<td>").text(item.lastUpdate ? new Date(item.lastUpdate).toLocaleString() : ''));

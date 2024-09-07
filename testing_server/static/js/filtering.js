@@ -4,7 +4,7 @@ function applyFilter() {
     var maxAmount = parseFloat($("#maxAmount").val()) || Infinity;
 
     window.filteredData = window.data.filter(item => {
-        var amount = parseFloat(item.due.replace('$', '').replace(',', ''));
+        var amount = parseFloat(item.amount.replace('$', '').replace(',', ''));
         return (status === "" || item.status === status) &&
                (amount >= minAmount && amount <= maxAmount);
     });
@@ -25,7 +25,7 @@ function updateSummary() {
     var totalCount = window.filteredData.length;
 
     window.filteredData.forEach(item => {
-        var amount = parseFloat(item.due.replace('$', '').replace(',', ''));
+        var amount = parseFloat(item.amount.replace('$', '').replace(',', ''));
         if (!isNaN(amount)) {
             totalAmount += amount;
             if (item.status === 'Active') {

@@ -80,10 +80,10 @@
                         <thead class="table-light">
                             <tr>
                                 <th><input type="checkbox" id="selectAll"></th>
-                                <th>Last Name</th>
-                                <th>First Name</th>
+                                <th>Reference No</th>
+                                <th>Name</th>
                                 <th>Email</th>
-                                <th>Due</th>
+                                <th>Amount</th>
                                 <th>Web Site</th>
                                 <th>Status</th>
                                 <th>Last Update</th>
@@ -134,20 +134,20 @@
                 <div class="modal-body">
                     <form id="editForm">
                         <div class="mb-2">
-                            <label for="lastName" class="form-label">Last Name</label>
-                            <input type="text" class="form-control" id="lastName" name="lastName">
+                            <label for="referenceNo" class="form-label">Reference No</label>
+                            <input type="text" class="form-control" id="referenceNo" name="referenceNo">
                         </div>
                         <div class="mb-2">
-                            <label for="firstName" class="form-label">First Name</label>
-                            <input type="text" class="form-control" id="firstName" name="firstName">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name">
                         </div>
                         <div class="mb-2">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email">
                         </div>
                         <div class="mb-2">
-                            <label for="due" class="form-label">Due</label>
-                            <input type="text" class="form-control" id="due" name="due">
+                            <label for="amount" class="form-label">Amount</label>
+                            <input type="text" class="form-control" id="amount" name="amount">
                         </div>
                         <div class="mb-2">
                             <label for="website" class="form-label">Web Site</label>
@@ -178,7 +178,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete this item?</p>
+                    <p>Delete this item?</p>
                     <div id="deleteItemDetails"></div>
                 </div>
                 <div class="modal-footer">

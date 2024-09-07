@@ -47,14 +47,14 @@ $("#calculateBtn").click(function() {
     }).get();
     var selectedItems = window.filteredData.filter(item => selectedIds.includes(item.id));
 
-    var totalDue = calculateTotalAmount(selectedItems);
+    var totalamount = calculateTotalAmount(selectedItems);
 
-    $("#calculationResult").text(`Total amount: $${totalDue.toFixed(2)}`);
+    $("#calculationResult").text(`Total amount: $${totalamount.toFixed(2)}`);
 });
 
 function calculateTotalAmount(items) {
     return items.reduce((sum, item) => {
-        var amount = parseFloat(item.due.replace('$', '').replace(',', ''));
+        var amount = parseFloat(item.amount.replace('$', '').replace(',', ''));
         return sum + (isNaN(amount) ? 0 : amount);
     }, 0);
 }
@@ -105,7 +105,7 @@ $("#deleteSelectedBtn").click(function(){
     if (selectedIds.length > 0) {
         var selectedItems = window.data.filter(item => selectedIds.includes(item.id));
         var detailsHtml = selectedItems.map(item =>
-            `<p>${item.lastName}, ${item.firstName} (${item.email}) - ${item.due}</p>`
+            `<p>${item.referenceNo}, ${item.name} (${item.email}) - ${item.amount}</p>`
         ).join('');
 
         $('#deleteItemDetails').html(`

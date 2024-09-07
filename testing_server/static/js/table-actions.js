@@ -6,10 +6,10 @@ $(document).on('click', '.edit', function(e){
     var id = $(this).data('id');
     currentItem = window.data.find(item => item.id === id);
     if (currentItem) {
-        $('#lastName').val(currentItem.lastName || '');
-        $('#firstName').val(currentItem.firstName || '');
+        $('#referenceNo').val(currentItem.referenceNo || '');
+        $('#name').val(currentItem.name || '');
         $('#email').val(currentItem.email || '');
-        $('#due').val(currentItem.due || '');
+        $('#amount').val(currentItem.amount || '');
         $('#website').val(currentItem.website || '');
         $('#status').val(currentItem.status || '');
         $('#editModal').modal('show');
@@ -20,10 +20,10 @@ $(document).on('click', '.edit', function(e){
 
 $("#saveChanges").click(function(){
     if (currentItem) {
-        currentItem.lastName = $('#lastName').val();
-        currentItem.firstName = $('#firstName').val();
+        currentItem.referenceNo = $('#referenceNo').val();
+        currentItem.name = $('#name').val();
         currentItem.email = $('#email').val();
-        currentItem.due = $('#due').val();
+        currentItem.amount = $('#amount').val();
         currentItem.website = $('#website').val();
         currentItem.status = $('#status').val();
         currentItem.lastUpdate = new Date().toISOString();
@@ -45,10 +45,10 @@ $(document).on('click', '.delete', function(e){
     itemToDelete = window.data.find(item => item.id === id);
     if (itemToDelete) {
         $('#deleteItemDetails').html(`
-            <p><strong>Last Name:</strong> ${itemToDelete.lastName}</p>
-            <p><strong>First Name:</strong> ${itemToDelete.firstName}</p>
+            <p><strong>Reference No:</strong> ${itemToDelete.referenceNo}</p>
+            <p><strong>Name:</strong> ${itemToDelete.name}</p>
             <p><strong>Email:</strong> ${itemToDelete.email}</p>
-            <p><strong>Due:</strong> ${itemToDelete.due}</p>
+            <p><strong>Amount:</strong> ${itemToDelete.amount}</p>
             <p><strong>Status:</strong> ${itemToDelete.status}</p>
         `);
         $('#deleteModal').modal('show');
@@ -76,10 +76,10 @@ $("#addNewBtn").click(function(){
     var newId = window.data.length > 0 ? Math.max(...window.data.map(item => item.id)) + 1 : 1;
     var newItem = {
         id: newId,
-        lastName: "New",
-        firstName: "Person",
+        referenceNo: "New",
+        name: "Person",
         email: "new@example.com",
-        due: "$0.00",
+        amount: "$0.00",
         website: "http://www.example.com",
         status: "Active",
         lastUpdate: new Date().toISOString()
