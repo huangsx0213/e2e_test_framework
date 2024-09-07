@@ -5,6 +5,7 @@ $(function(){
     var currentPage = 1;
     var totalPages = 1;
     var newStatus;
+    var itemToDelete;
 
     // Load JSON data
     fetch('table.json')
@@ -22,6 +23,7 @@ $(function(){
                 totalPages = Math.ceil(filteredData.length / itemsPerPage);
                 displayTable(currentPage);
                 updateSummary();
+                initTableSorter();
             } else {
                 throw new Error("Invalid JSON data structure");
             }
@@ -32,6 +34,7 @@ $(function(){
         });
 
     function displayTable(page) {
+        $("#selectAll").prop('checked', false);
         console.log("Displaying table for page:", page);
         var start = (page - 1) * itemsPerPage;
         var end = start + itemsPerPage;
@@ -56,16 +59,32 @@ $(function(){
             row.append($("<td>").text(item.status || ''));
             row.append($("<td>").text(item.lastUpdate ? new Date(item.lastUpdate).toLocaleString() : ''));
             row.append($("<td>").append(
-                $("<a>", {href: "#", class: "edit btn btn-sm btn-outline-primary me-2", "data-id": item.id}).text("Edit"),
-                $("<a>", {href: "#", class: "delete btn btn-sm btn-outline-danger", "data-id": item.id}).text("Delete")
+                $("<button>", {class: "edit btn btn-outline-primary me-1", "data-id": item.id}).text("Edit"),
+                $("<button>", {class: "delete btn btn-outline-danger", "data-id": item.id}).text("Delete")
             ));
             tbody.append(row);
         });
 
         updatePagination();
         updateTableInfo();
-        $("#dataTable").trigger("update");
         updateFloatingBar();
+        $("#dataTable").trigger("update");
+    }
+
+    function initTableSorter() {
+        $("#dataTable").tablesorter({
+            headers: {
+                0: { sorter: false },
+                8: { sorter: false }
+            },
+            sortList: [[7,0]],
+            widgets: ['zebra', 'saveSort'],
+            widgetOptions: {
+                zebra: ['even', 'odd'],
+            },
+        }).on('sortEnd', function() {
+            updateFloatingBar();
+        });
     }
 
     function updatePagination() {
@@ -92,13 +111,13 @@ $(function(){
         var totalCount = filteredData.length;
 
         filteredData.forEach(item => {
-            var amount = parseFloat(item.due.replace('$', ''));
+            var amount = parseFloat(item.due.replace('$', '').replace(',', ''));
             if (!isNaN(amount)) {
                 totalAmount += amount;
                 if (item.status === 'Active') {
                     activeAmount += amount;
                     activeCount++;
-                } else {
+                } else if (item.status === 'Inactive') {
                     inactiveAmount += amount;
                     inactiveCount++;
                 }
@@ -113,22 +132,13 @@ $(function(){
         $("#inactiveCount").text(inactiveCount);
     }
 
-    $("#dataTable").tablesorter({
-        headers: {
-            0: { sorter: false },
-            8: { sorter: false }
-        }
-    });
-
-    // Handle select all checkbox
-    $("#selectAll").click(function(){
+    $(document).on('click', '#selectAll', function(){
         $(".rowCheckbox").prop('checked', this.checked);
         updateFloatingBar();
     });
 
-    // Update select all checkbox when individual checkboxes change
     $(document).on('click', '.rowCheckbox', function(){
-        var allChecked = $(".rowCheckbox:checked").length === $(".rowCheckbox").length;
+        var allChecked = $(".rowCheckbox:not(:checked)").length === 0;
         $("#selectAll").prop('checked', allChecked);
         updateFloatingBar();
     });
@@ -145,7 +155,7 @@ $(function(){
 
             $("#selectedCount").text(`${selectedItems.length} item(s) selected`);
             $("#calculateBtn").show();
-            $("#calculationResult").text('');  // Clear previous calculation
+            $("#calculationResult").text('');
 
             if (allActive || allInactive) {
                 $("#setStatusBtn").text(allActive ? "Set Inactive" : "Set Active").show();
@@ -176,7 +186,7 @@ $(function(){
 
     function calculateTotalAmount(items) {
         return items.reduce((sum, item) => {
-            var amount = parseFloat(item.due.replace('$', ''));
+            var amount = parseFloat(item.due.replace('$', '').replace(',', ''));
             return sum + (isNaN(amount) ? 0 : amount);
         }, 0);
     }
@@ -212,11 +222,11 @@ $(function(){
         applyFilter();
         $("#statusChangeModal").modal('hide');
         $("#floatingBar").hide();
+        updateSummary();
     });
 
     var currentItem;
 
-    // Handle edit button click
     $(document).on('click', '.edit', function(e){
         e.preventDefault();
         var id = $(this).data('id');
@@ -234,7 +244,6 @@ $(function(){
         }
     });
 
-    // Handle save changes button click
     $("#saveChanges").click(function(){
         if (currentItem) {
             currentItem.lastName = $('#lastName').val();
@@ -246,20 +255,38 @@ $(function(){
             currentItem.lastUpdate = new Date().toISOString();
             $('#editModal').modal('hide');
             applyFilter();
+            updateSummary();
         }
     });
 
-    // Handle delete button click
     $(document).on('click', '.delete', function(e){
         e.preventDefault();
         var id = $(this).data('id');
-        if(confirm('Are you sure you want to delete this row?')) {
-            data = data.filter(item => item.id !== id);
-            applyFilter();
+        itemToDelete = data.find(item => item.id === id);
+        if (itemToDelete) {
+            $('#deleteItemDetails').html(`
+                <p><strong>Last Name:</strong> ${itemToDelete.lastName}</p>
+                <p><strong>First Name:</strong> ${itemToDelete.firstName}</p>
+                <p><strong>Email:</strong> ${itemToDelete.email}</p>
+                <p><strong>Due:</strong> ${itemToDelete.due}</p>
+                <p><strong>Status:</strong> ${itemToDelete.status}</p>
+            `);
+            $('#deleteModal').modal('show');
+        } else {
+            console.error("Item not found for deletion:", id);
         }
     });
 
-    // Handle add new button click
+    $("#confirmDelete").click(function(){
+        if (itemToDelete) {
+            data = data.filter(item => item.id !== itemToDelete.id);
+            $('#deleteModal').modal('hide');
+            applyFilter();
+            updateSummary();
+            itemToDelete = null;
+        }
+    });
+
     $("#addNewBtn").click(function(){
         var newId = data.length > 0 ? Math.max(...data.map(item => item.id)) + 1 : 1;
         var newItem = {
@@ -274,21 +301,35 @@ $(function(){
         };
         data.push(newItem);
         applyFilter();
+        updateSummary();
     });
 
-    // Handle delete selected button click
     $("#deleteSelectedBtn").click(function(){
         var selectedIds = $(".rowCheckbox:checked").map(function() {
             return $(this).data('id');
         }).get();
-        if (selectedIds.length > 0 && confirm('Are you sure you want to delete all selected rows?')) {
-            data = data.filter(item => !selectedIds.includes(item.id));
-            $("#selectAll").prop('checked', false);
-            applyFilter();
+        if (selectedIds.length > 0) {
+            var selectedItems = data.filter(item => selectedIds.includes(item.id));
+            var detailsHtml = selectedItems.map(item =>
+                `<p>${item.lastName}, ${item.firstName} (${item.email}) - ${item.due}</p>`
+            ).join('');
+
+            $('#deleteItemDetails').html(`
+                <p>The following ${selectedItems.length} item(s) will be deleted:</p>
+                ${detailsHtml}
+            `);
+            $('#deleteModal').modal('show');
+
+            $("#confirmDelete").one('click', function() {
+                data = data.filter(item => !selectedIds.includes(item.id));
+                $("#selectAll").prop('checked', false);
+                $('#deleteModal').modal('hide');
+                applyFilter();
+                updateSummary();
+            });
         }
     });
 
-    // Handle previous page button click
     $("#prevPage").click(function() {
         if (currentPage > 1) {
             currentPage--;
@@ -296,7 +337,6 @@ $(function(){
         }
     });
 
-    // Handle next page button click
     $("#nextPage").click(function() {
         if (currentPage < totalPages) {
             currentPage++;
@@ -304,7 +344,6 @@ $(function(){
         }
     });
 
-    // Handle go to page button click
     $("#goToPage").click(function() {
         var pageNumber = parseInt($("#pageInput").val());
         if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -315,7 +354,6 @@ $(function(){
         }
     });
 
-    // Allow Enter key in page input to trigger go to page
     $("#pageInput").keypress(function(e) {
         if (e.which == 13) {
             $("#goToPage").click();
@@ -323,14 +361,13 @@ $(function(){
         }
     });
 
-    // Filter functionality
     function applyFilter() {
         var status = $("#statusFilter").val();
         var minAmount = parseFloat($("#minAmount").val()) || 0;
         var maxAmount = parseFloat($("#maxAmount").val()) || Infinity;
 
         filteredData = data.filter(item => {
-            var amount = parseFloat(item.due.replace('$', ''));
+            var amount = parseFloat(item.due.replace('$', '').replace(',', ''));
             return (status === "" || item.status === status) &&
                    (amount >= minAmount && amount <= maxAmount);
         });
@@ -339,6 +376,7 @@ $(function(){
         currentPage = 1;
         displayTable(currentPage);
         updateSummary();
+        $("#dataTable").trigger("update");
     }
 
     $("#applyFilter").click(applyFilter);
@@ -353,10 +391,4 @@ $(function(){
         displayTable(currentPage);
         updateSummary();
     });
-
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-
-    // Initialize the table
-    displayTable(currentPage);
 });
