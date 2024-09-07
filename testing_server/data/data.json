@@ -279,26 +279,6 @@
       "lastUpdate": "2023-05-02T12:25:00Z",
       "status": "Active",
       "website": "http://www.masonclark.com"
-    },
-    {
-      "amount": "$0.00",
-      "email": "new@example.com",
-      "name": "Person",
-      "id": 29,
-      "referenceNo": "New",
-      "lastUpdate": "2024-09-07T18:42:09.821697",
-      "status": "Active",
-      "website": "http://www.example.com"
-    },
-    {
-      "amount": "$0.00",
-      "email": "new@example.com",
-      "name": "Person",
-      "id": 30,
-      "referenceNo": "New",
-      "lastUpdate": "2024-09-07T19:18:44.760365",
-      "status": "Active",
-      "website": "http://www.example.com"
     }
   ]
 }

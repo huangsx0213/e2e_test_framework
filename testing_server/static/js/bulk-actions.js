@@ -114,22 +114,48 @@ $("#deleteSelectedBtn").click(function(){
         `);
         $('#deleteModal').modal('show');
 
-        $("#confirmDelete").one('click', function() {
-            Promise.all(selectedIds.map(id => deleteItem(id)))
-                .then(() => {
-                    window.data = window.data.filter(item => !selectedIds.includes(item.id));
-                    $("#selectAll").prop('checked', false);
-                    $('#deleteModal').modal('hide');
-                    applyFilter();
-                    updateSummary();
-                })
-                .catch(error => {
-                    console.error("Error deleting items:", error);
-                    alert("An error occurred while deleting the items. Please try again.");
-                });
+        $("#confirmDelete").one('click', async function() {
+            $('#deleteModal').modal('hide');
+
+            // 创建一个浮动的进度条
+            var progressContainer = $('<div class="floating-progress"><h5>Deleting Items...</h5><div class="progress"><div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div></div></div>');
+            $('body').append(progressContainer);
+
+            for (let i = 0; i < selectedIds.length; i++) {
+                try {
+                    await deleteItemWithDelay(selectedIds[i]);
+
+                    // 更新进度条
+                    let progress = Math.round((i + 1) / selectedIds.length * 100);
+                    progressContainer.find('.progress-bar').css('width', progress + '%').attr('aria-valuenow', progress).text(progress + '%');
+                } catch (error) {
+                    console.error("Error deleting item:", error);
+                    alert(`An error occurred while deleting item ${selectedIds[i]}. Please try again.`);
+                }
+            }
+
+            // 删除完成后移除进度条
+            setTimeout(() => {
+                progressContainer.remove();
+            }, 1000);
+
+            window.data = window.data.filter(item => !selectedIds.includes(item.id));
+            $("#selectAll").prop('checked', false);
+            applyFilter();
+            updateSummary();
         });
     }
 });
+
+function deleteItemWithDelay(id) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            deleteItem(id)
+                .then(resolve)
+                .catch(reject);
+        }, 100);
+    });
+}
 
 // 新增：批量更新状态的功能
 $("#updateStatusBtn").click(function() {
