@@ -66,3 +66,35 @@ function initTableSorter() {
         updateFloatingBar();
     });
 }
+
+$(document).ready(function() {
+    $("#prevPage").click(function() {
+        if (window.currentPage > 1) {
+            window.currentPage--;
+            displayTable(window.currentPage);
+        }
+    });
+
+    $("#nextPage").click(function() {
+        if (window.currentPage < window.totalPages) {
+            window.currentPage++;
+            displayTable(window.currentPage);
+        }
+    });
+
+    $("#goToPage").click(function() {
+        var pageNumber = parseInt($("#pageInput").val());
+        if (pageNumber >= 1 && pageNumber <= window.totalPages) {
+            window.currentPage = pageNumber;
+            displayTable(window.currentPage);
+        } else {
+            alert("Invalid page number. Please enter a number between 1 and " + window.totalPages);
+        }
+    });
+
+    $("#pageInput").on('keypress', function(e) {
+        if (e.which == 13) { // Enter key
+            $("#goToPage").click();
+        }
+    });
+});
