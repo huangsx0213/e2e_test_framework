@@ -18,13 +18,19 @@ function applyFilter() {
 
 function updateSummary() {
     var totalAmount = 0;
+    var totalCount = window.data.length;
     var activeAmount = 0;
     var inactiveAmount = 0;
     var activeCount = 0;
     var inactiveCount = 0;
-    var totalCount = window.filteredData.length;
+    var filteredActiveAmount = 0;
+    var filteredInactiveAmount = 0;
+    var filteredActiveCount = 0;
+    var filteredInactiveCount = 0;
+    var filteredCount = window.filteredData.length;
 
-    window.filteredData.forEach(item => {
+    // Calculate totals for all data
+    window.data.forEach(item => {
         var amount = parseFloat(item.amount.replace('$', '').replace(',', ''));
         if (!isNaN(amount)) {
             totalAmount += amount;
@@ -38,12 +44,34 @@ function updateSummary() {
         }
     });
 
+    // Calculate totals for filtered data
+    window.filteredData.forEach(item => {
+        var amount = parseFloat(item.amount.replace('$', '').replace(',', ''));
+        if (!isNaN(amount)) {
+            if (item.status === 'Active') {
+                filteredActiveAmount += amount;
+                filteredActiveCount++;
+            } else if (item.status === 'Inactive') {
+                filteredInactiveAmount += amount;
+                filteredInactiveCount++;
+            }
+        }
+    });
+
+    // Update total summary (not affected by filter)
     $("#totalAmount").text(`$${totalAmount.toFixed(2)}`);
-    $("#activeAmount").text(`$${activeAmount.toFixed(2)}`);
-    $("#inactiveAmount").text(`$${inactiveAmount.toFixed(2)}`);
     $("#totalCount").text(totalCount);
-    $("#activeCount").text(activeCount);
-    $("#inactiveCount").text(inactiveCount);
+
+    // Update filtered summary
+    $("#activeAmount").text(`$${filteredActiveAmount.toFixed(2)}`);
+    $("#inactiveAmount").text(`$${filteredInactiveAmount.toFixed(2)}`);
+    $("#activeCount").text(filteredActiveCount);
+    $("#inactiveCount").text(filteredInactiveCount);
+
+    // Update filtered total (optional, uncomment if you want to display this information)
+    // var filteredTotalAmount = filteredActiveAmount + filteredInactiveAmount;
+    // $("#filteredTotalAmount").text(`$${filteredTotalAmount.toFixed(2)}`);
+    // $("#filteredTotalCount").text(filteredCount);
 }
 
 $("#applyFilter").click(applyFilter);
@@ -57,4 +85,14 @@ $("#resetFilter").click(function() {
     window.currentPage = 1;
     displayTable(window.currentPage);
     updateSummary();
+});
+
+// Add event listeners for real-time filtering (optional)
+$("#statusFilter, #minAmount, #maxAmount").on('change input', function() {
+    applyFilter();
+});
+
+// Initialize filtering when the page loads
+$(document).ready(function() {
+    applyFilter();
 });
