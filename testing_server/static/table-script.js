@@ -7,8 +7,8 @@ $(function(){
     var newStatus;
     var itemToDelete;
 
-    // Load JSON data
-    fetch('table.json')
+    // Load JSON data from Flask API
+    fetch('/api/data')
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
