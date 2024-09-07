@@ -6,7 +6,7 @@
     <title>Automated Testing Data Table Practice Example</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
 </head>
 <body>
     <div class="page-container">
@@ -210,6 +210,26 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/jquery.tablesorter.min.js"></script>
-    <script src="{{ url_for('static', filename='table-script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/data-loader.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/table-display.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/table-actions.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/filtering.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bulk-actions.js') }}"></script>
+    <script>
+    $(function() {
+        loadData().then(() => {
+            window.totalPages = Math.ceil(window.filteredData.length / window.itemsPerPage);
+            displayTable(window.currentPage);
+            updateSummary();
+            initTableSorter();
+        }).catch(error => {
+            console.error("Error loading or parsing JSON data:", error);
+            $('#dataTable tbody').html('<tr><td colspan="9" class="text-center">Error loading data. Please try again later.</td></tr>');
+        });
+
+        // 初始化工具提示
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+    </script>
 </body>
 </html>
