@@ -6,61 +6,61 @@
     // Mapping column index to field name
     const columnToFieldMap = {
         1: 'referenceNo',
-        2: 'name',
-        3: 'email',
+        2: 'from',
+        3: 'to',
         4: 'amount',
-        5: 'website',
+        5: 'messageType',
         6: 'status',
         7: 'lastUpdate'
     };
 
-function applyFilter() {
-    if (window.isLoading) {
-        console.log("Data is already loading, skipping this filter application");
-        return;
-    }
-    window.isLoading = true;
+    function applyFilter() {
+        if (window.isLoading) {
+            console.log("Data is already loading, skipping this filter application");
+            return;
+        }
+        window.isLoading = true;
 
-    window.loadData()
-        .then(() => {
-            window.displayTable();
-            window.updatePagination();
+        window.loadData()
+            .then(() => {
+                window.displayTable();
+                window.updatePagination();
+            })
+            .catch(error => {
+                console.error("Error applying filter:", error);
+                alert("An error occurred while applying the filter. Please try again.");
+            })
+            .finally(() => {
+                window.isLoading = false;
+            });
+    }
+
+    function fetchSummary() {
+        return fetch('/api/summary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})  // No need to send any filter parameters
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(summary => {
+            $("#totalAmount").text(`$${summary.totalAmount.toFixed(2)}`);
+            $("#totalCount").text(summary.totalCount);
+            $("#activeAmount").text(`$${summary.activeAmount.toFixed(2)}`);
+            $("#inactiveAmount").text(`$${summary.inactiveAmount.toFixed(2)}`);
+            $("#activeCount").text(summary.activeCount);
+            $("#inactiveCount").text(summary.inactiveCount);
         })
         .catch(error => {
-            console.error("Error applying filter:", error);
-            alert("An error occurred while applying the filter. Please try again.");
-        })
-        .finally(() => {
-            window.isLoading = false;
+            console.error("Error fetching summary:", error);
         });
-}
-
-function fetchSummary() {
-    return fetch('/api/summary', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})  // 不需要发送任何过滤器参数
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(summary => {
-        $("#totalAmount").text(`$${summary.totalAmount.toFixed(2)}`);
-        $("#totalCount").text(summary.totalCount);
-        $("#activeAmount").text(`$${summary.activeAmount.toFixed(2)}`);
-        $("#inactiveAmount").text(`$${summary.inactiveAmount.toFixed(2)}`);
-        $("#activeCount").text(summary.activeCount);
-        $("#inactiveCount").text(summary.inactiveCount);
-    })
-    .catch(error => {
-        console.error("Error fetching summary:", error);
-    });
-}
+    }
 
     function updateSummary() {
         fetchSummary().catch(error => {
@@ -84,8 +84,11 @@ function fetchSummary() {
         applyFilter();
     });
 
+    // Remove the event listener for status filter change
+    // $("#statusFilter").off('change');
+
     // Event listeners for filter inputs to apply filter on change
-    $("#statusFilter, #minAmount, #maxAmount").on('change', function() {
+    $("#minAmount, #maxAmount").on('change', function() {
         if (!window.isLoading) {
             window.currentPage = 1;
             applyFilter();

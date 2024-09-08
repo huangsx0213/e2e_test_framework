@@ -18,10 +18,10 @@
             var row = $("<tr>");
             row.append($("<td>").append($("<input>", {type: "checkbox", class: "rowCheckbox", "data-id": item.id})));
             row.append($("<td>").text(item.referenceNo || ''));
-            row.append($("<td>").text(item.name || ''));
-            row.append($("<td>").text(item.email || ''));
+            row.append($("<td>").text(item.from || ''));
+            row.append($("<td>").text(item.to || ''));
             row.append($("<td>").text(item.amount || ''));
-            row.append($("<td>").text(item.website || ''));
+            row.append($("<td>").text(item.messageType || ''));
             row.append($("<td>").text(item.status || ''));
             row.append($("<td>").text(item.lastUpdate ? new Date(item.lastUpdate).toLocaleString() : ''));
             row.append($("<td>").append(
@@ -67,7 +67,7 @@
             var allActive = selectedItems.every(item => item.status === "Active");
             var allInactive = selectedItems.every(item => item.status === "Inactive");
 
-            $("#selectedCount").text(`${selectedItems.length} item(s) selected`);
+            $("#selectedCount").text(`${selectedItems.length} transfer(s) selected`);
             $("#calculateBtn").show();
             $("#calculationResult").text('');
 
@@ -76,7 +76,7 @@
                 $("#statusWarning").hide();
             } else {
                 $("#setStatusBtn").hide();
-                $("#statusWarningText").text('Selected items have different statuses');
+                $("#statusWarningText").text('Selected transfers have different statuses');
                 $("#statusWarning").show();
             }
 
@@ -107,29 +107,29 @@
         });
     }
 
-function loadAndDisplayData(fetchSummaryFlag = false) {
-    if (window.isLoading) {
-        console.log("Data is already loading, skipping this request");
-        return Promise.resolve();
-    }
-    window.isLoading = true;
+    function loadAndDisplayData(fetchSummaryFlag = false) {
+        if (window.isLoading) {
+            console.log("Data is already loading, skipping this request");
+            return Promise.resolve();
+        }
+        window.isLoading = true;
 
-    return window.loadData()
-        .then(() => {
-            displayTable();
-            updatePagination();
-            if (fetchSummaryFlag) {
-                return window.fetchSummary();
-            }
-        })
-        .catch(error => {
-            console.error("Error loading data:", error);
-            alert("An error occurred while loading the data. Please try again.");
-        })
-        .finally(() => {
-            window.isLoading = false;
-        });
-}
+        return window.loadData()
+            .then(() => {
+                displayTable();
+                updatePagination();
+                if (fetchSummaryFlag) {
+                    return window.fetchSummary();
+                }
+            })
+            .catch(error => {
+                console.error("Error loading data:", error);
+                alert("An error occurred while loading the data. Please try again.");
+            })
+            .finally(() => {
+                window.isLoading = false;
+            });
+    }
 
     $(document).ready(function() {
         loadAndDisplayData(true);

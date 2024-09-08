@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Automated Testing Data Table Practice Example</title>
+    <title>DSB Bank Transfer</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
@@ -11,7 +11,7 @@
 <body>
     <div class="page-container">
         <header>
-            <h3>Automated Testing Data Table Practice Example</h3>
+            <h3>DSB Bank Transfer</h3>
         </header>
 
         <main>
@@ -81,10 +81,10 @@
                             <tr>
                                 <th><input type="checkbox" id="selectAll"></th>
                                 <th>Reference No</th>
-                                <th>Name</th>
-                                <th>Email</th>
+                                <th>From</th>
+                                <th>To</th>
                                 <th>Amount</th>
-                                <th>Web Site</th>
+                                <th>Message Type</th>
                                 <th>Status</th>
                                 <th>Last Update</th>
                                 <th>Action</th>
@@ -96,21 +96,21 @@
                     </table>
                 </div>
                 <div id="floatingBar" class="floating-bar">
-    <div class="floating-bar-content">
-        <div class="float-start">
-            <span id="selectedCount" class="me-2"></span>
-            <button id="calculateBtn" class="btn btn-outline-secondary me-1">Calculate</button>
-            <span id="calculationResult"></span>
-        </div>
-        <div class="float-end">
-            <span id="statusWarning" class="text-warning me-2">
-                <i class="fas fa-exclamation-triangle me-1"></i>
-                <span id="statusWarningText"></span>
-            </span>
-            <button id="setStatusBtn" class="btn btn-outline-primary"></button>
-        </div>
-    </div>
-</div>
+                    <div class="floating-bar-content">
+                        <div class="float-start">
+                            <span id="selectedCount" class="me-2"></span>
+                            <button id="calculateBtn" class="btn btn-outline-secondary me-1">Calculate</button>
+                            <span id="calculationResult"></span>
+                        </div>
+                        <div class="float-end">
+                            <span id="statusWarning" class="text-warning me-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                <span id="statusWarningText"></span>
+                            </span>
+                            <button id="setStatusBtn" class="btn btn-outline-primary"></button>
+                        </div>
+                    </div>
+                </div>
                 <div class="table-footer">
                     <div id="pageInfo"></div>
                     <div class="pagination-container">
@@ -128,7 +128,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editModalLabel">Edit Row</h5>
+                    <h5 class="modal-title" id="editModalLabel">Edit Transfer</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -138,20 +138,23 @@
                             <input type="text" class="form-control" id="referenceNo" name="referenceNo">
                         </div>
                         <div class="mb-2">
-                            <label for="name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="name" name="name">
+                            <label for="from" class="form-label">From</label>
+                            <input type="text" class="form-control" id="from" name="from">
                         </div>
                         <div class="mb-2">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email">
+                            <label for="to" class="form-label">To</label>
+                            <input type="text" class="form-control" id="to" name="to">
                         </div>
                         <div class="mb-2">
                             <label for="amount" class="form-label">Amount</label>
                             <input type="text" class="form-control" id="amount" name="amount">
                         </div>
                         <div class="mb-2">
-                            <label for="website" class="form-label">Web Site</label>
-                            <input type="url" class="form-control" id="website" name="website">
+                            <label for="messageType" class="form-label">Message Type</label>
+                            <select class="form-select" id="messageType" name="messageType">
+                                <option value="pacs.008">pacs.008</option>
+                                <option value="pacs.009">pacs.009</option>
+                            </select>
                         </div>
                         <div class="mb-2">
                             <label for="status" class="form-label">Status</label>
@@ -169,7 +172,7 @@
             </div>
         </div>
     </div>
-    <!-- Delete Confirmation Modal -->
+
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -178,7 +181,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Delete this item?</p>
+                    <p>Delete this transfer?</p>
                     <div id="deleteItemDetails"></div>
                 </div>
                 <div class="modal-footer">
@@ -188,6 +191,7 @@
             </div>
         </div>
     </div>
+
     <div class="modal fade" id="statusChangeModal" tabindex="-1" aria-labelledby="statusChangeModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -196,7 +200,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Change status for selected items?</p>
+                    <p>Change status for selected transfers?</p>
                     <p>Total amount: <span id="selectedAmount"></span></p>
                 </div>
                 <div class="modal-footer">
@@ -215,32 +219,32 @@
     <script src="{{ url_for('static', filename='js/table-display.js') }}"></script>
     <script src="{{ url_for('static', filename='js/table-actions.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bulk-actions.js') }}"></script>
-<script>
-$(function() {
-    loadAndDisplayData().then(() => {
-        $("#dataTable").tablesorter({
-            headers: {
-                0: { sorter: false },
-                8: { sorter: false }
-            },
-            sortList: [[7,1]],  // Default sort by lastUpdate in descending order
-            widgets: ['zebra'],
-            widgetOptions: {
-                zebra: ['even', 'odd'],
-            },
-        }).on('sortEnd', function(e, table) {
-            var sortList = table.config.sortList;
-            if (sortList.length > 0) {
-                window.currentSortColumn = sortList[0][0];
-                window.currentSortOrder = sortList[0][1] === 0 ? 'asc' : 'desc';
-                loadAndDisplayData();
-            }
+    <script>
+    $(function() {
+        loadAndDisplayData().then(() => {
+            $("#dataTable").tablesorter({
+                headers: {
+                    0: { sorter: false },
+                    8: { sorter: false }
+                },
+                sortList: [[7,1]],  // Default sort by lastUpdate in descending order
+                widgets: ['zebra'],
+                widgetOptions: {
+                    zebra: ['even', 'odd'],
+                },
+            }).on('sortEnd', function(e, table) {
+                var sortList = table.config.sortList;
+                if (sortList.length > 0) {
+                    window.currentSortColumn = sortList[0][0];
+                    window.currentSortOrder = sortList[0][1] === 0 ? 'asc' : 'desc';
+                    loadAndDisplayData();
+                }
+            });
         });
-    });
 
-    // 初始化工具提示
-    $('[data-toggle="tooltip"]').tooltip();
-});
-</script>
+        // Initialize tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+    </script>
 </body>
 </html>

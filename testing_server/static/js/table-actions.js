@@ -2,6 +2,18 @@
 let itemToDelete;
 let currentItem;
 
+// Function to get the maximum REF number
+function getMaxRefNumber() {
+    let maxRef = 0;
+    window.filteredData.forEach(item => {
+        const refNumber = parseInt(item.referenceNo.replace('REF', ''));
+        if (!isNaN(refNumber) && refNumber > maxRef) {
+            maxRef = refNumber;
+        }
+    });
+    return maxRef;
+}
+
 $(document).ready(function() {
     console.log("table-actions.js loaded");
 
@@ -12,17 +24,17 @@ $(document).ready(function() {
         console.log("Edit button clicked for id:", id);
         currentItem = window.filteredData.find(item => item.id === id);
         if (currentItem) {
-            console.log("Found item for editing:", currentItem);
+            console.log("Found transfer for editing:", currentItem);
             $('#referenceNo').val(currentItem.referenceNo || '');
-            $('#name').val(currentItem.name || '');
-            $('#email').val(currentItem.email || '');
+            $('#from').val(currentItem.from || '');
+            $('#to').val(currentItem.to || '');
             $('#amount').val(currentItem.amount || '');
-            $('#website').val(currentItem.website || '');
+            $('#messageType').val(currentItem.messageType || '');
             $('#status').val(currentItem.status || '');
-            $('#editModalLabel').text('Edit Item');
+            $('#editModalLabel').text('Edit Transfer');
             $('#editModal').modal('show');
         } else {
-            console.error("Item not found for editing:", id);
+            console.error("Transfer not found for editing:", id);
         }
     });
 
@@ -33,45 +45,78 @@ $(document).ready(function() {
         console.log("Delete button clicked for id:", id);
         itemToDelete = window.filteredData.find(item => item.id === id);
         if (itemToDelete) {
-            console.log("Found item for deletion:", itemToDelete);
+            console.log("Found transfer for deletion:", itemToDelete);
             $('#deleteItemDetails').html(`
                 <p><strong>Reference No:</strong> ${itemToDelete.referenceNo}</p>
-                <p><strong>Name:</strong> ${itemToDelete.name}</p>
-                <p><strong>Email:</strong> ${itemToDelete.email}</p>
+                <p><strong>From:</strong> ${itemToDelete.from}</p>
+                <p><strong>To:</strong> ${itemToDelete.to}</p>
                 <p><strong>Amount:</strong> ${itemToDelete.amount}</p>
+                <p><strong>Message Type:</strong> ${itemToDelete.messageType}</p>
                 <p><strong>Status:</strong> ${itemToDelete.status}</p>
             `);
             $('#deleteModal').modal('show');
         } else {
-            console.error("Item not found for deletion:", id);
+            console.error("Transfer not found for deletion:", id);
         }
     });
 
-    // Save changes button click handler
-    $("#saveChanges").click(function() {
-        console.log("Save changes button clicked");
-        if (currentItem) {
-            console.log("Current item before update:", currentItem);
-            currentItem.referenceNo = $('#referenceNo').val();
-            currentItem.name = $('#name').val();
-            currentItem.email = $('#email').val();
-            currentItem.amount = $('#amount').val();
-            currentItem.website = $('#website').val();
-            currentItem.status = $('#status').val();
-            currentItem.lastUpdate = new Date().toISOString();
-            console.log("Current item after update:", currentItem);
+    // Add new button click handler
+    $("#addNewBtn").click(function() {
+        console.log("Add new button clicked");
 
-            updateItem(currentItem).then(() => {
-                console.log("Item updated successfully");
+        // Get the next REF number
+        const nextRefNumber = getMaxRefNumber() + 1;
+        const paddedRefNumber = String(nextRefNumber).padStart(4, '0');
+
+        // Reset form fields with default values
+        $('#referenceNo').val(`REF${paddedRefNumber}`);
+        $('#from').val('');
+        $('#to').val('');
+        $('#amount').val('');
+        $('#messageType').val('pacs.008');
+        $('#status').val('Active');
+
+        currentItem = null;
+        $('#editModalLabel').text('Add New Transfer');
+        $('#editModal').modal('show');
+    });
+
+    // Save changes button click handler (for both edit and add)
+    $("#saveChanges").off('click').on('click', function() {
+        console.log("Save changes button clicked");
+        let transferData = {
+            referenceNo: $('#referenceNo').val(),
+            from: $('#from').val(),
+            to: $('#to').val(),
+            amount: $('#amount').val(),
+            messageType: $('#messageType').val(),
+            status: $('#status').val(),
+            lastUpdate: new Date().toISOString()
+        };
+
+        if (currentItem) {
+            // Editing existing transfer
+            transferData.id = currentItem.id;
+            updateItem(transferData).then(() => {
+                console.log("Transfer updated successfully");
                 $('#editModal').modal('hide');
                 applyFilter();
-                window.fetchSummary();  // Update summary
+                window.fetchSummary();
             }).catch(error => {
-                console.error("Error updating item:", error);
-                alert("An error occurred while updating the item. Please try again.");
+                console.error("Error updating transfer:", error);
+                alert("An error occurred while updating the transfer. Please try again.");
             });
         } else {
-            console.error("No item selected for update");
+            // Adding new transfer
+            addItem(transferData).then(() => {
+                console.log("New transfer added successfully");
+                $('#editModal').modal('hide');
+                applyFilter();
+                window.fetchSummary();
+            }).catch(error => {
+                console.error("Error adding new transfer:", error);
+                alert("An error occurred while adding the new transfer. Please try again.");
+            });
         }
     });
 
@@ -79,62 +124,37 @@ $(document).ready(function() {
     $("#confirmDelete").click(function() {
         console.log("Confirm delete button clicked");
         if (itemToDelete) {
-            console.log("Deleting item:", itemToDelete);
+            console.log("Deleting transfer:", itemToDelete);
             deleteItem(itemToDelete.id).then(() => {
-                console.log("Item deleted successfully");
+                console.log("Transfer deleted successfully");
                 $('#deleteModal').modal('hide');
                 applyFilter();
                 window.fetchSummary();  // Update summary
                 itemToDelete = null;
             }).catch(error => {
-                console.error("Error deleting item:", error);
-                alert("An error occurred while deleting the item. Please try again.");
+                console.error("Error deleting transfer:", error);
+                alert("An error occurred while deleting the transfer. Please try again.");
             });
         } else {
-            console.error("No item selected for deletion");
+            console.error("No transfer selected for deletion");
         }
     });
-
-    // Add new button click handler
-    $("#addNewBtn").click(function() {
-        console.log("Add new button clicked");
-        // Reset form fields
-        $('#referenceNo').val('');
-        $('#name').val('');
-        $('#email').val('');
-        $('#amount').val('');
-        $('#website').val('');
-        $('#status').val('Active');
-        currentItem = null;
-        $('#editModalLabel').text('Add New Item');
-        $('#editModal').modal('show');
-    });
-
-// Save changes button click handler
-$("#saveChanges").off('click').on('click', function() {
-    console.log("Save changes button clicked");
-    if (currentItem) {
-        console.log("Current item before update:", currentItem);
-        currentItem.referenceNo = $('#referenceNo').val();
-        currentItem.name = $('#name').val();
-        currentItem.email = $('#email').val();
-        currentItem.amount = $('#amount').val();
-        currentItem.website = $('#website').val();
-        currentItem.status = $('#status').val();
-        currentItem.lastUpdate = new Date().toISOString();
-        console.log("Current item after update:", currentItem);
-
-        updateItem(currentItem).then(() => {
-            console.log("Item updated successfully");
-            $('#editModal').modal('hide');
-            applyFilter();
-            window.fetchSummary();  // Update summary
-        }).catch(error => {
-            console.error("Error updating item:", error);
-            alert("An error occurred while updating the item. Please try again.");
-        });
-    } else {
-        console.error("No item selected for update");
-    }
 });
+
+// Function to center modals
+function centerModal() {
+    $(this).css('display', 'flex');
+    var modalDialog = $(this).find('.modal-dialog');
+    modalDialog.css({
+        'display': 'flex',
+        'align-items': 'center',
+        'margin-top': 0,
+        'margin-bottom': 0
+    });
+}
+
+// Apply centerModal function to all modals
+$('.modal').on('show.bs.modal', centerModal);
+$(window).on('resize', function() {
+    $('.modal:visible').each(centerModal);
 });
