@@ -92,7 +92,8 @@ $("#deleteSelectedBtn").click(function(){
         return $(this).data('id');
     }).get();
     if (selectedIds.length > 0) {
-        var selectedItems = window.data.filter(item => selectedIds.includes(item.id));
+        // 使用 window.filteredData 而不是 window.data
+        var selectedItems = window.filteredData.filter(item => selectedIds.includes(item.id));
         var detailsHtml = selectedItems.map(item =>
             `<p>${item.referenceNo}, ${item.name} (${item.email}) - ${item.amount}</p>`
         ).join('');
@@ -128,7 +129,6 @@ $("#deleteSelectedBtn").click(function(){
                 progressContainer.remove();
             }, 1000);
 
-            window.data = window.data.filter(item => !selectedIds.includes(item.id));
             $("#selectAll").prop('checked', false);
             applyFilter();
             updateSummary();
