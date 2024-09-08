@@ -75,16 +75,22 @@ $("#setStatusBtn").click(function() {
 });
 
 $("#confirmStatusChange").click(function() {
-    // ... 批量更新状态的代码 ...
-    saveData(window.data).then(() => {
-        applyFilter();
-        window.fetchSummary();  // 更新摘要
-        $("#statusChangeModal").modal('hide');
-        $("#floatingBar").hide();
-    }).catch(error => {
-        console.error("Error saving data:", error);
-        alert("An error occurred while saving the data. Please try again.");
-    });
+    var selectedIds = $(".rowCheckbox:checked").map(function() {
+        return $(this).data('id');
+    }).get();
+
+    if (selectedIds.length > 0) {
+        bulkUpdateStatus(selectedIds, newStatus).then(() => {
+            console.log("Bulk status update successful");
+            $("#statusChangeModal").modal('hide');
+            $("#floatingBar").hide();
+            applyFilter();
+            window.fetchSummary();  // 更新摘要
+        }).catch(error => {
+            console.error("Error updating status:", error);
+            alert("An error occurred while updating the status. Please try again.");
+        });
+    }
 });
 
 $("#deleteSelectedBtn").click(function(){

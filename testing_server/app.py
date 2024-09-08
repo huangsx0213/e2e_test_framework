@@ -31,13 +31,6 @@ def handle_data():
         data = load_data()
         filtered_data = filter_sort_paginate(data['data'], request.json)
         return jsonify(filtered_data)
-    elif action == 'update':
-        # 保持现有的 UPDATE 逻辑不变
-        if 'data' not in request.json:
-            return jsonify({"error": "No data provided for update"}), 400
-        new_data = request.json['data']
-        save_data({"data": new_data})
-        return jsonify({"message": "Data updated successfully"}), 200
     elif action == 'delete':
         # 新增删除功能
         if 'id' not in request.json:
