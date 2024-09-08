@@ -30,7 +30,7 @@ $(document).ready(function() {
             $('#to').val(currentItem.to || '');
             $('#amount').val(currentItem.amount || '');
             $('#messageType').val(currentItem.messageType || '');
-            $('#status').val(currentItem.status || '');
+            $(`input[name="status"][value="${currentItem.status}"]`).prop('checked', true);
             $('#editModalLabel').text('Edit Transfer');
             $('#editModal').modal('show');
         } else {
@@ -74,7 +74,7 @@ $(document).ready(function() {
         $('#to').val('');
         $('#amount').val('');
         $('#messageType').val('pacs.008');
-        $('#status').val('Active');
+        $('input[name="status"][value="Active"]').prop('checked', true);
 
         currentItem = null;
         $('#editModalLabel').text('Add New Transfer');
@@ -90,7 +90,7 @@ $(document).ready(function() {
             to: $('#to').val(),
             amount: $('#amount').val(),
             messageType: $('#messageType').val(),
-            status: $('#status').val(),
+            status: $('input[name="status"]:checked').val(),
             lastUpdate: new Date().toISOString()
         };
 

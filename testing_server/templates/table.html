@@ -125,53 +125,61 @@
     </div>
 
     <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editModalLabel">Edit Transfer</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editForm">
-                        <div class="mb-2">
-                            <label for="referenceNo" class="form-label">Reference No</label>
-                            <input type="text" class="form-control" id="referenceNo" name="referenceNo">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Edit Transfer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="mb-2">
+                        <label for="referenceNo" class="form-label">Reference No</label>
+                        <input type="text" class="form-control" id="referenceNo" name="referenceNo">
+                    </div>
+                    <div class="mb-2">
+                        <label for="from" class="form-label">From</label>
+                        <input type="text" class="form-control" id="from" name="from">
+                    </div>
+                    <div class="mb-2">
+                        <label for="to" class="form-label">To</label>
+                        <input type="text" class="form-control" id="to" name="to">
+                    </div>
+                    <div class="mb-2">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="text" class="form-control" id="amount" name="amount">
+                    </div>
+                    <div class="mb-2">
+                        <label for="messageType" class="form-label">Message Type</label>
+                        <select class="form-select" id="messageType" name="messageType">
+                            <option value="pacs.008">pacs.008</option>
+                            <option value="pacs.009">pacs.009</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Status</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="status" id="statusActive" value="Active">
+                            <label class="form-check-label" for="statusActive">
+                                Active
+                            </label>
                         </div>
-                        <div class="mb-2">
-                            <label for="from" class="form-label">From</label>
-                            <input type="text" class="form-control" id="from" name="from">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="status" id="statusInactive" value="Inactive">
+                            <label class="form-check-label" for="statusInactive">
+                                Inactive
+                            </label>
                         </div>
-                        <div class="mb-2">
-                            <label for="to" class="form-label">To</label>
-                            <input type="text" class="form-control" id="to" name="to">
-                        </div>
-                        <div class="mb-2">
-                            <label for="amount" class="form-label">Amount</label>
-                            <input type="text" class="form-control" id="amount" name="amount">
-                        </div>
-                        <div class="mb-2">
-                            <label for="messageType" class="form-label">Message Type</label>
-                            <select class="form-select" id="messageType" name="messageType">
-                                <option value="pacs.008">pacs.008</option>
-                                <option value="pacs.009">pacs.009</option>
-                            </select>
-                        </div>
-                        <div class="mb-2">
-                            <label for="status" class="form-label">Status</label>
-                            <select class="form-select" id="status" name="status">
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-outline-primary" id="saveChanges">Save</button>
-                </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-primary" id="saveChanges">Save</button>
             </div>
         </div>
     </div>
+</div>
 
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
