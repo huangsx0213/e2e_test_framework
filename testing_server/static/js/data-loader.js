@@ -12,10 +12,10 @@ window.isLoading = false;  // Add this flag to prevent multiple simultaneous loa
 // Mapping column index to field name
 const columnToFieldMap = {
     1: 'referenceNo',
-    2: 'name',
-    3: 'email',
+    2: 'from',
+    3: 'to',
     4: 'amount',
-    5: 'website',
+    5: 'messageType',
     6: 'status',
     7: 'lastUpdate'
 };
