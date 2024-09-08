@@ -102,8 +102,12 @@ function updateItem(item) {
 }
 
 function deleteItem(itemId) {
-    return fetch(`/api/delete_item/${itemId}`, {
-        method: 'DELETE',
+    return fetch('/api/data', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'delete', id: itemId }),
     }).then(response => response.json());
 }
 

@@ -27,17 +27,26 @@ def handle_data():
     action = request.json['action']
 
     if action == 'get':
-        # Handle GET request
+        # 保持现有的 GET 逻辑不变
         data = load_data()
         filtered_data = filter_sort_paginate(data['data'], request.json)
         return jsonify(filtered_data)
     elif action == 'update':
-        # Handle UPDATE request
+        # 保持现有的 UPDATE 逻辑不变
         if 'data' not in request.json:
             return jsonify({"error": "No data provided for update"}), 400
         new_data = request.json['data']
         save_data({"data": new_data})
         return jsonify({"message": "Data updated successfully"}), 200
+    elif action == 'delete':
+        # 新增删除功能
+        if 'id' not in request.json:
+            return jsonify({"error": "No id provided for deletion"}), 400
+        item_id = request.json['id']
+        data = load_data()
+        data['data'] = [item for item in data['data'] if item['id'] != item_id]
+        save_data(data)
+        return jsonify({"message": "Item deleted successfully"}), 200
     else:
         return jsonify({"error": "Invalid action"}), 400
 
