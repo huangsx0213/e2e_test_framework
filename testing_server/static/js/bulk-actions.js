@@ -75,23 +75,12 @@ $("#setStatusBtn").click(function() {
 });
 
 $("#confirmStatusChange").click(function() {
-    var selectedCheckboxes = $(".rowCheckbox:checked");
-    var selectedIds = selectedCheckboxes.map(function() {
-        return $(this).data('id');
-    }).get();
-
-    window.data = window.data.map(item => {
-        if (selectedIds.includes(item.id)) {
-            return {...item, status: newStatus, lastUpdate: new Date().toISOString()};
-        }
-        return item;
-    });
-
+    // ... 批量更新状态的代码 ...
     saveData(window.data).then(() => {
         applyFilter();
+        window.fetchSummary();  // 更新摘要
         $("#statusChangeModal").modal('hide');
         $("#floatingBar").hide();
-        updateSummary();
     }).catch(error => {
         console.error("Error saving data:", error);
         alert("An error occurred while saving the data. Please try again.");

@@ -18,27 +18,6 @@ $(document).on('click', '.edit', function(e){
     }
 });
 
-$("#saveChanges").click(function(){
-    if (currentItem) {
-        currentItem.referenceNo = $('#referenceNo').val();
-        currentItem.name = $('#name').val();
-        currentItem.email = $('#email').val();
-        currentItem.amount = $('#amount').val();
-        currentItem.website = $('#website').val();
-        currentItem.status = $('#status').val();
-        currentItem.lastUpdate = new Date().toISOString();
-
-        updateItem(currentItem).then(() => {
-            $('#editModal').modal('hide');
-            applyFilter();
-            updateSummary();
-        }).catch(error => {
-            console.error("Error updating item:", error);
-            alert("An error occurred while updating the item. Please try again.");
-        });
-    }
-});
-
 $(document).on('click', '.delete', function(e){
     e.preventDefault();
     var id = $(this).data('id');
@@ -56,41 +35,46 @@ $(document).on('click', '.delete', function(e){
         console.error("Item not found for deletion:", id);
     }
 });
+// 在添加新项目后
+$("#addNewBtn").click(function(){
+    // ... 添加项目的代码 ...
+    addItem(newItem).then(response => {
+        window.data.push(response.item);
+        applyFilter();
+        window.fetchSummary();  // 更新摘要
+    }).catch(error => {
+        console.error("Error adding new item:", error);
+        alert("An error occurred while adding a new item. Please try again.");
+    });
+});
 
+// 在编辑项目后
+$("#saveChanges").click(function(){
+    if (currentItem) {
+        // ... 更新项目的代码 ...
+        updateItem(currentItem).then(() => {
+            $('#editModal').modal('hide');
+            applyFilter();
+            window.fetchSummary();  // 更新摘要
+        }).catch(error => {
+            console.error("Error updating item:", error);
+            alert("An error occurred while updating the item. Please try again.");
+        });
+    }
+});
+
+// 在删除项目后
 $("#confirmDelete").click(function(){
     if (itemToDelete) {
         deleteItem(itemToDelete.id).then(() => {
             window.data = window.data.filter(item => item.id !== itemToDelete.id);
             $('#deleteModal').modal('hide');
             applyFilter();
-            updateSummary();
+            window.fetchSummary();  // 更新摘要
             itemToDelete = null;
         }).catch(error => {
             console.error("Error deleting item:", error);
             alert("An error occurred while deleting the item. Please try again.");
         });
     }
-});
-
-$("#addNewBtn").click(function(){
-    var newId = window.data.length > 0 ? Math.max(...window.data.map(item => item.id)) + 1 : 1;
-    var newItem = {
-        id: newId,
-        referenceNo: "New",
-        name: "Person",
-        email: "new@example.com",
-        amount: "$0.00",
-        website: "http://www.example.com",
-        status: "Active",
-        lastUpdate: new Date().toISOString()
-    };
-
-    addItem(newItem).then(response => {
-        window.data.push(response.item);
-        applyFilter();
-        updateSummary();
-    }).catch(error => {
-        console.error("Error adding new item:", error);
-        alert("An error occurred while adding a new item. Please try again.");
-    });
 });
