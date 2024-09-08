@@ -164,6 +164,7 @@ class PageObject:
             'scroll_to_element': self.web_actions.scroll_to_element,
             'get_text': self.web_actions.get_text,
             'get_attribute': self.web_actions.get_attribute,
+            'select_radio_by_value': self.web_actions.select_radio_by_value,
 
             # Element state verification
             'element_text_should_be': self.web_actions.element_text_should_be,

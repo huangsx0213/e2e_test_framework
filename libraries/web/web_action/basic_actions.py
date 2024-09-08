@@ -1,3 +1,4 @@
+from selenium.webdriver import ActionChains
 from selenium.webdriver.support.select import Select
 
 from .base import Base
@@ -123,3 +124,33 @@ class BasicActions(Base):
         logging.info(
             f"{self.__class__.__name__}: Attribute '{attribute_name}' value: '{attribute_value}' for element: {element_desc}")
         return attribute_value
+
+    @wait_and_perform(default_condition="presence")
+    def select_radio_by_value(self, element, value):
+        element_desc = self._get_element_description(element)
+        logging.info(f"{self.__class__.__name__}: Selecting radio button with value '{value}' in radio group: {element_desc}")
+
+        radio_buttons = element
+
+        for radio in radio_buttons:
+            if radio.get_attribute("value") == value:
+                if not radio.is_selected():
+                    radio.click()
+                logging.info(f"{self.__class__.__name__}: Radio button with value '{value}' selected successfully")
+                return
+
+    @wait_and_perform(default_condition="presence")
+    def select_radio_by_text(self, element, text):
+        element_desc = self._get_element_description(element)
+        logging.info(f"{self.__class__.__name__}: Selecting radio button with text '{text}' in radio group: {element_desc}")
+
+        radio_buttons = element
+
+        for radio in radio_buttons:
+            # 获取单选按钮的标签文本
+            label = radio.find_element(By.XPATH, "./following-sibling::label[1]")
+            if label.text.strip() == text:
+                if not radio.is_selected():
+                    radio.click()
+                logging.info(f"{self.__class__.__name__}: Radio button with text '{text}' selected successfully")
+                return

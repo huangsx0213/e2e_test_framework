@@ -138,7 +138,7 @@ class ResponseFieldSaver(ResponseHandler):
             try:
                 value = self._extract_value_from_response(response_content, field)
                 field_name = f'{test_case["TCID"]}.{field.strip()}'
-                logging.info(f"{self.__class__.__name__}: Setting suite variable {field_name} to {value}.")
+                logging.info(f"{self.__class__.__name__}: Setting global variable {field_name} to {value}.")
                 BuiltIn().set_global_variable(f'${{{field_name}}}', value)
             except Exception as e:
                 logging.error(f"{self.__class__.__name__}: Failed to process field '{field}': {e}")
