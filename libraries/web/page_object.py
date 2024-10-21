@@ -165,6 +165,8 @@ class PageObject:
             'get_text': self.web_actions.get_text,
             'get_attribute': self.web_actions.get_attribute,
             'select_radio_by_value': self.web_actions.select_radio_by_value,
+            'fill_by_js': self.web_actions.fill_by_js,
+            'click_by_js': self.web_actions.click_by_js,
 
             # Element state verification
             'element_text_should_be': self.web_actions.element_text_should_be,
