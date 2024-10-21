@@ -22,7 +22,7 @@ class WebUIRobotCasesGenerator:
     def _initialize_components(self, test_cases_path: str):
         default_test_cases_path: str = os.path.join('test_cases', 'web_test_cases.xlsx')
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
-        self.web_test_loader = WebTestLoader(self.test_cases_path)
+        self.web_test_loader = WebTestLoader(self.test_cases_path, self.test_config)
 
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> TestSuite:
         self.robot_suite = TestSuite('Web UI TestSuite')

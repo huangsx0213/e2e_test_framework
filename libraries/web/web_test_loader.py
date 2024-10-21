@@ -7,17 +7,19 @@ from typing import Dict, List
 class WebTestLoader:
     _instances = {}
 
-    def __new__(cls, excel_path):
-        if excel_path not in cls._instances:
+    def __new__(cls, excel_path, test_config):
+        key = (excel_path, id(test_config))  # Use a tuple of excel_path and test_config id as the key
+        if key not in cls._instances:
             instance = super().__new__(cls)
-            instance.__init__(excel_path)
-            cls._instances[excel_path] = instance
-        return cls._instances[excel_path]
+            instance.__init__(excel_path, test_config)
+            cls._instances[key] = instance
+        return cls._instances[key]
 
-    def __init__(self, excel_path):
+    def __init__(self, excel_path, test_config):
         if hasattr(self, 'initialized'):
             return
         self.excel_path = excel_path
+        self.test_config = test_config
         self.data = self._load_excel_data()
         self._validate_data()
         self.initialized = True
@@ -114,6 +116,11 @@ class WebTestLoader:
         if missing_columns:
             logging.error(f"WebTestLoader: Missing required columns in WebEnvironments sheet: {', '.join(missing_columns)}")
             return
+
+        # Check if active_environment exists in WebEnvironments
+        active_environment = self.test_config.get('active_environment')
+        if active_environment and active_environment not in web_environments['Environment'].values:
+            logging.error(f"WebTestLoader: Active environment '{active_environment}' specified in config file does not exist in WebEnvironments sheet.")
 
         for index, row in web_environments.iterrows():
             if pd.isna(row['Environment']) or row['Environment'] == '':

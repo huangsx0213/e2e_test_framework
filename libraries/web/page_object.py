@@ -49,7 +49,7 @@ class PageObject:
 
     def _load_configuration(self):
         self.test_config = ConfigManager.load_yaml(self.test_config_path)
-        self.web_test_loader = WebTestLoader(self.test_cases_path)
+        self.web_test_loader = WebTestLoader(self.test_cases_path, self.test_config)
         self.env_config = self._load_environment_config()
 
     def _load_environment_config(self):
