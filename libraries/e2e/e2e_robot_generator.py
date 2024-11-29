@@ -112,6 +112,7 @@ class E2ERobotCasesGenerator:
 
                 # Create test steps
                 self.create_test_steps(robot_ui_test, test_steps, data_set)
+                logging.info(f"{self.__class__.__name__}: Test case {case_id}.{data_set_index} created successfully.")
 
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error creating test case {test_case.get('Case ID', 'Unknown')}: {str(e)}")
