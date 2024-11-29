@@ -140,7 +140,7 @@ class E2ERobotCasesGenerator:
                 if module_name == 'API':
                     self._generate_api_step(step, robot_ui_test)
                 else:
-                    self._generate_ui_step(robot_ui_test, page_name, module_name, params)
+                    self._generate_ui_step(robot_ui_test,step, page_name, module_name, params)
 
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error creating test steps: {str(e)}")
@@ -156,8 +156,9 @@ class E2ERobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error generating API step: {str(e)}")
             raise
 
-    def _generate_ui_step(self, robot_ui_test, page_name, module_name, params):
+    def _generate_ui_step(self, robot_ui_test,step, page_name, module_name, params):
         try:
+            self.child_suite.name = f"UISubSuite.{page_name}.{step['Case ID']}"
             robot_ui_test.body.create_keyword(name='execute_module', args=[page_name, module_name, params])
             self.child_suite.teardown.config(name='close_browser', args=[])
         except Exception as e:
