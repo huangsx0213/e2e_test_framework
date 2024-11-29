@@ -123,6 +123,8 @@ class WebTestLoader:
             logging.error(f"WebTestLoader: Active environment '{active_environment}' specified in config file does not exist in WebEnvironments sheet.")
 
         for index, row in web_environments.iterrows():
+            if self.test_config.get('active_environment') != row['Environment']:
+                continue
             if pd.isna(row['Environment']) or row['Environment'] == '':
                 logging.error(f"WebTestLoader: Empty Environment name in row {index + 2}")
 
