@@ -4,9 +4,11 @@ test_cases_path : test_cases/e2e_test_cases.xlsx
 # Specify one or more Test Case IDs here.
 # If this list is empty, all test cases will be run.
 tc_id_list:
-
+- TC001
+- TC002
+- TC003
 # List of tags to filter test cases.
 # Only test cases which contain any of these tags will be run.
 # If this list is empty, all test cases will be run.
 tags:
-
+  - tag1
