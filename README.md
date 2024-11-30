@@ -260,7 +260,6 @@ UITC002 | Regular Test   | ... | regression
 | Step ID | Unique identifier for each step | Integer | Defines execution order of steps |
 | Page Name | Page object name | String | Must match definitions in PageModules |
 | Module Name | Module name | String | Specific module within the page object |
-| Parameter Name | Parameter names | Comma-separated string | Corresponds to parameters in TestData |
 | Run | Whether to execute this step | "Y" or "N" | Y means execute, N means skip |
 
 ### 5.4 TestData Sheet:
