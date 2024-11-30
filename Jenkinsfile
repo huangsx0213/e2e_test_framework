@@ -1,3 +1,5 @@
+//在docker的环境变量添加以下参数才能正常查看html报告
+//JAVA_OPTS="-Dhudson.model.DirectoryBrowserSupport.CSP=''"
 pipeline {
     agent any
 

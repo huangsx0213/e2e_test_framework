@@ -125,10 +125,9 @@ class WebUIRobotCasesGenerator:
                     # Get step information
                     page_name = step['Page Name']
                     module_name = step['Module Name']
-                    params = self.extract_parameters(data_set, step['Parameter Name'])
 
                     # Create UI test step
-                    self._generate_ui_step(robot_test, page_name, module_name, params)
+                    self._generate_ui_step(robot_test, page_name, module_name, data_set)
 
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error creating test steps: {str(e)}")
@@ -141,18 +140,3 @@ class WebUIRobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error generating UI step for {page_name}.{module_name}: {str(e)}")
             raise
 
-    @staticmethod
-    def extract_parameters(data_set: Dict, parameter_names: str) -> Dict:
-        try:
-            parameters = {}
-            if parameter_names:
-                for name in parameter_names.split(','):
-                    if name in data_set:
-                        parameters[name] = data_set[name]
-                    else:
-                        logging.warning(f"Parameter {name} not found in data set")
-            logging.info(f"Extracted parameters: {parameters}")
-            return parameters
-        except Exception as e:
-            logging.error(f"WebUIRobotCasesGenerator: Error extracting parameters: {str(e)}")
-            raise

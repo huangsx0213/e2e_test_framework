@@ -88,7 +88,6 @@ class E2ERobotCasesGenerator:
 
             # Create empty data set if none exists
             if not test_data_sets:
-                logging.warning(f"{self.__class__.__name__}: No data sets found for test case {case_id}. Using empty data.")
                 test_data_sets = [{}]
 
             # Create child test suite
@@ -135,13 +134,13 @@ class E2ERobotCasesGenerator:
                 # Get step information
                 page_name = step['Page Name']
                 module_name = step['Module Name']
-                params = self.extract_parameters(data_set, step['Parameter Name'])
+
 
                 # Generate steps based on module type
                 if module_name == 'API':
                     self._generate_api_step(step, robot_ui_test)
                 else:
-                    self._generate_ui_step(robot_ui_test,step, page_name, module_name, params)
+                    self._generate_ui_step(robot_ui_test,step, page_name, module_name, data_set)
 
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error creating test steps: {str(e)}")
@@ -151,7 +150,7 @@ class E2ERobotCasesGenerator:
         try:
             self.child_suite.tests.remove(robot_ui_test)
             self.child_suite.name = f"APISubSuite.{step['Page Name']}.{step['Case ID']}"
-            tc_id_list = step['Parameter Name'].split(',')
+            tc_id_list = step['APIs'].split(',')
             self.api_robot_generator.create_test_suite(tc_id_list, None, self.child_suite)
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error generating API step: {str(e)}")
@@ -166,18 +165,3 @@ class E2ERobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error generating UI step for {page_name}.{module_name}: {str(e)}")
             raise
 
-    @staticmethod
-    def extract_parameters(data_set: Dict, parameter_names: str) -> Dict:
-        try:
-            parameters = {}
-            if parameter_names:
-                for name in parameter_names.split(','):
-                    if name in data_set:
-                        parameters[name] = data_set[name]
-                    else:
-                        logging.warning(f"Parameter {name} not found in data set")
-            logging.info(f"Extracted parameters: {parameters}")
-            return parameters
-        except Exception as e:
-            logging.error(f"E2ERobotCasesGenerator: Error extracting parameters: {str(e)}")
-            raise

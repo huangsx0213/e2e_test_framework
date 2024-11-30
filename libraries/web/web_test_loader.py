@@ -71,16 +71,6 @@ class WebTestLoader:
             for param in module_params:
                 expected_params.update(param.split(','))
 
-            provided_params = set(step_row['Parameter Name'].split(',')) if step_row['Parameter Name'] else set()
-
-            missing_params = expected_params - provided_params
-            extra_params = provided_params - expected_params
-
-            if missing_params:
-                logging.error(f"Missing parameters {missing_params} in TestSteps for Case ID '{step_row['Case ID']}', Step '{step_row['Step ID']}'")
-            if extra_params:
-                logging.error(f"Extra parameters {extra_params} in TestSteps for Case ID '{step_row['Case ID']}', Step '{step_row['Step ID']}'")
-
             case_data = test_data[test_data['Case ID'] == step_row['Case ID']]
             for param in expected_params:
                 if param not in case_data['Parameter Name'].values:

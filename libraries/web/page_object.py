@@ -115,9 +115,8 @@ class PageObject:
         return modules
 
     @keyword
-    def execute_module(self, page_name: str, module_name: str, parameters: Dict = None):
-        logging.info(f"{self.__class__.__name__}: Executing module: {module_name} on page: {page_name}")
-        parameters = parameters or {}
+    def execute_module(self, page_name: str, module_name: str, data_set: Dict = None):
+
         module_actions = self.page_modules[page_name][module_name]
 
         for action_info in module_actions:
@@ -127,7 +126,13 @@ class PageObject:
             screen_capture = action_info['screen_capture']
             wait = action_info['wait']
             locator = self.page_elements[page_name][element_name] if element_name else None
-            action_params = [parameters.get(param) for param in action_info['parameter_name']]
+            action_params = self._extract_parameters(data_set, action_info['parameter_name'])
+
+            logging.info(
+                f"{self.__class__.__name__}: Executing action:[{action}] on page:[{page_name}] module:[{module_name}]"
+                + (f" element:[{element_name}]" if element_name else "")
+                + (f" with parameters:{action_params}" if action_params else "")
+            )
 
             if highlight:
                 self.web_actions.highlight_element(locator)
@@ -296,3 +301,17 @@ class PageObject:
             BuiltIn().skip("Skipping current test as sanity check failed.")
         else:
             logging.info(f"{self.__class__.__name__}: Sanity check succeeded, continuing with the test.")
+
+    def _extract_parameters(self, data_set: Dict, parameter_names: List[str]) -> List:
+        try:
+            parameters = []
+            if data_set and parameter_names:
+                for name in parameter_names:
+                    if name in data_set:
+                        parameters.append(data_set[name])
+                    else:
+                        logging.warning(f"{self.__class__.__name__}: Parameter {name} not found in data set")
+            return parameters
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: PageObject: Error extracting parameters: {str(e)}")
+            raise
