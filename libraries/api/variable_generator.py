@@ -1,3 +1,4 @@
+import logging
 import random
 import string
 import uuid
@@ -17,7 +18,7 @@ class VariableGenerator:
             'formated_timestamp': VariableGenerator._generate_formated_timestamp,
             'bic': VariableGenerator._generate_bic
         }
-        return handlers.get(field_name, VariableGenerator._generate_error_handling)()
+        return handlers.get(field_name, VariableGenerator._generate_default_value)()
 
     @staticmethod
     def _generate_uuid4() -> str:
@@ -50,5 +51,6 @@ class VariableGenerator:
         return ''.join(random.choices(string.ascii_uppercase, k=8))
 
     @staticmethod
-    def _generate_error_handling() -> str:
-        raise ValueError(f"VariableGenerator: No handler registered for field.")
+    def _generate_default_value() -> str:
+        logging.error("VariableGenerator: No handler registered for this field.")
+        return 'not support this dynamic field.'
