@@ -1,4 +1,5 @@
 import requests
+import urllib3
 from typing import Dict, Union, Optional
 import time
 import logging
@@ -10,7 +11,7 @@ class RequestSender:
                      body: Optional[Union[Dict, str]] = None, format_type: str = 'json') -> (requests.Response, float, Optional[str]):
         requests_method = RequestSender._get_request_method(method)
         start_time = time.time()
-
+        urllib3.disable_warnings()
         try:
             if format_type == 'json':
                 response = requests_method(url, headers=headers, json=body, verify=False)
