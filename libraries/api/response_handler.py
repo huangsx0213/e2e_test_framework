@@ -12,7 +12,6 @@ from libraries.common.utility_helpers import UtilityHelpers
 
 builtin_lib = BuiltIn()
 
-
 class ResponseHandler:
     def get_content_and_format(self, response: Union[str, Response]) -> Tuple[str, str]:
         try:
@@ -62,7 +61,6 @@ class ResponseHandler:
         else:
             raise ValueError(f"{self.__class__.__name__}: No match found for JSONPath: {json_path}")
 
-
 class ResponseValidator(ResponseHandler):
     def validate_response(self, expected_results: str, actual_response: Union[str, Response]) -> None:
         response_content, response_format = self.get_content_and_format(actual_response)
@@ -86,38 +84,41 @@ class ResponseValidator(ResponseHandler):
         exp_results = test_case['Exp Result'].splitlines()
         for exp_result in exp_results:
             dynamic_checks = re.findall(r'(\w+)\.(\$[.\[\]\w]+)=([+-]\d+)', exp_result)
-            static_checks = re.findall(r'@(\w+)\.(\$[.\[\]\w]+)=(.+)', exp_result)
+            pre_post_checks = re.findall(r'(\w+)\.(precheck|postcheck)\.(\$[.\[\]\w]+)=(.+)', exp_result)
 
             if dynamic_checks:
-                logging.info(f"{self.__class__.__name__}: Expected dynamic result: {exp_result}")
-                for check in dynamic_checks:
-                    tcid, json_path, expected_value = check
-                    pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
-                    post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
+                self._handle_dynamic_checks(dynamic_checks, pre_check_responses, post_check_responses)
+            elif pre_post_checks:
+                self._handle_pre_post_checks(pre_post_checks, pre_check_responses, post_check_responses)
 
-                    actual_value = round(float(post_value) - float(pre_value), 2)
+        logging.info(f"{self.__class__.__name__}: All dynamic and pre/post checks passed successfully.")
 
-                    logging.info(f"{self.__class__.__name__}: Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}")
+    def _handle_dynamic_checks(self, checks, pre_check_responses, post_check_responses):
+        for tcid, json_path, expected_value in checks:
+            pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
+            post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
 
-                    if not self._compare_diff(actual_value, expected_value):
-                        raise AssertionError(
-                            f"{self.__class__.__name__}: Dynamic check failed for {tcid}.{json_path}. Expected diff: {expected_value}, Actual diff: {actual_value}")
+            actual_value = round(float(post_value) - float(pre_value), 2)
 
-            elif static_checks:
-                logging.info(f"{self.__class__.__name__}: Expected static result: {exp_result}")
-                for check in static_checks:
-                    tcid, json_path, expected_value = check
-                    post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
+            logging.info(f"{self.__class__.__name__}: Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}")
 
-                    logging.info(f"{self.__class__.__name__}: Actual value: {post_value}, Expected value: {expected_value}")
+            if not self._compare_diff(actual_value, expected_value):
+                raise AssertionError(
+                    f"{self.__class__.__name__}: Dynamic check failed for {tcid}.{json_path}. Expected diff: {expected_value}, Actual diff: {actual_value}")
 
-                    if str(post_value) != str(expected_value.strip()):
-                        raise AssertionError(f"{self.__class__.__name__}: Static check failed for {tcid}.{json_path}. Expected: {expected_value}, Actual: {post_value}")
-
+    def _handle_pre_post_checks(self, checks, pre_check_responses, post_check_responses):
+        for tcid, check_type, json_path, expected_value in checks:
+            if check_type == 'precheck':
+                actual_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
+            elif check_type == 'postcheck':
+                actual_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
             else:
-                logging.warning(f"{self.__class__.__name__}: Unrecognized expected result format: {exp_result}")
+                raise ValueError(f"{self.__class__.__name__}: Invalid check type: {check_type}")
 
-        logging.info(f"{self.__class__.__name__}: All dynamic and static checks passed successfully.")
+            logging.info(f"{self.__class__.__name__}: {check_type.capitalize()} - Actual value: {actual_value}, Expected value: {expected_value}")
+
+            if str(actual_value) != str(expected_value.strip()):
+                raise AssertionError(f"{self.__class__.__name__}: {check_type.capitalize()} failed for {tcid}.{json_path}. Expected: {expected_value}, Actual: {actual_value}")
 
     def _assert_line(self, line: str, response_content: str, response_format: str) -> None:
         key, expected_value = map(str.strip, line.split('=', 1))
@@ -143,7 +144,6 @@ class ResponseValidator(ResponseHandler):
             return actual_diff == -expected_value
         else:
             raise ValueError(f"{self.__class__.__name__}: Unsupported operator in expected diff: {expected_operator}")
-
 
 class ResponseFieldSaver(ResponseHandler):
     def save_fields_to_robot_variables(self, response: Union[str, Response], test_case: dict) -> None:
