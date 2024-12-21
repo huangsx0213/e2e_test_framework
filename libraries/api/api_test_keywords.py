@@ -5,6 +5,7 @@ from time import sleep
 from typing import Dict, List
 import pandas as pd
 from libraries.common.config_manager import ConfigManager
+from libraries.common.db_validator import DBValidator
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
@@ -14,6 +15,8 @@ from libraries.api.response_handler import ResponseValidator, ResponseFieldSaver
 from libraries.api.api_test_loader import APITestLoader
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api.deco import keyword, library
+from robot.api import logger
+from libraries.common.log_manager import ColorLogger
 
 builtin_lib = BuiltIn()
 
@@ -36,10 +39,13 @@ class APITestKeywords:
         default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
 
-    def _load_endpoints(self):
-
-        endpoints = self.api_test_loader.get_endpoints()
         self.active_environment = self.test_config['active_environment']
+        self.db_config = self.test_config.get('database', {}).get(self.active_environment, {})
+        if not self.db_config:
+            raise ValueError(f"No database configuration for environment: {self.active_environment}")
+
+    def _load_endpoints(self):
+        endpoints = self.api_test_loader.get_endpoints()
         self.endpoints = {}
         for _, row in endpoints[endpoints['Environment'] == self.active_environment].iterrows():
             self.endpoints[row['Endpoint']] = {
@@ -55,6 +61,9 @@ class APITestKeywords:
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
         self.api_response_asserter: ResponseValidator = ResponseValidator()
         self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
+        self.db_validator = DBValidator()
+
+
     @keyword
     def api_sanity_check(self) -> None:
         skip_on_sanity_check_failure = BuiltIn().get_variable_value('${skip_on_sanity_check_failure}', default=False)
@@ -62,6 +71,7 @@ class APITestKeywords:
             BuiltIn().skip("Skipping current test as sanity check failed.")
         else:
             logging.info(f"{self.__class__.__name__}: Sanity check succeeded, continuing with the test.")
+
     @keyword
     def clear_saved_fields(self):
         if self.test_config.get('clear_saved_fields_after_test', False):
@@ -99,11 +109,12 @@ class APITestKeywords:
             if check_with_tcids:
                 pre_check_responses = self._execute_check_with_cases(check_with_tcids)
                 response, execution_time = self._execute_single_test_case(test_case)
+                logging.info("============================================")
                 post_check_responses = self._execute_check_with_cases(check_with_tcids)
                 self._validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
             else:
                 response, execution_time = self._execute_single_test_case(test_case)
-
+            logger.info(ColorLogger.success(f"{self.__class__.__name__}: Test case [ {test_case_id} ]: PASS."), html=True)
             logging.info(f"{self.__class__.__name__}: Finished execution of test case {test_case_id}")
             logging.info("============================================")
 
@@ -117,12 +128,24 @@ class APITestKeywords:
         logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time:.2f} seconds")
         self.api_response_asserter.validate_response(test_case['Exp Result'], response)
         self.response_field_saver.save_fields_to_robot_variables(response, test_case)
+        self.validate_data_base(test_case)
         wait = float(test_case['Wait']) if test_case['Wait'] != '' else 0
         if wait > 0:
             sleep(wait)
             logging.info(f"{self.__class__.__name__}: Waiting for results of {test_case['TCID']} in {wait} seconds.")
-        logging.info("============================================")
+
         return response, execution_time
+
+    def validate_data_base(self, test_case):
+        try:
+            if 'DB.' in test_case['Exp Result']:
+                self.db_validator.setup_database(self.db_config)
+                for line in test_case['Exp Result'].splitlines():
+                    if line.strip().startswith('DB.'):
+                        self.db_validator.validate_database_value(line.strip())
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Failed to validate database: {str(e)}")
+            raise e
 
     def _extract_check_with_tcids(self, test_case):
         conditions = test_case['Conditions']

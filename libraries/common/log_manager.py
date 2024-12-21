@@ -41,7 +41,20 @@ class Logger:
         return self.logger
 
 
+class ColorLogger:
+    @staticmethod
+    def success(message):
+        return f'<span style="background-color: #90EE90; padding: 2px 5px; border-radius: 3px;">{message}</span>'
+
+    @staticmethod
+    def error(message):
+        return f'<span style="background-color: #FFB6C1; padding: 2px 5px; border-radius: 3px;">{message}</span>'
+
+    @staticmethod
+    def info(message):
+        return f'<span style="background-color: #B8E2F2; padding: 2px 5px; border-radius: 3px;">{message}</span>'
+
 logger_instance = Logger()
 logger = logger_instance.get_logger()
 
-__all__ = ['logger', 'logger_instance']
+__all__ = ['logger', 'logger_instance', 'ColorLogger']

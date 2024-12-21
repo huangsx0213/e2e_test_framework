@@ -2,12 +2,12 @@ import logging
 import json
 import re
 from typing import Any, Union, Tuple
-
 from jsonpath_ng import parse
 import xmltodict
 from requests import Response
 from robot.libraries.BuiltIn import BuiltIn
-
+from robot.api import logger
+from libraries.common.log_manager import ColorLogger
 from libraries.common.utility_helpers import UtilityHelpers
 
 builtin_lib = BuiltIn()
@@ -79,6 +79,8 @@ class ResponseValidator(ResponseHandler):
 
         if assertion_errors:
             raise AssertionError(f"{self.__class__.__name__}: Assertions failed:\n" + "\n".join(assertion_errors))
+        logging.info(f"{self.__class__.__name__}: All assertions passed successfully.")
+        # logger.info(ColorLogger.info(f"{self.__class__.__name__}: All assertions passed successfully."), html=True)
 
     def validate_response_dynamic(self, test_case: dict, pre_check_responses: dict, post_check_responses: dict) -> None:
         exp_results = test_case['Exp Result'].splitlines()
@@ -90,8 +92,8 @@ class ResponseValidator(ResponseHandler):
                 self._handle_dynamic_checks(dynamic_checks, pre_check_responses, post_check_responses)
             elif pre_post_checks:
                 self._handle_pre_post_checks(pre_post_checks, pre_check_responses, post_check_responses)
-
         logging.info(f"{self.__class__.__name__}: All dynamic and pre/post checks passed successfully.")
+        # logger.info(ColorLogger.info(f"{self.__class__.__name__}: All dynamic and pre/post checks passed successfully."), html=True)
 
     def _handle_dynamic_checks(self, checks, pre_check_responses, post_check_responses):
         for tcid, json_path, expected_value in checks:
@@ -154,7 +156,8 @@ class ResponseFieldSaver(ResponseHandler):
             try:
                 value = self._extract_value_from_response(response_content, field)
                 field_name = f'{test_case["TCID"]}.{field.strip()}'
-                logging.info(f"{self.__class__.__name__}: Setting global variable {field_name} to {value}.")
+                # logging.info(f"{self.__class__.__name__}: Setting global variable {field_name} to {value}.")
+                logger.info(ColorLogger.info(f"{self.__class__.__name__}: Setting global variable {field_name} to {value}."), html=True)
                 BuiltIn().set_global_variable(f'${{{field_name}}}', value)
             except Exception as e:
                 logging.error(f"{self.__class__.__name__}: Failed to process field '{field}': {e}")
