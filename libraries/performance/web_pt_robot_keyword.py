@@ -1,7 +1,8 @@
 from robot.api import logger
-from libraries.web.performance_tester import WebPerformanceTester
+from libraries.performance.web_pt import WebPerformanceTester
 
 class RobotFrameworkWebTester:
+    ROBOT_LIBRARY_SCOPE = 'TEST SUITE'
     def __init__(self):
         self.tester = None
 
