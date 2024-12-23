@@ -3,24 +3,17 @@ import os
 import json
 import time
 from typing import Dict, Tuple
-
-import pandas as pd
-import matplotlib.pyplot as plt
-from io import BytesIO
-import base64
-from selenium.webdriver.common.by import By
-
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
 from libraries.performance.web_pt_loader import PerformanceTestLoader
 from libraries.web.webdriver_factory import WebDriverFactory
 from libraries.web.web_actions import WebElementActions
-
+from libraries.performance.web_pt_reporter import WebPerformanceReporter
 
 class WebPerformanceTester:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root = PROJECT_ROOT
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web_test_config.yaml')
+        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web_pt_config.yaml')
         self.test_cases_path = test_cases_path or os.path.join(self.project_root, 'test_cases', 'web_pt_cases.xlsx')
 
         self._web_actions_instance = None
@@ -124,11 +117,9 @@ class WebPerformanceTester:
         operation_steps = self.sub_functions[self.sub_functions['Sub Function Name'] == function_steps['Operation subFunction']].sort_values('Step Order')
         postcondition_steps = self.sub_functions[self.sub_functions['Sub Function Name'] == function_steps['Postcondition subFunction']].sort_values('Step Order')
 
-        # Execute precondition steps
         for _, step in precondition_steps.iterrows():
             self._execute_step(step)
         start_time = time.time()
-        # Execute operation steps and measure response time
         for _, step in operation_steps.iterrows():
             self._execute_step(step)
         end_time = time.time()
@@ -139,7 +130,6 @@ class WebPerformanceTester:
             "function_name": function_name,
             "response_time": response_time
         })
-        # Execute postcondition steps
         for _, step in postcondition_steps.iterrows():
             self._execute_step(step)
 
@@ -171,88 +161,18 @@ class WebPerformanceTester:
             elements.setdefault(row['Page'], {})[row['Element']] = (row['Locator Type'], row['Locator Value'])
         return elements
 
-    def generate_memory_usage_chart(self):
-        df = pd.DataFrame(self.memory_usage_data)
-        plt.figure(figsize=(10, 6))
-        plt.plot(df["round"], df["used_MB"], marker="o", label="Used Memory (MB)", color="blue")
-        plt.title("JavaScript Memory Usage Trend")
-        plt.xlabel("Round")
-        plt.ylabel("Memory (MB)")
-        plt.grid()
-        plt.legend()
-        return self._save_fig_as_base64()
-
-    def generate_response_time_statistics_chart(self):
-        df = pd.DataFrame(self.response_time_data)
-        stats = df.groupby("function_name").agg({"response_time": ["mean", "max"]})
-        stats.columns = ["Mean", "Max"]
-        stats.reset_index(inplace=True)
-
-        stats.plot(kind="bar", x="function_name", figsize=(10, 6), colormap="coolwarm")
-        plt.title("Response Time Statistics")
-        plt.xlabel("Function Name")
-        plt.ylabel("Time (s)")
-        plt.grid(axis="y")
-        plt.xticks(rotation=45)
-        return self._save_fig_as_base64()
-
-    def generate_response_time_trend_chart(self):
-        df = pd.DataFrame(self.response_time_data)
-        plt.figure(figsize=(10, 6))
-        for func in df["function_name"].unique():
-            func_data = df[df["function_name"] == func]
-            plt.plot(func_data["round"], func_data["response_time"], marker="o", label=func)
-
-        plt.title("Response Time Trend")
-        plt.xlabel("Round")
-        plt.ylabel("Response Time (s)")
-        plt.legend(title="Function Points")
-        plt.grid()
-        return self._save_fig_as_base64()
-
-    def generate_response_time_statistics_table(self):
-        df = pd.DataFrame(self.response_time_data)
-        stats = df.groupby("function_name").agg({
-            "response_time": [
-                lambda x: round(x.mean(), 2),
-                lambda x: round(x.max(), 2),
-                lambda x: round(x.min(), 2),
-                lambda x: round(x.median(), 2),
-                lambda x: round(x.quantile(0.9), 2),
-                lambda x: round(x.quantile(0.95), 2),
-                lambda x: round(x.quantile(0.99), 2)
-            ]
-        }).reset_index()
-
-        stats.columns = ["Function Name", "Mean (s)", "Max (s)", "Min (s)",
-                         "Median (s)", "P90 (s)", "P95 (s)", "P99 (s)"]
-
-        fig, ax = plt.subplots(figsize=(10, len(stats) * 0.8))
-        ax.axis("tight")
-        ax.axis("off")
-        table = plt.table(cellText=stats.values, colLabels=stats.columns, cellLoc="center", loc="center")
-        table.auto_set_font_size(False)
-        table.set_fontsize(8)
-        return self._save_fig_as_base64()
+    def generate_reports(self):
+        reporter = WebPerformanceReporter(self.response_time_data, self.memory_usage_data)
+        return {
+            'memory_chart': reporter.generate_memory_usage_chart(),
+            'response_time_stats_chart': reporter.generate_response_time_statistics_chart(),
+            'response_time_trend_chart': reporter.generate_response_time_trend_chart(),
+            'response_time_table': reporter.generate_response_time_statistics_table()
+        }
 
     def save_to_csv(self):
-        if self.response_time_data:
-            response_time_df = pd.DataFrame(self.response_time_data)
-            response_time_df.to_csv("response_time_data.csv", index=False)
-            logging.info("Response time data saved to 'response_time_data.csv'.")
-
-        if self.memory_usage_data:
-            memory_usage_df = pd.DataFrame(self.memory_usage_data)
-            memory_usage_df.to_csv("memory_usage_data.csv", index=False)
-            logging.info("Memory usage data saved to 'memory_usage_data.csv'.")
-
-    def _save_fig_as_base64(self):
-        buf = BytesIO()
-        plt.savefig(buf, format="png", bbox_inches="tight")
-        buf.seek(0)
-        base64_image = base64.b64encode(buf.getvalue()).decode("utf-8")
-        plt.close()
-        return base64_image
+        reporter = WebPerformanceReporter(self.response_time_data, self.memory_usage_data)
+        reporter.save_to_csv()
 
     def close(self):
         if self._driver:
