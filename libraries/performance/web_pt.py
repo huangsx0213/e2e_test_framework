@@ -16,6 +16,7 @@ from libraries.performance.web_pt_loader import PerformanceTestLoader
 from libraries.web.webdriver_factory import WebDriverFactory
 from libraries.web.web_actions import WebElementActions
 
+
 class WebPerformanceTester:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root = PROJECT_ROOT
@@ -106,17 +107,17 @@ class WebPerformanceTester:
                 case_id = test_case['Case ID']
                 case_functions = self.test_functions[self.test_functions['Case ID'] == case_id].sort_values('Execution Order')
 
-                for _ in range(rounds):
+                for round_num in range(rounds):
                     self.driver.get(target_url)
                     memory_usage = self.get_js_memory()
                     if memory_usage is not None:
-                        self.memory_usage_data.append({"case_id": case_id, "used_MB": memory_usage})
+                        self.memory_usage_data.append({"round": round_num + 1, "case_id": case_id, "used_MB": memory_usage})
 
                     for _, function in case_functions.iterrows():
                         function_name = function['Function Name']
-                        self._execute_test_function(function_name, case_id)
+                        self._execute_test_function(round_num, function_name, case_id)
 
-    def _execute_test_function(self, function_name, case_id):
+    def _execute_test_function(self, round_num, function_name, case_id):
         function_steps = self.test_functions[self.test_functions['Function Name'] == function_name].iloc[0]
 
         precondition_steps = self.sub_functions[self.sub_functions['Sub Function Name'] == function_steps['Precondition subFunction']].sort_values('Step Order')
@@ -126,19 +127,18 @@ class WebPerformanceTester:
         # Execute precondition steps
         for _, step in precondition_steps.iterrows():
             self._execute_step(step)
-
+        start_time = time.time()
         # Execute operation steps and measure response time
         for _, step in operation_steps.iterrows():
-            start_time = time.time()
             self._execute_step(step)
-            end_time = time.time()
-            response_time = round(end_time - start_time, 2)
-            self.response_time_data.append({
-                "case_id": case_id,
-                "function_name": function_name,
-                "response_time": response_time
-            })
-
+        end_time = time.time()
+        response_time = round(end_time - start_time, 2)
+        self.response_time_data.append({
+            "round": round_num + 1,
+            "case_id": case_id,
+            "function_name": function_name,
+            "response_time": response_time
+        })
         # Execute postcondition steps
         for _, step in postcondition_steps.iterrows():
             self._execute_step(step)
@@ -152,7 +152,16 @@ class WebPerformanceTester:
 
         if hasattr(self.web_actions, action_name):
             action = getattr(self.web_actions, action_name)
-            action(locator, input_value) if locator else action(input_value)
+            if locator is not None:
+                if input_value:
+                    action(locator, input_value)
+                else:
+                    action(locator)
+            else:
+                if input_value:
+                    action(input_value)
+                else:
+                    action()
         else:
             raise ValueError(f"Unknown action type: {step['Action']}")
 
@@ -165,9 +174,9 @@ class WebPerformanceTester:
     def generate_memory_usage_chart(self):
         df = pd.DataFrame(self.memory_usage_data)
         plt.figure(figsize=(10, 6))
-        plt.plot(df["case_id"], df["used_MB"], marker="o", label="Used Memory (MB)", color="blue")
+        plt.plot(df["round"], df["used_MB"], marker="o", label="Used Memory (MB)", color="blue")
         plt.title("JavaScript Memory Usage Trend")
-        plt.xlabel("Case ID")
+        plt.xlabel("Round")
         plt.ylabel("Memory (MB)")
         plt.grid()
         plt.legend()
@@ -192,12 +201,12 @@ class WebPerformanceTester:
         plt.figure(figsize=(10, 6))
         for func in df["function_name"].unique():
             func_data = df[df["function_name"] == func]
-            plt.plot(func_data["case_id"], func_data["response_time"], marker="o", label=func)
+            plt.plot(func_data["round"], func_data["response_time"], marker="o", label=func)
 
         plt.title("Response Time Trend")
-        plt.xlabel("Case ID")
+        plt.xlabel("Round")
         plt.ylabel("Response Time (s)")
-        plt.legend(title="Function Names")
+        plt.legend(title="Function Points")
         plt.grid()
         return self._save_fig_as_base64()
 
@@ -244,11 +253,6 @@ class WebPerformanceTester:
         base64_image = base64.b64encode(buf.getvalue()).decode("utf-8")
         plt.close()
         return base64_image
-
-    def generate_reports(self):
-        # Assuming the reporting configuration is not part of the new Excel structure
-        # You can add logic here to generate reports based on your needs
-        pass
 
     def close(self):
         if self._driver:

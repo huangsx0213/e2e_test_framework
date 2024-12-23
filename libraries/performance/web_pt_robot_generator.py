@@ -35,6 +35,7 @@ class WebPerformanceRobotCasesGenerator:
 
                 # Create a single execute_tests keyword for each test case
                 robot_test.body.create_keyword(name='execute_tests', args=[])
+                robot_test.body.create_keyword(name='generate_reports', args=[])
 
         # Add setup and teardown for the entire suite
         self.robot_suite.setup.config(name='initialize_tester', args=[])

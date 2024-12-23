@@ -18,10 +18,31 @@ class RobotFrameworkWebTester:
         self.tester.execute_tests()
 
     def generate_reports(self):
-        """Generate performance reports."""
+        """Generate performance reports (charts and tables)."""
         if not self.tester:
             raise ValueError("Tester is not initialized.")
-        self.tester.generate_reports()
+
+        memory_chart = self.tester.generate_memory_usage_chart()
+        response_time_stats_chart = self.tester.generate_response_time_statistics_chart()
+        response_time_trend_chart = self.tester.generate_response_time_trend_chart()
+        response_time_table = self.tester.generate_response_time_statistics_table()
+
+        logger.info('<h2>Memory Usage Trend Chart</h2>', html=True)
+        logger.info(f'<img src="data:image/png;base64,{memory_chart}" alt="Memory Usage Trend"/>', html=True)
+
+        logger.info('<h2>Response Time Statistics Chart</h2>', html=True)
+        logger.info(f'<img src="data:image/png;base64,{response_time_stats_chart}" alt="Response Time Statistics"/>', html=True)
+
+        logger.info('<h2>Response Time Trend Chart</h2>', html=True)
+        logger.info(f'<img src="data:image/png;base64,{response_time_trend_chart}" alt="Response Time Trend"/>', html=True)
+
+        logger.info('<h2>Response Time Statistics Table</h2>', html=True)
+        logger.info(f'<img src="data:image/png;base64,{response_time_table}" alt="Response Time Statistics Table"/>', html=True)
+
+    def save_to_csv(self):
+        """Save test data (response time and memory usage) to CSV files."""
+        if self.tester:
+            self.tester.save_to_csv()
 
     def save_to_csv(self):
         """Save test data to CSV files."""

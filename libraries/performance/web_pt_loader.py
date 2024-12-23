@@ -74,8 +74,6 @@ class PerformanceTestLoader:
         for index, row in sub_functions.iterrows():
             if pd.isna(row['Sub Function Name']) or row['Sub Function Name'] == '':
                 logging.error(f"PerformanceTestLoader: Empty Sub Function Name in SubFunctions row {index + 2}")
-            if row['Action'] not in ['open_url', 'send_keys', 'click', 'get_text']:
-                logging.error(f"PerformanceTestLoader: Invalid Action '{row['Action']}' in SubFunctions row {index + 2}")
 
     def _validate_locators(self):
         locators = self.get_data_by_sheet_name('Locators')

@@ -8,6 +8,7 @@ from libraries.robot.robot_dashboard_generator import DashboardGenerator
 from libraries.web.web_robot_generator import WebUIRobotCasesGenerator
 from libraries.e2e.e2e_robot_generator import E2ERobotCasesGenerator
 from libraries.api.api_robot_generator import APIRobotCasesGenerator
+from libraries.performance.web_pt_robot_generator import WebPerformanceRobotCasesGenerator
 
 
 class ExitOnFailureListener:
@@ -52,11 +53,17 @@ def create_e2e_suite():
     return rcg.create_test_suite()
 
 
+def create_performance_suite():
+    rcg = WebPerformanceRobotCasesGenerator()
+    return rcg.create_test_suite()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run API, Web UI, or E2E tests.')
     parser.add_argument('--api', action='store_true', help='Run API tests')
     parser.add_argument('--web', action='store_true', help='Run Web UI tests')
     parser.add_argument('--e2e', action='store_true', help='Run E2E tests')
+    parser.add_argument('--performance', action='store_true', help='Run performance tests')
     args = parser.parse_args()
 
     if args.api:
@@ -65,7 +72,9 @@ if __name__ == "__main__":
         suite_to_run = create_web_suite()
     elif args.e2e:
         suite_to_run = create_e2e_suite()
+    elif args.performance:
+        suite_to_run = create_performance_suite()
     else:
-        suite_to_run = create_e2e_suite()
+        suite_to_run = create_performance_suite()
 
     run_test_suite(suite_to_run)
