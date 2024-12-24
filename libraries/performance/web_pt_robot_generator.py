@@ -33,9 +33,9 @@ class WebPerformanceRobotCasesGenerator:
                 test_name = f"Performance.{case_id}"
                 robot_test = self.robot_suite.tests.create(name=test_name, doc=test_case['Description'])
 
-                # Create a single execute_tests keyword for each test case
-                robot_test.body.create_keyword(name='execute_tests', args=[])
-                robot_test.body.create_keyword(name='generate_reports', args=[])
+                # Create a single execute_single_test keyword for each test case
+                robot_test.body.create_keyword(name='execute_single_test', args=[case_id])
+                robot_test.body.create_keyword(name='generate_reports', args=[case_id])
 
         # Add setup and teardown for the entire suite
         self.robot_suite.setup.config(name='initialize_tester', args=[])

@@ -18,6 +18,7 @@ class WebPerformanceTester:
 
         self._web_actions_instance = None
         self._driver = None
+        self.current_case_id = None
         self.response_time_data = []
         self.memory_usage_data = []
 
@@ -91,24 +92,39 @@ class WebPerformanceTester:
             logging.error(f"Error in get_js_memory: {e}")
         return None
 
-    def execute_tests(self):
-        rounds = int(self.main_config['Rounds'])
-        target_url = self.main_config['Target URL']
+    def execute_single_test(self, case_id: str):
+        # Get the root logger
+        logger = logging.getLogger()
 
-        for _, test_case in self.test_cases.iterrows():
-            if test_case['Run'] == 'Y':
-                case_id = test_case['Case ID']
-                case_functions = self.test_functions[self.test_functions['Case ID'] == case_id].sort_values('Execution Order')
+        # Store the original logging level
+        original_level = logger.level
 
-                for round_num in range(rounds):
-                    self.driver.get(target_url)
-                    memory_usage = self.get_js_memory()
-                    if memory_usage is not None:
-                        self.memory_usage_data.append({"round": round_num + 1, "case_id": case_id, "used_MB": memory_usage})
+        # Temporarily set the logging level to WARNING
+        logger.setLevel(logging.WARNING)
 
-                    for _, function in case_functions.iterrows():
-                        function_name = function['Function Name']
-                        self._execute_test_function(round_num, function_name, case_id)
+        try:
+            rounds = int(self.main_config['Rounds'])
+            target_url = self.main_config['Target URL']
+
+            test_case = self.test_cases[self.test_cases['Case ID'] == case_id].iloc[0]
+            if test_case['Run'] != 'Y':
+                logging.warning(f"Test case {case_id} is not marked to run.")
+                return
+
+            case_functions = self.test_functions[self.test_functions['Case ID'] == case_id].sort_values('Execution Order')
+
+            for round_num in range(rounds):
+                self.driver.get(target_url)
+                memory_usage = self.get_js_memory()
+                if memory_usage is not None:
+                    self.memory_usage_data.append({"round": round_num + 1, "case_id": case_id, "used_MB": memory_usage})
+
+                for _, function in case_functions.iterrows():
+                    function_name = function['Function Name']
+                    self._execute_test_function(round_num, function_name, case_id)
+        finally:
+            # Restore the original logging level
+            logger.setLevel(original_level)
 
     def _execute_test_function(self, round_num, function_name, case_id):
         function_steps = self.test_functions[self.test_functions['Function Name'] == function_name].iloc[0]
@@ -161,8 +177,16 @@ class WebPerformanceTester:
             elements.setdefault(row['Page'], {})[row['Element']] = (row['Locator Type'], row['Locator Value'])
         return elements
 
-    def generate_reports(self):
-        reporter = WebPerformanceReporter(self.response_time_data, self.memory_usage_data)
+    def generate_reports(self, case_id: str = None):
+        if case_id is None:
+            case_id = self.current_case_id
+        filtered_response_time_data = [data for data in self.response_time_data if data['case_id'] == case_id]
+        filtered_memory_usage_data = [data for data in self.memory_usage_data if data['case_id'] == case_id]
+
+        # Get the case name from the test cases
+        case_name = self.test_cases[self.test_cases['Case ID'] == case_id]['Name'].iloc[0]
+
+        reporter = WebPerformanceReporter(filtered_response_time_data, filtered_memory_usage_data, case_id, case_name)
         return {
             'memory_chart': reporter.generate_memory_usage_chart(),
             'response_time_stats_chart': reporter.generate_response_time_statistics_chart(),
@@ -170,8 +194,13 @@ class WebPerformanceTester:
             'response_time_table': reporter.generate_response_time_statistics_table()
         }
 
-    def save_to_csv(self):
-        reporter = WebPerformanceReporter(self.response_time_data, self.memory_usage_data)
+    def save_to_csv(self, case_id: str = None):
+        if case_id is None:
+            case_id = self.current_case_id
+        filtered_response_time_data = [data for data in self.response_time_data if data['case_id'] == case_id]
+        filtered_memory_usage_data = [data for data in self.memory_usage_data if data['case_id'] == case_id]
+
+        reporter = WebPerformanceReporter(filtered_response_time_data, filtered_memory_usage_data)
         reporter.save_to_csv()
 
     def close(self):

@@ -4,24 +4,19 @@ from io import BytesIO
 import base64
 import logging
 
+
 class WebPerformanceReporter:
-    def __init__(self, response_time_data, memory_usage_data):
+    def __init__(self, response_time_data, memory_usage_data, case_id, case_name):
         self.response_time_data = response_time_data
         self.memory_usage_data = memory_usage_data
-
-    def _save_fig_as_base64(self):
-        buf = BytesIO()
-        plt.savefig(buf, format="png", bbox_inches="tight")
-        buf.seek(0)
-        base64_image = base64.b64encode(buf.getvalue()).decode("utf-8")
-        plt.close()
-        return base64_image
+        self.case_id = case_id
+        self.case_name = case_name
 
     def generate_memory_usage_chart(self):
         df = pd.DataFrame(self.memory_usage_data)
         plt.figure(figsize=(10, 6))
         plt.plot(df["round"], df["used_MB"], marker="o", label="Used Memory (MB)", color="blue")
-        plt.title("JavaScript Memory Usage Trend")
+        plt.title(f"JavaScript Memory Usage Trend - Case ID: {self.case_id}, Case Name: {self.case_name}")
         plt.xlabel("Round")
         plt.ylabel("Memory (MB)")
         plt.grid()
@@ -35,7 +30,7 @@ class WebPerformanceReporter:
         stats.reset_index(inplace=True)
 
         stats.plot(kind="bar", x="function_name", figsize=(10, 6), colormap="coolwarm")
-        plt.title("Response Time Statistics")
+        plt.title(f"Response Time Statistics - Case ID: {self.case_id}, Case Name: {self.case_name}")
         plt.xlabel("Function Name")
         plt.ylabel("Time (s)")
         plt.grid(axis="y")
@@ -49,7 +44,7 @@ class WebPerformanceReporter:
             func_data = df[df["function_name"] == func]
             plt.plot(func_data["round"], func_data["response_time"], marker="o", label=func)
 
-        plt.title("Response Time Trend")
+        plt.title(f"Response Time Trend - Case ID: {self.case_id}, Case Name: {self.case_name}")
         plt.xlabel("Round")
         plt.ylabel("Response Time (s)")
         plt.legend(title="Function Points")
@@ -73,12 +68,14 @@ class WebPerformanceReporter:
         stats.columns = ["Function Name", "Mean (s)", "Max (s)", "Min (s)",
                          "Median (s)", "P90 (s)", "P95 (s)", "P99 (s)"]
 
-        fig, ax = plt.subplots(figsize=(10, len(stats) * 0.8))
+        fig, ax = plt.subplots(figsize=(10, len(stats) * 0.5))
         ax.axis("tight")
         ax.axis("off")
         table = plt.table(cellText=stats.values, colLabels=stats.columns, cellLoc="center", loc="center")
         table.auto_set_font_size(False)
-        table.set_fontsize(8)
+        table.set_fontsize(10)
+        table.scale(1.3, 1.5)
+        plt.title(f"Response Time Statistics Table - Case ID: {self.case_id}, Case Name: {self.case_name}", y=1.1)
         return self._save_fig_as_base64()
 
     def save_to_csv(self):
@@ -91,3 +88,11 @@ class WebPerformanceReporter:
             memory_usage_df = pd.DataFrame(self.memory_usage_data)
             memory_usage_df.to_csv("memory_usage_data.csv", index=False)
             logging.info("Memory usage data saved to 'memory_usage_data.csv'.")
+
+    def _save_fig_as_base64(self):
+        buf = BytesIO()
+        plt.savefig(buf, format="png", bbox_inches="tight")
+        buf.seek(0)
+        base64_image = base64.b64encode(buf.getvalue()).decode("utf-8")
+        plt.close()
+        return base64_image

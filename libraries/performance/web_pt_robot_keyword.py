@@ -11,18 +11,18 @@ class RobotFrameworkWebTester:
         self.tester = WebPerformanceTester(test_config_path, test_cases_path)
         logger.info("Performance tester initialized successfully.")
 
-    def execute_tests(self):
-        """Execute performance tests."""
+    def execute_single_test(self, case_id: str):
+        """Execute a single performance test case."""
         if not self.tester:
             raise ValueError("Tester is not initialized.")
-        self.tester.execute_tests()
+        self.tester.execute_single_test(case_id)
 
-    def generate_reports(self):
-        """Generate performance reports (charts and tables)."""
+    def generate_reports(self, case_id: str):
+        """Generate performance reports (charts and tables) for a specific case."""
         if not self.tester:
             raise ValueError("Tester is not initialized.")
 
-        report_data = self.tester.generate_reports()
+        report_data = self.tester.generate_reports(case_id)
 
         logger.info('<h2>Memory Usage Trend Chart</h2>', html=True)
         logger.info(f'<img src="data:image/png;base64,{report_data["memory_chart"]}" alt="Memory Usage Trend"/>', html=True)
@@ -36,14 +36,15 @@ class RobotFrameworkWebTester:
         logger.info('<h2>Response Time Statistics Table</h2>', html=True)
         logger.info(f'<img src="data:image/png;base64,{report_data["response_time_table"]}" alt="Response Time Statistics Table"/>', html=True)
 
-    def save_to_csv(self):
-        """Save test data to CSV files."""
-        if not self.tester:
-            raise ValueError("Tester is not initialized.")
-        self.tester.save_to_csv()
+    # def save_to_csv(self):
+    #     """Save test data to CSV files for a specific case."""
+    #     if not self.tester:
+    #         raise ValueError("Tester is not initialized.")
+    #     self.tester.save_to_csv()
 
     def close_tester(self):
         """Close the tester and release resources."""
         if self.tester:
+            # self.tester.save_to_csv()
             self.tester.close()
             logger.info("Tester closed successfully.")
