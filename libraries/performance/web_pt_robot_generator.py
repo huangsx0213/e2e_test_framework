@@ -39,7 +39,7 @@ class WebPerformanceRobotCasesGenerator:
 
         # Add setup and teardown for the entire suite
         self.robot_suite.setup.config(name='initialize_tester', args=[])
-        self.robot_suite.teardown.config(name='close_tester', args=[])
+        self.robot_suite.teardown.config(name='finalize_and_close_tester', args=[])
         return self.robot_suite
 
     def _import_required_libraries(self):

@@ -36,15 +36,10 @@ class RobotFrameworkWebTester:
         logger.info('<h2>Response Time Statistics Table</h2>', html=True)
         logger.info(f'<img src="data:image/png;base64,{report_data["response_time_table"]}" alt="Response Time Statistics Table"/>', html=True)
 
-    # def save_to_csv(self):
-    #     """Save test data to CSV files for a specific case."""
-    #     if not self.tester:
-    #         raise ValueError("Tester is not initialized.")
-    #     self.tester.save_to_csv()
 
-    def close_tester(self):
-        """Close the tester and release resources."""
+    def finalize_and_close_tester(self):
+        """Finalize the test by saving data to CSV, then close the tester and release resources."""
         if self.tester:
-            # self.tester.save_to_csv()
+            self.tester.save_to_csv()
             self.tester.close()
-            logger.info("Tester closed successfully.")
+            logger.info("Tester finalized and closed successfully.")

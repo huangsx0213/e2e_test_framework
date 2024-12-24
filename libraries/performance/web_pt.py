@@ -180,27 +180,25 @@ class WebPerformanceTester:
     def generate_reports(self, case_id: str = None):
         if case_id is None:
             case_id = self.current_case_id
-        filtered_response_time_data = [data for data in self.response_time_data if data['case_id'] == case_id]
-        filtered_memory_usage_data = [data for data in self.memory_usage_data if data['case_id'] == case_id]
 
         # Get the case name from the test cases
         case_name = self.test_cases[self.test_cases['Case ID'] == case_id]['Name'].iloc[0]
 
-        reporter = WebPerformanceReporter(filtered_response_time_data, filtered_memory_usage_data, case_id, case_name)
-        return {
-            'memory_chart': reporter.generate_memory_usage_chart(),
-            'response_time_stats_chart': reporter.generate_response_time_statistics_chart(),
-            'response_time_trend_chart': reporter.generate_response_time_trend_chart(),
-            'response_time_table': reporter.generate_response_time_statistics_table()
-        }
-
-    def save_to_csv(self, case_id: str = None):
-        if case_id is None:
-            case_id = self.current_case_id
         filtered_response_time_data = [data for data in self.response_time_data if data['case_id'] == case_id]
         filtered_memory_usage_data = [data for data in self.memory_usage_data if data['case_id'] == case_id]
 
         reporter = WebPerformanceReporter(filtered_response_time_data, filtered_memory_usage_data)
+
+        return {
+            'memory_chart': reporter.generate_memory_usage_chart(case_id, case_name),
+            'response_time_stats_chart': reporter.generate_response_time_statistics_chart(case_id, case_name),
+            'response_time_trend_chart': reporter.generate_response_time_trend_chart(case_id, case_name),
+            'response_time_table': reporter.generate_response_time_statistics_table(case_id, case_name)
+        }
+
+    def save_to_csv(self):
+
+        reporter = WebPerformanceReporter(self.response_time_data, self.memory_usage_data)
         reporter.save_to_csv()
 
     def close(self):
