@@ -92,18 +92,48 @@ class PerformanceTestLoader:
 
     def _validate_web_environments(self):
         web_environments = self.get_data_by_sheet_name('WebEnvironments')
-        required_columns = ['Environment', 'TargetURL', 'Rounds', 'Browser', 'IsRemote', 'RemoteURL', 'ChromePath', 'ChromeDriverPath', 'EdgePath', 'EdgeDriverPath', 'BrowserOptions']
+
+        if web_environments.empty:
+            logging.error("PerformanceTestLoader: WebEnvironments sheet is empty or does not exist.")
+            return
+
+        required_columns = ['Environment', 'TargetURL', 'Rounds', 'LogDetails', 'Browser', 'IsRemote', 'RemoteURL', 'ChromePath', 'ChromeDriverPath', 'EdgePath', 'EdgeDriverPath',
+                            'BrowserOptions']
         missing_columns = set(required_columns) - set(web_environments.columns)
         if missing_columns:
             logging.error(f"PerformanceTestLoader: Missing required columns in WebEnvironments sheet: {', '.join(missing_columns)}")
+            return
+
+        # Check if active_environment exists in WebEnvironments
+        active_environment = self.test_config.get('active_environment')
+        if active_environment and active_environment not in web_environments['Environment'].values:
+            logging.error(f"PerformanceTestLoader: Active environment '{active_environment}' specified in config file does not exist in WebEnvironments sheet.")
 
         for index, row in web_environments.iterrows():
+            if self.test_config.get('active_environment') != row['Environment']:
+                continue
             if pd.isna(row['Environment']) or row['Environment'] == '':
                 logging.error(f"PerformanceTestLoader: Empty Environment name in WebEnvironments row {index + 2}")
+
+            if pd.isna(row['TargetURL']) or row['TargetURL'] == '':
+                logging.error(f"PerformanceTestLoader: TargetURL cannot be empty in WebEnvironments row {index + 2}")
+
+            if pd.isna(row['Rounds']) or row['Rounds'] == '':
+                logging.error(f"PerformanceTestLoader: Rounds cannot be empty in WebEnvironments row {index + 2}")
+            else:
+                try:
+                    rounds = int(row['Rounds'])
+                    if rounds <= 0:
+                        logging.error(f"PerformanceTestLoader: Rounds must be a positive integer in WebEnvironments row {index + 2}")
+                except ValueError:
+                    logging.error(f"PerformanceTestLoader: Rounds must be a valid integer in WebEnvironments row {index + 2}")
+
             if row['Browser'].lower() not in ['chrome', 'edge']:
                 logging.error(f"PerformanceTestLoader: Invalid Browser '{row['Browser']}' in WebEnvironments row {index + 2}. Must be 'chrome' or 'edge'.")
+
             if not isinstance(row['IsRemote'], bool):
                 logging.error(f"PerformanceTestLoader: IsRemote must be a boolean value in WebEnvironments row {index + 2}")
+
             if row['IsRemote']:
                 if pd.isna(row['RemoteURL']) or row['RemoteURL'] == '':
                     logging.error(f"PerformanceTestLoader: RemoteURL is required when IsRemote is True in WebEnvironments row {index + 2}")
@@ -126,6 +156,8 @@ class PerformanceTestLoader:
                     json.loads(row['BrowserOptions'])
             except json.JSONDecodeError:
                 logging.error(f"PerformanceTestLoader: Invalid JSON in BrowserOptions in WebEnvironments row {index + 2}")
+
+        logging.info("PerformanceTestLoader: WebEnvironments data validation completed.")
 
     def _validate_custom_actions(self):
         custom_actions = self.get_data_by_sheet_name('CustomActions')

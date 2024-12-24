@@ -37,7 +37,8 @@ class WebPerformanceTester:
         env_config = web_environments[web_environments['Environment'] == active_env].iloc[0].to_dict()
         return {
             'Target URL': env_config['TargetURL'],
-            'Rounds': env_config['Rounds']
+            'Rounds': env_config['Rounds'],
+            'Log Details': env_config['LogDetails']
         }
 
     def _load_environment_config(self):
@@ -93,14 +94,9 @@ class WebPerformanceTester:
         return None
 
     def execute_single_test(self, case_id: str):
-        # Get the root logger
-        logger = logging.getLogger()
+        case_name = self.test_cases[self.test_cases['Case ID'] == case_id]['Name'].iloc[0]
+        logging.info(f"Executing test case: {case_id} - {case_name}")
 
-        # Store the original logging level
-        original_level = logger.level
-
-        # Temporarily set the logging level to WARNING
-        logger.setLevel(logging.WARNING)
 
         try:
             rounds = int(self.main_config['Rounds'])
@@ -123,8 +119,7 @@ class WebPerformanceTester:
                     function_name = function['Function Name']
                     self._execute_test_function(round_num, function_name, case_id)
         finally:
-            # Restore the original logging level
-            logger.setLevel(original_level)
+            logging.info(f"Finished executing test case: {case_id} - {case_name}")
 
     def _execute_test_function(self, round_num, function_name, case_id):
         function_steps = self.test_functions[self.test_functions['Function Name'] == function_name].iloc[0]
@@ -156,20 +151,39 @@ class WebPerformanceTester:
         input_value = step['Input Value (if applicable)']
         locator = self.page_elements[page][element] if element else None
 
-        if hasattr(self.web_actions, action_name):
-            action = getattr(self.web_actions, action_name)
-            if locator is not None:
-                if input_value:
-                    action(locator, input_value)
+        logging.info(
+            f"{self.__class__.__name__}: Executing action:[{action_name}] on page:[{page}]"
+            + (f" element:[{element}]" if element else "")
+            + (f" with input:[{input_value}]" if input_value else "")
+        )
+        self.change_log_level = self.main_config['Log Details']
+        if self.change_log_level != 'Y':
+            # Temporarily set the logging level to WARNING
+            logger = logging.getLogger()
+            original_level = logger.level
+            logger.setLevel(logging.WARNING)
+
+        try:
+            if hasattr(self.web_actions, action_name):
+                action = getattr(self.web_actions, action_name)
+                if locator is not None:
+                    if input_value:
+                        action(locator, input_value)
+                    else:
+                        action(locator)
                 else:
-                    action(locator)
+                    if input_value:
+                        action(input_value)
+                    else:
+                        action()
             else:
-                if input_value:
-                    action(input_value)
-                else:
-                    action()
-        else:
-            raise ValueError(f"Unknown action type: {step['Action']}")
+                raise ValueError(f"Unknown action type: {step['Action']}")
+            logging.info("="*100)
+        finally:
+
+            # Restore the original logging level after execution
+            if self.change_log_level != 'Y':
+                logger.setLevel(original_level)
 
     def _load_page_elements(self) -> Dict[str, Dict[str, Tuple[str, str]]]:
         elements = {}
@@ -197,7 +211,6 @@ class WebPerformanceTester:
         }
 
     def save_to_csv(self):
-
         reporter = WebPerformanceReporter(self.response_time_data, self.memory_usage_data)
         reporter.save_to_csv()
 
