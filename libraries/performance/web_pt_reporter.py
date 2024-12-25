@@ -48,7 +48,7 @@ class WebPerformanceReporter:
         plt.title(f"Response Time Trend - Case ID: {case_id}, Case Name: {case_name}")
         plt.xlabel("Round")
         plt.ylabel("Response Time (s)")
-        plt.legend(title="Function Points")
+        plt.legend(title="Function Names")
         plt.grid()
         return self._save_fig_as_base64()
 
