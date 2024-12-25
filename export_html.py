@@ -94,7 +94,7 @@ def read_files(directory='.', exclude_files=None, exclude_directories=None):
     # Convert exclude_files to absolute paths
     exclude_files = [os.path.abspath(file) for file in exclude_files]
 
-    supported_extensions = ('.py', '.json', '.yaml', '.html', '.xml', '.md')
+    supported_extensions = ('.py', '.json', '.yaml', '.html', '.xml', '.md', '.txt')
     files_list = []
     for root, dirs, files in os.walk(directory):
         # Modify dirs in place to exclude specified directories
@@ -110,14 +110,18 @@ def escape_html(text):
     return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
 def generate_code_blocks_and_links(files_list):
-    code_blocks = ''
-    for file_path in files_list:
-        file_id = file_path.replace('\\', '_').replace('/', '_').replace('.', '_')
-        with open(file_path, 'r', encoding='utf-8') as file:
-            code_content = escape_html(file.read())
-            code_block = code_block_template.format(file_id=file_id, file_name=file_path, code_content=code_content)
-            code_blocks += code_block + '\n'
-    return code_blocks
+	code_blocks = ''
+	for file_path in files_list:
+		file_id = file_path.replace('\\', '_').replace('/', '_').replace('.', '_')
+		try:
+			with open(file_path, 'r', encoding='utf-8') as file:
+				code_content = escape_html(file.read())
+		except UnicodeDecodeError:
+			with open(file_path, 'r', encoding='utf-16') as file:  # 尝试使用utf-16编码打开
+				code_content = escape_html(file.read())
+		code_block = code_block_template.format(file_id=file_id, file_name=file_path, code_content=code_content)
+		code_blocks += code_block + '\n'
+	return code_blocks
 
 def generate_file_structure(files_list, directory='.', prefix=''):
     file_structure = ''
