@@ -10,6 +10,7 @@ from libraries.web.webdriver_factory import WebDriverFactory
 from libraries.web.web_actions import WebElementActions
 from libraries.performance.web_pt_reporter import WebPerformanceReporter
 
+
 class WebPerformanceTester:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root = PROJECT_ROOT
@@ -97,92 +98,123 @@ class WebPerformanceTester:
         case_name = self.test_cases[self.test_cases['Case ID'] == case_id]['Name'].iloc[0]
         logging.info(f"Executing test case: {case_id} - {case_name}")
 
+        test_case = self.test_cases[self.test_cases['Case ID'] == case_id].iloc[0]
+        if test_case['Run'] != 'Y':
+            logging.warning(f"Test case {case_id} is not marked to run.")
+            return
 
-        try:
-            rounds = int(self.main_config['Rounds'])
-            target_url = self.main_config['Target URL']
+        rounds = int(self.main_config['Rounds'])
+        target_url = self.main_config['Target URL']
+        case_functions = self.test_functions[self.test_functions['Case ID'] == case_id].sort_values('Execution Order')
 
-            test_case = self.test_cases[self.test_cases['Case ID'] == case_id].iloc[0]
-            if test_case['Run'] != 'Y':
-                logging.warning(f"Test case {case_id} is not marked to run.")
-                return
-
-            case_functions = self.test_functions[self.test_functions['Case ID'] == case_id].sort_values('Execution Order')
-
-            for round_num in range(rounds):
+        for round_num in range(rounds):
+            try:
+                logging.info(f"Starting round {round_num + 1}/{rounds}")
                 self.driver.get(target_url)
+
                 memory_usage = self.get_js_memory()
                 if memory_usage is not None:
-                    self.memory_usage_data.append({"round": round_num + 1, "case_id": case_id, "used_MB": memory_usage})
+                    self.memory_usage_data.append({
+                        "round": round_num + 1,
+                        "case_id": case_id,
+                        "used_MB": memory_usage
+                    })
 
                 for _, function in case_functions.iterrows():
-                    function_name = function['Function Name']
-                    self._execute_test_function(round_num, function_name, case_id)
-        finally:
-            logging.info(f"Finished executing test case: {case_id} - {case_name}")
+                    try:
+                        function_name = function['Function Name']
+                        self._execute_test_function(round_num, function_name, case_id)
+                    except Exception as e:
+                        logging.error(f"Error in function '{function_name}' during round {round_num + 1}: {e}")
+                        # Continue with next function
+                        continue
 
-    def _execute_test_function(self, round_num, function_name, case_id):
+                logging.info(f"Completed round {round_num + 1}/{rounds}")
+
+            except Exception as e:
+                logging.error(f"Error in round {round_num + 1}: {e}")
+                # Continue with next round
+                continue
+
+        logging.info(f"Finished executing test case: {case_id} - {case_name}")
+
+    def _execute_test_function(self, round_num: int, function_name: str, case_id: str):
         function_steps = self.test_functions[self.test_functions['Function Name'] == function_name].iloc[0]
 
-        precondition_steps = self.sub_functions[self.sub_functions['Sub Function Name'] == function_steps['Precondition subFunction']].sort_values('Step Order')
-        operation_steps = self.sub_functions[self.sub_functions['Sub Function Name'] == function_steps['Operation subFunction']].sort_values('Step Order')
-        postcondition_steps = self.sub_functions[self.sub_functions['Sub Function Name'] == function_steps['Postcondition subFunction']].sort_values('Step Order')
+        try:
+            # Execute precondition steps
+            precondition_steps = self.sub_functions[
+                self.sub_functions['Sub Function Name'] == function_steps['Precondition subFunction']
+                ].sort_values('Step Order')
 
-        for _, step in precondition_steps.iterrows():
-            self._execute_step(step)
-        start_time = time.time()
-        for _, step in operation_steps.iterrows():
-            self._execute_step(step)
-        end_time = time.time()
-        response_time = round(end_time - start_time, 2)
-        self.response_time_data.append({
-            "round": round_num + 1,
-            "case_id": case_id,
-            "function_name": function_name,
-            "response_time": response_time
-        })
-        for _, step in postcondition_steps.iterrows():
-            self._execute_step(step)
+            for _, step in precondition_steps.iterrows():
+                self._execute_step(step)
 
-    def _execute_step(self, step):
+            # Execute and time operation steps
+            operation_steps = self.sub_functions[
+                self.sub_functions['Sub Function Name'] == function_steps['Operation subFunction']
+                ].sort_values('Step Order')
+
+            start_time = time.time()
+            for _, step in operation_steps.iterrows():
+                self._execute_step(step)
+            end_time = time.time()
+
+            response_time = round(end_time - start_time, 2)
+            self.response_time_data.append({
+                "round": round_num + 1,
+                "case_id": case_id,
+                "function_name": function_name,
+                "response_time": response_time
+            })
+
+            # Execute postcondition steps
+            postcondition_steps = self.sub_functions[
+                self.sub_functions['Sub Function Name'] == function_steps['Postcondition subFunction']
+                ].sort_values('Step Order')
+
+            for _, step in postcondition_steps.iterrows():
+                self._execute_step(step)
+
+        except Exception as e:
+            logging.error(f"Error executing function '{function_name}': {e}")
+            raise  # Re-raise to be caught by execute_single_test
+
+    def _execute_step(self, step: Dict):
         action_name = step['Action'].lower()
         page = step['Page']
         element = step['Element']
         input_value = step['Input Value (if applicable)']
         locator = self.page_elements[page][element] if element else None
 
-        logging.info(
-            f"{self.__class__.__name__}: Executing action:[{action_name}] on page:[{page}]"
-            + (f" element:[{element}]" if element else "")
-            + (f" with input:[{input_value}]" if input_value else "")
+        log_message = (
+                f"{self.__class__.__name__}: Executing action:[{action_name}] on page:[{page}]"
+                + (f" element:[{element}]" if element else "")
+                + (f" with input:[{input_value}]" if input_value else "")
         )
-        self.change_log_level = self.main_config['Log Details']
-        if self.change_log_level != 'Y':
-            # Temporarily set the logging level to WARNING
-            logger = logging.getLogger()
-            original_level = logger.level
-            logger.setLevel(logging.WARNING)
+        logging.info(log_message)
+
+        logger = logging.getLogger()
+        original_level = logger.level
 
         try:
-            if hasattr(self.web_actions, action_name):
-                action = getattr(self.web_actions, action_name)
-                if locator is not None:
-                    if input_value:
-                        action(locator, input_value)
-                    else:
-                        action(locator)
-                else:
-                    if input_value:
-                        action(input_value)
-                    else:
-                        action()
-            else:
-                raise ValueError(f"Unknown action type: {step['Action']}")
-            logging.info("="*100)
-        finally:
+            if self.main_config['Log Details'] != 'Y':
+                logger.setLevel(logging.WARNING)
 
-            # Restore the original logging level after execution
-            if self.change_log_level != 'Y':
+            if not hasattr(self.web_actions, action_name):
+                raise ValueError(f"Unknown action type: {action_name}")
+
+            action = getattr(self.web_actions, action_name)
+
+            if locator is not None:
+                action(locator, input_value) if input_value else action(locator)
+            else:
+                action(input_value) if input_value else action()
+
+            logging.info("=" * 100)
+
+        finally:
+            if self.main_config['Log Details'] != 'Y':
                 logger.setLevel(original_level)
 
     def _load_page_elements(self) -> Dict[str, Dict[str, Tuple[str, str]]]:
@@ -195,9 +227,7 @@ class WebPerformanceTester:
         if case_id is None:
             case_id = self.current_case_id
 
-        # Get the case name from the test cases
         case_name = self.test_cases[self.test_cases['Case ID'] == case_id]['Name'].iloc[0]
-
         filtered_response_time_data = [data for data in self.response_time_data if data['case_id'] == case_id]
         filtered_memory_usage_data = [data for data in self.memory_usage_data if data['case_id'] == case_id]
 
