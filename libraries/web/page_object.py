@@ -106,7 +106,7 @@ class PageObject:
             action_info = {
                 'element_name': row['Element Name'],
                 'web_action': row['Actions'],
-                'parameter_name': row['Parameter Name'].split(',') if row['Parameter Name'] else [],
+                'parameter_names': row['Parameter Name'].split(',') if row['Parameter Name'] else [],
                 'highlight': row['Highlight'],
                 'screen_capture': row['Screenshot'],
                 'wait': row['Wait']
@@ -126,7 +126,7 @@ class PageObject:
             screen_capture = action_info['screen_capture']
             wait = action_info['wait']
             locator = self.page_elements[page_name][element_name] if element_name else None
-            action_params = self._extract_parameters(data_set, action_info['parameter_name'])
+            action_params = self._extract_parameters(data_set, action_info['parameter_names'])
 
             logging.info(
                 f"{self.__class__.__name__}: Executing action:[{action}] on page:[{page_name}] module:[{module_name}]"
@@ -175,11 +175,14 @@ class PageObject:
 
             # Element state verification
             'element_text_should_be': self.web_actions.element_text_should_be,
+            'element_figure_should_be': self.web_actions.element_figure_should_be,
             'element_text_should_contains': self.web_actions.element_text_should_contains,
+            'element_figure_to_text_should_contains': self.web_actions.element_figure_to_text_should_contains,
             'title_should_be': self.web_actions.title_should_be,
             'title_should_contains': self.web_actions.title_should_contains,
             'is_element_present': self.web_actions.is_element_present,
             'is_element_visible': self.web_actions.is_element_visible,
+            'is_element_invisible': self.web_actions.is_element_invisible,
             'is_element_clickable': self.web_actions.is_element_clickable,
             'is_element_selected': self.web_actions.is_element_selected,
             'is_element_enabled': self.web_actions.is_element_enabled,

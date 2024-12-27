@@ -4,12 +4,13 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-
+from libraries.web.web_action.table_verifier import TableVerifier
 
 class Base:
     def __init__(self, driver: WebDriver, default_timeout: int = 60):
         self.driver = driver
         self.default_timeout = default_timeout
+        self.table_verifier = TableVerifier(self.driver)
 
 
     def _get_element_description(self, element):
