@@ -5,6 +5,7 @@ from .base import Base
 from .decorators import wait_and_perform
 import logging
 
+
 class VerificationActions(Base):
     @wait_and_perform(default_condition="presence")
     def element_text_should_be(self, element, expected_text):
@@ -15,10 +16,29 @@ class VerificationActions(Base):
         logging.info(f"{self.__class__.__name__}: Element text matches expected: '{expected_text}', Actual text: '{actual_text}'")
 
     @wait_and_perform(default_condition="presence")
+    def element_figure_should_be(self, element, expected_figure):
+        element_desc = self._get_element_description(element)
+        logging.info(f"{self.__class__.__name__}: Checking if element figured matches expected: {element_desc}, expected figured: '{expected_figure}'")
+        expected_figure = float(expected_figure.replace(",", "").strip())
+        actual_figure = float(element.text.replace(",", "").strip())
+        assert around(actual_figure, decimals=2) == around(expected_figure, decimals=2), \
+            f"{self.__class__.__name__}: Expected figured: '{expected_figure}' is not matching actual figured: '{actual_figure}'"
+        logging.info(f"{self.__class__.__name__}: Element figured matches expected: '{expected_figure}', Actual figured: '{actual_figure}'")
+
+    @wait_and_perform(default_condition="presence")
     def element_text_should_contains(self, element, expected_text):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Checking if element text contains expected: {element_desc}, expected text: '{expected_text}'")
         actual_text = element.text
+        assert expected_text in actual_text, f"{self.__class__.__name__}: Expected text: '{expected_text}' is not in actual text: '{actual_text}'"
+        logging.info(f"{self.__class__.__name__}: Element text contains expected: '{expected_text}', Actual text: '{actual_text}'")
+
+    @wait_and_perform(default_condition="presence")
+    def element_figure_to_text_should_contains(self, element, expected_text):
+        element_desc = self._get_element_description(element)
+        logging.info(f"{self.__class__.__name__}: Checking if element figure to text contains expected: {element_desc}, expected text: '{expected_text}'")
+        expected_text = expected_text.replace(",", "").strip()
+        actual_text = element.text.replace(",", "").strip()
         assert expected_text in actual_text, f"{self.__class__.__name__}: Expected text: '{expected_text}' is not in actual text: '{actual_text}'"
         logging.info(f"{self.__class__.__name__}: Element text contains expected: '{expected_text}', Actual text: '{actual_text}'")
 
@@ -33,7 +53,6 @@ class VerificationActions(Base):
         actual_title = self.driver.title
         assert expected_title in actual_title, f"{self.__class__.__name__}: Expected title: '{expected_title}' is not in actual title: '{actual_title}'"
         logging.info(f"{self.__class__.__name__}: Title contains expected: '{expected_title}', Actual title: '{actual_title}'")
-
 
     def is_element_present(self, locator):
         logging.info(f"{self.__class__.__name__}: Checking if element is present: {locator}")
@@ -55,6 +74,17 @@ class VerificationActions(Base):
             return True
         except TimeoutException:
             logging.info(f"{self.__class__.__name__}: Element is not visible: {locator}")
+            return False
+
+    def is_element_invisible(self, locator, timeout=None):
+        logging.info(f"{self.__class__.__name__}: Checking if element is invisible: {locator}, timeout: {timeout}")
+        try:
+            element = self.wait_for_element(locator, condition="invisibility", timeout=timeout)
+            element_desc = self._get_element_description(element)
+            logging.info(f"{self.__class__.__name__}: Element is invisible: {element_desc}")
+            return True
+        except TimeoutException:
+            logging.info(f"{self.__class__.__name__}: Element is not invisible: {locator}")
             return False
 
     def is_element_clickable(self, locator, timeout=None):
@@ -83,7 +113,6 @@ class VerificationActions(Base):
         is_enabled = element.is_enabled()
         logging.info(f"{self.__class__.__name__}: Element enabled status: {is_enabled} for element: {element_desc}")
         return is_enabled
-
 
     @wait_and_perform(default_condition="presence")
     def capture_element_value(self, element, variable_name):

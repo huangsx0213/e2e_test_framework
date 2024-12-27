@@ -80,7 +80,6 @@ class ResponseValidator(ResponseHandler):
         if assertion_errors:
             raise AssertionError(f"{self.__class__.__name__}: Assertions failed:\n" + "\n".join(assertion_errors))
         logging.info(f"{self.__class__.__name__}: All assertions passed successfully.")
-        # logger.info(ColorLogger.info(f"{self.__class__.__name__}: All assertions passed successfully."), html=True)
 
     def validate_response_dynamic(self, test_case: dict, pre_check_responses: dict, post_check_responses: dict) -> None:
         exp_results = test_case['Exp Result'].splitlines()
@@ -93,7 +92,6 @@ class ResponseValidator(ResponseHandler):
             elif pre_post_checks:
                 self._handle_pre_post_checks(pre_post_checks, pre_check_responses, post_check_responses)
         logging.info(f"{self.__class__.__name__}: All dynamic and pre/post checks passed successfully.")
-        # logger.info(ColorLogger.info(f"{self.__class__.__name__}: All dynamic and pre/post checks passed successfully."), html=True)
 
     def _handle_dynamic_checks(self, checks, pre_check_responses, post_check_responses):
         for tcid, json_path, expected_value in checks:
@@ -103,6 +101,7 @@ class ResponseValidator(ResponseHandler):
             actual_value = round(float(post_value) - float(pre_value), 2)
 
             logging.info(f"{self.__class__.__name__}: Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}")
+            logger.info(ColorLogger.success(f"=> {self.__class__.__name__}: Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}"), html=True)
 
             if not self._compare_diff(actual_value, expected_value):
                 raise AssertionError(
@@ -118,6 +117,7 @@ class ResponseValidator(ResponseHandler):
                 raise ValueError(f"{self.__class__.__name__}: Invalid check type: {check_type}")
 
             logging.info(f"{self.__class__.__name__}: {check_type.capitalize()} - Actual value: {actual_value}, Expected value: {expected_value}")
+            logger.info(ColorLogger.success(f"=> {self.__class__.__name__}: {check_type.capitalize()} - Actual value: {actual_value}, Expected value: {expected_value}"), html=True)
 
             if str(actual_value) != str(expected_value.strip()):
                 raise AssertionError(f"{self.__class__.__name__}: {check_type.capitalize()} failed for {tcid}.{json_path}. Expected: {expected_value}, Actual: {actual_value}")
@@ -134,6 +134,7 @@ class ResponseValidator(ResponseHandler):
             pass  # Keep the original type if conversion fails
 
         logging.info(f"{self.__class__.__name__}: Asserting: {key}, Expected: {expected_value}, Actual: {actual_value}")
+        logger.info(ColorLogger.success(f"=> {self.__class__.__name__}: Asserting: {key}, Expected: {expected_value}, Actual: {actual_value}"), html=True)
         assert actual_value == expected_value, f"{self.__class__.__name__}: Assertion failed for key '{key}'. Expected: {expected_value}, Actual: {actual_value}"
 
     def _compare_diff(self, actual_diff: float, expected_diff: str) -> bool:
@@ -157,7 +158,7 @@ class ResponseFieldSaver(ResponseHandler):
                 value = self._extract_value_from_response(response_content, field)
                 field_name = f'{test_case["TCID"]}.{field.strip()}'
                 # logging.info(f"{self.__class__.__name__}: Setting global variable {field_name} to {value}.")
-                logger.info(ColorLogger.info(f"{self.__class__.__name__}: Setting global variable {field_name} to {value}."), html=True)
+                logger.info(ColorLogger.info(f"=> {self.__class__.__name__}: Setting global variable {field_name} to {value}."), html=True)
                 BuiltIn().set_global_variable(f'${{{field_name}}}', value)
             except Exception as e:
                 logging.error(f"{self.__class__.__name__}: Failed to process field '{field}': {e}")

@@ -15,8 +15,6 @@ from libraries.api.response_handler import ResponseValidator, ResponseFieldSaver
 from libraries.api.api_test_loader import APITestLoader
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api.deco import keyword, library
-from robot.api import logger
-from libraries.common.log_manager import ColorLogger
 
 builtin_lib = BuiltIn()
 
@@ -114,7 +112,7 @@ class APITestKeywords:
                 self._validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
             else:
                 response, execution_time = self._execute_single_test_case(test_case)
-            logger.info(ColorLogger.success(f"{self.__class__.__name__}: Test case [ {test_case_id} ]: PASS."), html=True)
+
             logging.info(f"{self.__class__.__name__}: Finished execution of test case {test_case_id}")
             logging.info("============================================")
 
