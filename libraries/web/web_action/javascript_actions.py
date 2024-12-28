@@ -1,6 +1,8 @@
 from .base import Base
-from .decorators import wait_and_perform
 import logging
+
+from .js import click_by_js_script, fill_by_js_script
+
 
 class JavaScriptActions(Base):
     def execute_script(self, script, *args):
@@ -15,38 +17,76 @@ class JavaScriptActions(Base):
         logging.info(f"{self.__class__.__name__}: Asynchronous JavaScript executed successfully, Result: {result}")
         return result
 
-    @wait_and_perform(default_condition="clickable")
-    def js_click(self, element):
+    def click_by_js(self, element, condition="clickable"):
+        element_desc = self._get_element_description(element)
+        logging.info(f"{self.__class__.__name__}: Clicking element: {element_desc}")
+
+        if isinstance(element, tuple):
+            element = self.wait_for_element(element, condition=condition)
+
+        js = click_by_js_script
+        self.driver.execute_script(js, element)
+        logging.info(f"{self.__class__.__name__}: Element clicked successfully: {element_desc} by js")
+
+    def fill_by_js(self, element, value, condition="presence"):
+        element_desc = self._get_element_description(element)
+        logging.info(f"{self.__class__.__name__}: Sending keys to element: {element_desc}")
+        logging.info(f"{self.__class__.__name__}: Value to be sent: {value}")
+
+        if isinstance(element, tuple):
+            element = self.wait_for_element(element, condition=condition)
+
+        js = fill_by_js_script.format(text=value)
+        self.driver.execute_script(js, element)
+        logging.info(f"{self.__class__.__name__}: Keys sent successfully to element: {element_desc} by js")
+
+    def js_click(self, element, condition="clickable"):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Clicking element using JavaScript: {element_desc}")
+
+        if isinstance(element, tuple):
+            element = self.wait_for_element(element, condition=condition)
+
         self.driver.execute_script("arguments[0].click();", element)
         logging.info(f"{self.__class__.__name__}: Element clicked successfully using JavaScript: {element_desc}")
 
-    @wait_and_perform(default_condition="presence")
-    def js_send_keys(self, element, value):
+    def js_send_keys(self, element, value, condition="presence"):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Sending keys to element using JavaScript: {element_desc}")
+
+        if isinstance(element, tuple):
+            element = self.wait_for_element(element, condition=condition)
+
         self.driver.execute_script(f"arguments[0].value = '{value}';", element)
         logging.info(f"{self.__class__.__name__}: Keys sent successfully using JavaScript: {element_desc}")
 
-    @wait_and_perform(default_condition="presence")
-    def js_clear(self, element):
+    def js_clear(self, element, condition="presence"):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Clearing element using JavaScript: {element_desc}")
+
+        if isinstance(element, tuple):
+            element = self.wait_for_element(element, condition=condition)
+
         self.driver.execute_script("arguments[0].value = '';", element)
         logging.info(f"{self.__class__.__name__}: Element cleared successfully using JavaScript: {element_desc}")
 
-    @wait_and_perform(default_condition="presence")
-    def js_scroll_into_view(self, element):
+    def js_scroll_into_view(self, element, condition="presence"):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Scrolling element into view using JavaScript: {element_desc}")
+
+        if isinstance(element, tuple):
+            element = self.wait_for_element(element, condition=condition)
+
         self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
         logging.info(f"{self.__class__.__name__}: Element scrolled into view successfully using JavaScript: {element_desc}")
 
-    @wait_and_perform(default_condition="presence")
-    def js_select_option(self, select_element, option_text):
+    def js_select_option(self, select_element, option_text, condition="presence"):
         element_desc = self._get_element_description(select_element)
         logging.info(f"{self.__class__.__name__}: Selecting option '{option_text}' using JavaScript: {element_desc}")
+
+        if isinstance(select_element, tuple):
+            select_element = self.wait_for_element(select_element, condition=condition)
+
         self.driver.execute_script(
             "var select = arguments[0];"
             "for(var i = 0; i < select.options.length; i++) {"
@@ -60,10 +100,13 @@ class JavaScriptActions(Base):
         )
         logging.info(f"{self.__class__.__name__}: Option selected successfully using JavaScript: {element_desc}")
 
-    @wait_and_perform(default_condition="visibility")
-    def js_hover(self, element):
+    def js_hover(self, element, condition="visibility"):
         element_desc = self._get_element_description(element)
         logging.info(f"{self.__class__.__name__}: Hovering over element using JavaScript: {element_desc}")
+
+        if isinstance(element, tuple):
+            element = self.wait_for_element(element, condition=condition)
+
         self.driver.execute_script(
             "var event = new MouseEvent('mouseover', {"
             "  'view': window,"

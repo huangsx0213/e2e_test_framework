@@ -154,8 +154,7 @@ class PageObject:
 
     def _execute_action(self, action: str, locator, *args, **kwargs):
         action_map = {
-            # Basic operations
-            'open_url': self.web_actions.open_url,
+            # ElementActions
             'send_keys': self.web_actions.send_keys,
             'click': self.web_actions.click,
             'clear': self.web_actions.clear,
@@ -170,53 +169,74 @@ class PageObject:
             'get_text': self.web_actions.get_text,
             'get_attribute': self.web_actions.get_attribute,
             'select_radio_by_value': self.web_actions.select_radio_by_value,
-            'fill_by_js': self.web_actions.fill_by_js,
-            'click_by_js': self.web_actions.click_by_js,
 
-            # Element state verification
-            'element_text_should_be': self.web_actions.element_text_should_be,
-            'element_figure_should_be': self.web_actions.element_figure_should_be,
-            'element_text_should_contains': self.web_actions.element_text_should_contains,
-            'element_figure_to_text_should_contains': self.web_actions.element_figure_to_text_should_contains,
-            'title_should_be': self.web_actions.title_should_be,
-            'title_should_contains': self.web_actions.title_should_contains,
-            'is_element_present': self.web_actions.is_element_present,
-            'is_element_visible': self.web_actions.is_element_visible,
-            'is_element_invisible': self.web_actions.is_element_invisible,
-            'is_element_clickable': self.web_actions.is_element_clickable,
-            'is_element_selected': self.web_actions.is_element_selected,
-            'is_element_enabled': self.web_actions.is_element_enabled,
+            # VerificationActions
+            'verify_text_is': self.web_actions.verify_text_is,
+            'verify_figure_is': self.web_actions.verify_figure_is,
+            'verify_text_contains': self.web_actions.verify_text_contains,
+            'verify_figure_text_contains': self.web_actions.verify_figure_text_contains,
+            'verify_title_is': self.web_actions.verify_title_is,
+            'verify_title_contains': self.web_actions.verify_title_contains,
+            'check_element_exists': self.web_actions.check_element_exists,
+            'check_element_visible': self.web_actions.check_element_visible,
+            'check_element_invisible': self.web_actions.check_element_invisible,
+            'check_element_clickable': self.web_actions.check_element_clickable,
+            'check_element_selected': self.web_actions.check_element_selected,
+            'check_element_enabled': self.web_actions.check_element_enabled,
+            'get_text_save_to_variable': self.web_actions.get_text_save_to_variable,
+            'verify_value_changed_by': self.web_actions.verify_value_changed_by,
 
-            # Wait operations
+            # WaitActions
             'wait_for_element_present': self.web_actions.wait_for_element_present,
             'wait_for_element_visible': self.web_actions.wait_for_element_visible,
+            'wait_for_element_invisible': self.web_actions.wait_for_element_invisible,
             'wait_for_element_clickable': self.web_actions.wait_for_element_clickable,
             'wait_for_text_present_in_element': self.web_actions.wait_for_text_present_in_element,
-            'wait_for_element_to_disappear': self.web_actions.wait_for_element_to_disappear,
             'wait_for_staleness_of': self.web_actions.wait_for_staleness_of,
             'wait': self.web_actions.wait,
 
-            # Frame and window operations
+            # WindowActions
             'switch_to_frame': self.web_actions.switch_to_frame,
             'switch_to_default_content': self.web_actions.switch_to_default_content,
             'switch_to_window': self.web_actions.switch_to_window,
             'get_window_handles': self.web_actions.get_window_handles,
             'close_current_window': self.web_actions.close_current_window,
+            'set_window_size': self.web_actions.set_window_size,
+            'maximize_window': self.web_actions.maximize_window,
+            'minimize_window': self.web_actions.minimize_window,
+            'fullscreen_window': self.web_actions.fullscreen_window,
 
-            # JavaScript execution
+            # JavaScriptActions
             'execute_script': self.web_actions.execute_script,
             'execute_async_script': self.web_actions.execute_async_script,
+            'fill_by_js': self.web_actions.fill_by_js,
+            'click_by_js': self.web_actions.click_by_js,
+            'js_click': self.web_actions.js_click,
+            'js_send_keys': self.web_actions.js_send_keys,
+            'js_clear': self.web_actions.js_clear,
+            'js_scroll_into_view': self.web_actions.js_scroll_into_view,
+            'js_select_option': self.web_actions.js_select_option,
+            'js_hover': self.web_actions.js_hover,
 
-            # Alert operations
+            # AlertActions
             'accept_alert': self.web_actions.accept_alert,
             'dismiss_alert': self.web_actions.dismiss_alert,
             'get_alert_text': self.web_actions.get_alert_text,
 
-            # Screenshot and highlight
-            'capture_screenshot': self.web_actions.capture_screenshot,
-            'highlight_element': self.web_actions.highlight_element,
+            # CookieActions
+            'add_cookie': self.web_actions.add_cookie,
+            'get_cookie': self.web_actions.get_cookie,
+            'delete_cookie': self.web_actions.delete_cookie,
+            'delete_all_cookies': self.web_actions.delete_all_cookies,
 
-            # Table operations
+            # NavigationActions
+            'open_url': self.web_actions.open_url,
+            'refresh_page': self.web_actions.refresh_page,
+            'go_back': self.web_actions.go_back,
+            'go_forward': self.web_actions.go_forward,
+            'get_current_url': self.web_actions.get_current_url,
+
+            # TableActions
             'verify_table_exact': self.web_actions.verify_table_exact,
             'verify_table_row_exact': self.web_actions.verify_table_row_exact,
             'verify_specific_cell_exact': self.web_actions.verify_specific_cell_exact,
@@ -234,35 +254,9 @@ class PageObject:
             'select_table_row_checkbox': self.web_actions.select_table_row_checkbox,
             'select_multiple_table_row_checkboxes': self.web_actions.select_multiple_table_row_checkboxes,
 
-            # Browser navigation
-            'refresh_page': self.web_actions.refresh_page,
-            'go_back': self.web_actions.go_back,
-            'go_forward': self.web_actions.go_forward,
-            'get_current_url': self.web_actions.get_current_url,
-
-            # Window management
-            'set_window_size': self.web_actions.set_window_size,
-            'maximize_window': self.web_actions.maximize_window,
-            'minimize_window': self.web_actions.minimize_window,
-            'fullscreen_window': self.web_actions.fullscreen_window,
-
-            # Cookie operations
-            'add_cookie': self.web_actions.add_cookie,
-            'get_cookie': self.web_actions.get_cookie,
-            'delete_cookie': self.web_actions.delete_cookie,
-            'delete_all_cookies': self.web_actions.delete_all_cookies,
-
-            # JavaScript enhanced operations
-            'js_click': self.web_actions.js_click,
-            'js_send_keys': self.web_actions.js_send_keys,
-            'js_clear': self.web_actions.js_clear,
-            'js_scroll_into_view': self.web_actions.js_scroll_into_view,
-            'js_select_option': self.web_actions.js_select_option,
-            'js_hover': self.web_actions.js_hover,
-
-            # Value capture and assertion
-            'capture_element_value': self.web_actions.capture_element_value,
-            'assert_value_change': self.web_actions.assert_value_change,
+            # UtilsActions
+            'capture_screenshot': self.web_actions.capture_screenshot,
+            'highlight_element': self.web_actions.highlight_element,
         }
 
         if action not in action_map and action not in self.custom_action_executor.custom_actions:

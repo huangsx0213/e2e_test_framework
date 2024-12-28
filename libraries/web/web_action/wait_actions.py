@@ -5,6 +5,7 @@ from selenium.common.exceptions import TimeoutException
 import logging
 import time
 
+
 class WaitActions(Base):
     def wait_for_element_present(self, locator, timeout=None):
         logging.info(f"{self.__class__.__name__}: Waiting for element to be present: {locator}")
@@ -13,6 +14,10 @@ class WaitActions(Base):
     def wait_for_element_visible(self, locator, timeout=None):
         logging.info(f"{self.__class__.__name__}: Waiting for element to be visible: {locator}")
         return self.wait_for_element(locator, condition="visibility", timeout=timeout)
+
+    def wait_for_element_invisible(self, locator, timeout=None):
+        logging.info(f"{self.__class__.__name__}: Waiting for element to be invisible: {locator}")
+        return self.wait_for_element(locator, condition="invisibility", timeout=timeout)
 
     def wait_for_element_clickable(self, locator, timeout=None):
         logging.info(f"{self.__class__.__name__}: Waiting for element to be clickable: {locator}")
@@ -31,18 +36,6 @@ class WaitActions(Base):
         except TimeoutException:
             logging.error(f"{self.__class__.__name__}: Text '{text}' not present in element: {locator}")
             raise
-
-    def wait_for_element_to_disappear(self, locator, timeout=None):
-        if timeout is None:
-            timeout = self.default_timeout
-        logging.info(f"{self.__class__.__name__}: Waiting for element to disappear: {locator}, timeout: {timeout}")
-        try:
-            self.wait_for_element(locator, condition="invisibility", timeout=timeout)
-            logging.info(f"{self.__class__.__name__}: Element disappeared: {locator}")
-            return True
-        except TimeoutException:
-            logging.warning(f"{self.__class__.__name__}: Element did not disappear: {locator} after {timeout} seconds")
-            return False
 
     def wait_for_staleness_of(self, element, timeout=None):
         if timeout is None:
