@@ -84,7 +84,7 @@ class ResponseValidator(ResponseHandler):
     def validate_response_dynamic(self, test_case: dict, pre_check_responses: dict, post_check_responses: dict) -> None:
         exp_results = test_case['Exp Result'].splitlines()
         for exp_result in exp_results:
-            dynamic_checks = re.findall(r'(\w+)\.(\$[.\[\]\w]+)=([+-]\d+)', exp_result)
+            dynamic_checks = re.findall(r'(\w+)\.(?!precheck|postcheck)(\$[.\[\]\w]+)=([+-]\d*\.?\d+)', exp_result)
             pre_post_checks = re.findall(r'(\w+)\.(precheck|postcheck)\.(\$[.\[\]\w]+)=(.+)', exp_result)
 
             if dynamic_checks:
