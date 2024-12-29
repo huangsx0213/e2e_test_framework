@@ -83,7 +83,6 @@ class E2ERobotCasesGenerator:
         try:
             # Load test steps and data sets
             case_id = test_case['Case ID']
-            case_name = test_case['Name']
             test_steps = self.web_test_loader.get_test_steps(case_id)
             test_data_sets = self.web_test_loader.get_test_data(case_id)
 
@@ -100,7 +99,7 @@ class E2ERobotCasesGenerator:
 
             # Iterate through data sets and generate tests
             for data_set_index, data_set in enumerate(test_data_sets, 1):
-                test_name = f"UI.{case_id}.{test_case['Name']}.{data_set_index}"
+                test_name = f"UI.{case_id}.{data_set_index}"
                 robot_ui_test = self.child_suite.tests.create(name=test_name)
                 robot_ui_test.body.create_keyword(name='sanity_check', args=[])
 
@@ -111,7 +110,7 @@ class E2ERobotCasesGenerator:
                         robot_ui_test.tags.add(tag)
 
                 # Create test steps
-                self.create_test_steps(robot_ui_test, case_name, test_steps, data_set)
+                self.create_test_steps(robot_ui_test, test_steps, data_set)
                 logging.info(f"{self.__class__.__name__}: Test case {case_id}.{data_set_index} created successfully.")
 
         except Exception as e:
@@ -129,7 +128,7 @@ class E2ERobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error importing required libraries: {str(e)}")
             raise
 
-    def create_test_steps(self, robot_ui_test, case_name, test_steps: List[Dict], data_set: Dict):
+    def create_test_steps(self, robot_ui_test, test_steps: List[Dict], data_set: Dict):
         try:
             for _, step in test_steps.iterrows():
                 # Get step information
@@ -138,29 +137,29 @@ class E2ERobotCasesGenerator:
 
                 # Generate steps based on module type
                 if module_name == 'API':
-                    self._generate_api_step(case_name, step, robot_ui_test)
+                    self._generate_api_step(step, robot_ui_test)
                 else:
-                    self._generate_ui_step(robot_ui_test, case_name, step, page_name, module_name, data_set)
+                    self._generate_ui_step(robot_ui_test, step, page_name, module_name, data_set)
 
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error creating test steps: {str(e)}")
             raise
 
-    def _generate_api_step(self, case_name, step, robot_ui_test):
+    def _generate_api_step(self, step, robot_ui_test):
         try:
             self.child_suite.tests.remove(robot_ui_test)
-            self.child_suite.name = f"APISubSuite.{case_name}.{step['Page Name']}.{step['Case ID']}"
+            self.child_suite.name = f"APISubSuite.{step['Page Name']}.{step['Case ID']}"
             tc_id_list = step['APIs'].split(',')
             self.api_robot_generator.create_test_suite(tc_id_list, None, self.child_suite)
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error generating API step: {str(e)}")
             raise
 
-    def _generate_ui_step(self, robot_ui_test, case_name, step, page_name, module_name, params):
+    def _generate_ui_step(self, robot_ui_test, step, page_name, module_name, params):
         try:
-            self.child_suite.name = f"UISubSuite.{case_name}.{page_name}.{step['Case ID']}"
+            self.child_suite.name = f"UISubSuite.{page_name}.{step['Case ID']}"
             robot_ui_test.body.create_keyword(name='execute_module', args=[page_name, module_name, params])
-            self.child_suite.teardown.config(name='close_browser', args=[])
+            # self.child_suite.teardown.config(name='close_browser', args=[])
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error generating UI step for {page_name}.{module_name}: {str(e)}")
             raise

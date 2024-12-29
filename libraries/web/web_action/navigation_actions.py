@@ -4,7 +4,7 @@ import logging
 class NavigationActions(Base):
     def open_url(self, url):
         logging.info(f"{self.__class__.__name__}: Opening URL: {url}")
-        self.driver.maximize_window()
+        # self.driver.maximize_window()
         self.driver.get(url)
         logging.info(f"{self.__class__.__name__}: URL opened successfully: {url}")
 

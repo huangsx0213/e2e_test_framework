@@ -179,6 +179,10 @@ class WebTestLoader:
         if tags:
             test_cases = test_cases[test_cases['Tags'].apply(lambda x: any(tag in str(x).split(',') for tag in tags))]
 
+        if test_cases.empty:
+            logging.error("WebTestLoader: No test cases found matching criteria.")
+            raise ValueError("No test cases found matching criteria.")
+
         test_cases = test_cases[test_cases['Run'] == 'Y']
 
         return test_cases

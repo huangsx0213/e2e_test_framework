@@ -86,7 +86,7 @@ class APITestLoader:
             validation_methods[sheet_name](df)
 
     def _validate_api_sheet(self, df: pd.DataFrame):
-        required_columns = ['TCID', 'Name', 'Run', 'Endpoint', 'Body Template', 'Body Default', 'Body Override', 'Headers', 'Exp Result']
+        required_columns = ['TCID', 'Run', 'Endpoint', 'Body Template', 'Body Default', 'Body Override', 'Headers', 'Exp Result']
         self._check_required_columns(df, required_columns, 'API')
 
         if df['TCID'].duplicated().any():
@@ -109,9 +109,9 @@ class APITestLoader:
 
         # Validate mandatory fields based on HTTP method
         if method in ['GET', 'DELETE']:
-            mandatory_fields = ['TCID', 'Name', 'Endpoint', 'Headers', 'Exp Status']
+            mandatory_fields = ['TCID', 'Endpoint', 'Headers', 'Exp Status']
         else:
-            mandatory_fields = ['TCID', 'Name', 'Endpoint', 'Body Template', 'Body Default', 'Headers', 'Exp Status']
+            mandatory_fields = ['TCID', 'Endpoint', 'Body Template', 'Body Default', 'Headers', 'Exp Status']
 
         for field in mandatory_fields:
             if pd.isna(row[field]) or row[field] == '':

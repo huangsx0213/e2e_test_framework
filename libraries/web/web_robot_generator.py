@@ -93,7 +93,7 @@ class WebUIRobotCasesGenerator:
 
             # Generate tests for each data set
             for data_set_index, data_set in enumerate(test_data_sets, 1):
-                test_name = f"UI.{case_id}.{test_case['Name']}.{data_set_index}"
+                test_name = f"UI.{case_id}.{data_set_index}"
                 robot_test = self.robot_suite.tests.create(name=test_name, doc=test_case['Descriptions'])
                 robot_test.body.create_keyword(name='sanity_check', args=[])
 

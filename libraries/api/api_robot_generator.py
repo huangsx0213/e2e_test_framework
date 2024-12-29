@@ -100,7 +100,7 @@ class APIRobotCasesGenerator:
 
     def _create_single_test_case(self, test_case) -> None:
         try:
-            robot_api_test_name = f"API.{test_case['TCID']}.{test_case['Name']}"
+            robot_api_test_name = f"API.{test_case['TCID']}"
             robot_api_test = self.api_suite.tests.create(
                 name=robot_api_test_name,
                 doc=test_case['Descriptions']
