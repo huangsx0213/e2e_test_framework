@@ -9,17 +9,32 @@ builtin_lib = BuiltIn()
 class DBValidator:
     def __init__(self):
         self.db = None
+        self.db_cache = {}
 
     def setup_database(self, db_config):
+        db_key = self.get_db_key(db_config)
+        if db_key in self.db_cache:
+            self.db = self.db_cache[db_key]
+            logging.info(f"Using cached DB connection for {db_key}")
+        else:
+            db_type = db_config['type'].lower()
+            db_config.pop('type')
+            self.db = create_database(db_type, **db_config)
+            self.db_cache[db_key] = self.db
+            logging.info(f"New DB connection created and cached for {db_key}")
+
+    def get_db_key(self, db_config):
         db_type = db_config['type'].lower()
-        db_config.pop('type')
-        self.db = create_database(db_type, **db_config)
+        host = db_config.get('host', 'localhost')
+        port = db_config.get('port', 3306)
+        db_name = db_config.get('dbname', '')
+        return f"{db_type}_{host}_{port}_{db_name}"
 
     def validate_database_value(self, db_clause):
         if not self.db:
             raise ValueError("Database connection is not configured.")
 
-        # Parse the format DB.TableName.FieldName[FilterFieldName=FilterValue;AnotherField=AnotherValue]=ExpectedValue
+        # Parse the format db_name1.TableName.FieldName[FilterFieldName=FilterValue;AnotherField=AnotherValue]=ExpectedValue
         pattern = r'^db_\w+\.(?P<Table>\w+)\.(?P<Field>\w+)\s*\[(?P<Filters>[^\]]+)\]\s*=\s*(?P<ExpectedValue>.+)$'
 
         match = re.match(pattern, db_clause)
@@ -59,5 +74,3 @@ class DBValidator:
 
         logging.info(f"{self.__class__.__name__}: Database value matched for {field_name} in {table_name}. Expected: {expected_value}, Actual: {actual_value}")
         logging.info(f"{self.__class__.__name__}: {db_clause} passed.")
-
-
