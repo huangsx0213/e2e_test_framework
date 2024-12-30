@@ -38,8 +38,8 @@ class APITestKeywords:
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
 
         self.active_environment = self.test_config['active_environment']
-        self.db_config = self.test_config.get('database', {}).get(self.active_environment, {})
-        if not self.db_config:
+        self.db_configs = self.test_config.get('database', {}).get(self.active_environment, {})
+        if not self.db_configs:
             raise ValueError(f"No database configuration for environment: {self.active_environment}")
 
     def _load_endpoints(self):
@@ -136,14 +136,23 @@ class APITestKeywords:
 
     def validate_data_base(self, test_case):
         try:
-            if 'DB.' in test_case['Exp Result']:
-                self.db_validator.setup_database(self.db_config)
-                for line in test_case['Exp Result'].splitlines():
-                    if line.strip().startswith('DB.'):
-                        self.db_validator.validate_database_value(line.strip())
+            for line in test_case['Exp Result'].splitlines():
+                if line.strip().startswith('db_'):
+                    prefix = line.strip().split('.')[0]
+                    db_config = self._get_db_config_by_prefix(prefix)
+                    if not db_config:
+                        raise ValueError(f"No database configuration found for prefix: {prefix}")
+                    self.db_validator.setup_database(db_config)
+                    self.db_validator.validate_database_value(line.strip())
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Failed to validate database: {str(e)}")
             raise e
+
+    def _get_db_config_by_prefix(self, prefix: str) -> dict:
+        db_config = self.db_configs.get(prefix.lower(), {})
+        if not db_config:
+            raise ValueError(f"No database configuration found for prefix: {prefix}")
+        return db_config
 
     def _extract_check_with_tcids(self, test_case):
         conditions = test_case['Conditions']

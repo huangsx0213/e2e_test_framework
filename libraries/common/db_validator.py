@@ -20,7 +20,7 @@ class DBValidator:
             raise ValueError("Database connection is not configured.")
 
         # Parse the format DB.TableName.FieldName[FilterFieldName=FilterValue;AnotherField=AnotherValue]=ExpectedValue
-        pattern = r'^DB\.(?P<Table>\w+)\.(?P<Field>\w+)\s*\[(?P<Filters>[^\]]+)\]\s*=\s*(?P<ExpectedValue>.+)$'
+        pattern = r'^db_\w+\.(?P<Table>\w+)\.(?P<Field>\w+)\s*\[(?P<Filters>[^\]]+)\]\s*=\s*(?P<ExpectedValue>.+)$'
 
         match = re.match(pattern, db_clause)
         if not match:
