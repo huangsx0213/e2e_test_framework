@@ -76,7 +76,7 @@ class OracleDatabase(Database):
             finally:
                 self.pool = None
 
-    def execute_query(self, table: str, fields: Optional[List[str]] = None, where: Optional[str] = None) -> List[Dict]:
+    def execute_query(self, table: str, fields: Optional[List[str]] = None, where: Optional[str] = None, order_by: Optional[str] = None) -> List[Dict]:
         if fields:
             field_str = ', '.join(fields)
         else:
@@ -85,6 +85,8 @@ class OracleDatabase(Database):
         query = f"SELECT {field_str} FROM {table}"
         if where:
             query += f" WHERE {where}"
+        if order_by:
+            query += f" ORDER BY {order_by}"
 
         connection = self._get_connection()
         try:
@@ -174,7 +176,7 @@ class PostgreSQLDatabase(Database):
             except psycopg2.Error:
                 pass  # Ignore if already closed or if there's an error during close
 
-    def execute_query(self, table: str, fields: Optional[List[str]] = None, where: Optional[str] = None) -> List[Dict]:
+    def execute_query(self, table: str, fields: Optional[List[str]] = None, where: Optional[str] = None, order_by: Optional[str] = None) -> List[Dict]:
         if fields:
             field_str = ', '.join(fields)
         else:
@@ -183,6 +185,8 @@ class PostgreSQLDatabase(Database):
         query = f"SELECT {field_str} FROM {table}"
         if where:
             query += f" WHERE {where}"
+        if order_by:
+            query += f" ORDER BY {order_by}"
 
         connection = self._get_connection()
         try:

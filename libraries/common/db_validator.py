@@ -15,39 +15,41 @@ class DBValidator:
         db_key = self.get_db_key(db_config)
         if db_key in self.db_cache:
             self.db = self.db_cache[db_key]
-            logging.info(f"Using cached DB connection for {db_key}")
+            logging.info(f"{self.__class__.__name__}: Using cached DB connection for {db_key}")
         else:
             db_type = db_config['type'].lower()
             db_config.pop('type')
             self.db = create_database(db_type, **db_config)
             self.db_cache[db_key] = self.db
-            logging.info(f"New DB connection created and cached for {db_key}")
+            logging.info(f"{self.__class__.__name__}: New DB connection created and cached for {db_key}")
 
     def get_db_key(self, db_config):
         db_type = db_config['type'].lower()
         host = db_config.get('host', 'localhost')
         port = db_config.get('port', 3306)
-        db_name = db_config.get('dbname', '')
+        db_name = db_config.get('database', '')
         return f"{db_type}_{host}_{port}_{db_name}"
 
     def validate_database_value(self, db_clause):
         if not self.db:
-            raise ValueError("Database connection is not configured.")
+            raise ValueError("{self.__class__.__name__}: Database connection is not configured.")
 
-        # Parse the format db_name1.TableName.FieldName[FilterFieldName=FilterValue;AnotherField=AnotherValue]=ExpectedValue
-        pattern = r'^db_\w+\.(?P<Table>\w+)\.(?P<Field>\w+)\s*\[(?P<Filters>[^\]]+)\]\s*=\s*(?P<ExpectedValue>.+)$'
+        # Parse the format: db_name1.TableName.FieldName[FilterFieldName=FilterValue;AnotherField=AnotherValue][OrderBy=CreateTime]=ExpectedValue
+        pattern = r'^db_\w+\.(?P<Table>\w+)\.(?P<Field>\w+)\s*\[(?P<Filters>[^\]]+)\](?:\s*\[(?P<OrderBy>[^\]]+)\])?\s*=\s*(?P<ExpectedValue>.+)$'
 
         match = re.match(pattern, db_clause)
         if not match:
-            raise ValueError(f"Invalid format for validate_database_value: {db_clause}")
+            raise ValueError(f"{self.__class__.__name__}: Invalid format for validate_database_value: {db_clause}")
 
         # Extract components using named groups
         table_name = match.group('Table')
         field_name = match.group('Field')
         filters = match.group('Filters')
+        order_by = match.group('OrderBy')
         expected_value = match.group('ExpectedValue').strip()
 
-        # Check if there's a filter part and process it
+        # Process filters to build WHERE clause
+        where_clause = ''
         if filters:
             filter_conditions = filters.split(';')
             where_clauses = []
@@ -55,22 +57,43 @@ class DBValidator:
                 filter_field, filter_value = condition.split('=')
                 where_clauses.append(f"{filter_field} = '{filter_value}'")
             where_clause = ' AND '.join(where_clauses)
+
+        # Process order_by
+        if order_by:
+            order_by_clause = f"{order_by.replace('OrderBy=', '')}"
         else:
-            where_clause = None
+            order_by_clause = ''
 
-        # Query the database
-        result = self.db.execute_query(table_name, fields=[field_name], where=where_clause)
+        # Build SQL for logging
+        sql_query = f"SELECT {field_name} FROM {table_name}"
+        if where_clause:
+            sql_query += f" WHERE {where_clause}"
+        if order_by_clause:
+            sql_query += f" ORDER BY {order_by_clause}"
 
+        # Log the generated SQL query
+        logging.info(f"{self.__class__.__name__}: Generated SQL query: {sql_query}")
+
+        # Execute the generated query
+        result = self.db.execute_query(table_name, fields=[field_name], where=where_clause, order_by=order_by_clause)
+
+        # Validate query result
         if not result:
+            no_data_message = f"No data found for field '{field_name}' in table '{table_name}'."
             if where_clause:
-                raise AssertionError(f"No data found for {field_name} in {table_name} where {where_clause}")
-            else:
-                raise AssertionError(f"No data found for {field_name} in {table_name}")
+                no_data_message += f" Filter applied: {where_clause}."
+            if order_by_clause:
+                no_data_message += f" Order: {order_by_clause}."
+            raise AssertionError(no_data_message)
 
         actual_value = result[0][field_name]
 
         if actual_value != expected_value:
-            raise AssertionError(f"Database value mismatch. Expected {expected_value} but got {actual_value} for {field_name} in {table_name}")
+            raise AssertionError(
+                f"{self.__class__.__name__}: Database value mismatch. Expected '{expected_value}' but got '{actual_value}' for field '{field_name}' in table '{table_name}'."
+            )
 
-        logging.info(f"{self.__class__.__name__}: Database value matched for {field_name} in {table_name}. Expected: {expected_value}, Actual: {actual_value}")
-        logging.info(f"{self.__class__.__name__}: {db_clause} passed.")
+        logging.info(
+            f"{self.__class__.__name__}: Database value matched for '{field_name}' in table '{table_name}'. "
+            f"Expected: '{expected_value}', Actual: '{actual_value}'. Executed SQL: {sql_query}"
+        )
