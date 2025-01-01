@@ -5,7 +5,7 @@ import re
 from typing import Any, Dict, Union
 from libraries.common.utility_helpers import UtilityHelpers
 from libraries.api.template_renderer import TemplateRenderer
-from libraries.api.variable_generator import VariableGenerator
+from libraries.common.variable_generator import VariableGenerator
 
 
 class BodyGenerator:
