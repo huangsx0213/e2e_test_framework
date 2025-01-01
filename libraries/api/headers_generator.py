@@ -4,7 +4,7 @@ import yaml
 from typing import Dict, Any
 import pandas as pd
 from libraries.common.utility_helpers import UtilityHelpers
-from libraries.api.variable_generator import VariableGenerator
+from libraries.common.variable_generator import VariableGenerator
 from robot.libraries.BuiltIn import BuiltIn
 
 builtin_lib = BuiltIn()

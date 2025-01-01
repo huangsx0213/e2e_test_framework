@@ -1,18 +1,22 @@
 import logging
 import os
-from typing import Dict, List
+import re
+from typing import Dict, List, Any
 import pandas as pd
 from libraries.api.api_test_loader import APITestLoader
 from libraries.common.config_manager import ConfigManager
 from libraries.common.utility_helpers import PROJECT_ROOT
+
 from robot.api import TestSuite
 from libraries.common.log_manager import logger_instance
+
 
 class APIRobotCasesGenerator:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
         self.test_config_path = test_config_path
         self.test_cases_path = test_cases_path
+
 
         try:
             self._load_configuration()
@@ -133,7 +137,17 @@ class APIRobotCasesGenerator:
             if pd.notna(test_case['Conditions']):
                 conditions = test_case['Conditions'].splitlines()
                 for condition in conditions:
-                    self._process_condition(condition, robot_api_test)
+                    if not condition.startswith('[TestSetup]'):  # Skip [Function] conditions
+                        self._process_condition(condition, robot_api_test)
+                else:
+                    test_setup_case_ids = re.findall(r'\[TestSetup\]\s*(\w*,*\s*\w*)', test_case['Conditions'], re.DOTALL)
+                    if test_setup_case_ids:
+                        test_setup_case_ids = test_setup_case_ids[0].strip().split(',')
+                    robot_api_test.setup.config(
+                        name='execute_conditions_cases_with_transformer',
+                        args=[test_case['TCID'], test_setup_case_ids]
+                    )
+
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error configuring test conditions: {str(e)}")
             raise
@@ -151,7 +165,7 @@ class APIRobotCasesGenerator:
                 if condition_type in condition:
                     case_ids = condition.strip(condition_type).split(',')
                     config_object.config(
-                        name='execute_multiple_api_test_cases',
+                        name='execute_conditions_cases',
                         args=[case_ids]
                     )
                     logging.info(f"{self.__class__.__name__}: Configured {condition_name} with case IDs: {case_ids}")
@@ -159,3 +173,4 @@ class APIRobotCasesGenerator:
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error processing condition '{condition}': {str(e)}")
             raise
+

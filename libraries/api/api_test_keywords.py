@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from time import sleep
-from typing import Dict, List
+from typing import Dict, List, Any
 import pandas as pd
 from libraries.common.config_manager import ConfigManager
 from libraries.common.db_validator import DBValidator
@@ -15,6 +15,7 @@ from libraries.api.response_handler import ResponseValidator, ResponseFieldSaver
 from libraries.api.api_test_loader import APITestLoader
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api.deco import keyword, library
+from libraries.common.variable_transformer import VariableTransformer
 
 builtin_lib = BuiltIn()
 
@@ -59,8 +60,8 @@ class APITestKeywords:
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
         self.api_response_asserter: ResponseValidator = ResponseValidator()
         self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
+        self.function_transformer = VariableTransformer()
         self.db_validator = DBValidator()
-
 
     @keyword
     def api_sanity_check(self) -> None:
@@ -77,15 +78,9 @@ class APITestKeywords:
             logging.info(f"{self.__class__.__name__}: Cleared saved fields")
 
     @keyword
-    def execute_multiple_api_test_cases(self, test_case_ids: List[str] = None):
-
-        test_cases = self.api_test_loader = APITestLoader(self.test_cases_path).get_api_test_cases()
-
-        if test_case_ids is None:
-            test_case_ids = [tc['TCID'] for tc in test_cases]
-
+    def execute_conditions_cases(self, conditions_case_ids: List[str] = None):
         results = {}
-        for tcid in test_case_ids:
+        for tcid in conditions_case_ids:
             logging.info(f"{self.__class__.__name__}: Executing test case: {tcid}")
             result = self.execute_api_test_case(tcid)
             results[tcid] = result
@@ -93,10 +88,26 @@ class APITestKeywords:
         return results
 
     @keyword
+    def execute_conditions_cases_with_transformer(self, original_tcid, setup_case_ids: List[str] = None):
+
+        test_cases = APITestLoader(self.test_cases_path).get_api_test_cases()
+
+        # Execute function transformations before creating the test case
+        test_case = test_cases.loc[test_cases['TCID'] == original_tcid].to_dict('records')[0]
+        self._execute_functions(test_case)
+
+        results = {}
+        for setup_id in setup_case_ids:
+            logging.info(f"{self.__class__.__name__}: Executing setup test case: {setup_id}")
+            result = self.execute_api_test_case(setup_id)
+            results[setup_id] = result
+
+        return results
+
+    @keyword
     def execute_api_test_case(self, test_case_id: str, is_dynamic_check: bool = False):
         try:
-
-            test_cases = self.api_test_loader = APITestLoader(self.test_cases_path).get_api_test_cases()
+            test_cases = APITestLoader(self.test_cases_path).get_api_test_cases()
             test_case = next((tc for _, tc in test_cases.iterrows() if tc['TCID'] == test_case_id), None)
 
             if test_case is None:
@@ -194,3 +205,15 @@ class APITestKeywords:
         response, execution_time = RequestSender.send_request(url, method, headers, body, format_type)
 
         return response, execution_time
+
+    def _execute_functions(self, test_case: Dict[str, Any]) -> None:
+        conditions = test_case.get('Conditions', '').splitlines()
+        for condition in conditions:
+            if condition.startswith('[Function]'):
+                function_name, input_field, output_field = re.findall(r'\[Function\]\s*(\w*)\((.*?)\s*,\s*(.*?)\)', condition)[0]
+                self.function_transformer.execute_function(
+                    function_name.strip(),
+                    input_field.strip(),
+                    output_field.strip(),
+                    test_case
+                )
