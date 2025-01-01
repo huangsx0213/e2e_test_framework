@@ -60,7 +60,7 @@ class APITestKeywords:
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
         self.api_response_asserter: ResponseValidator = ResponseValidator()
         self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
-        self.function_transformer = VariableTransformer()
+        self.variable_transformer = VariableTransformer()
         self.db_validator = DBValidator()
 
     @keyword
@@ -94,7 +94,7 @@ class APITestKeywords:
 
         # Execute function transformations before creating the test case
         test_case = test_cases.loc[test_cases['TCID'] == original_tcid].to_dict('records')[0]
-        self._execute_functions(test_case)
+        self._transformer_handler(test_case)
 
         results = {}
         for setup_id in setup_case_ids:
@@ -206,14 +206,15 @@ class APITestKeywords:
 
         return response, execution_time
 
-    def _execute_functions(self, test_case: Dict[str, Any]) -> None:
-        conditions = test_case.get('Conditions', '').splitlines()
-        for condition in conditions:
-            if condition.startswith('[Function]'):
-                function_name, input_field, output_field = re.findall(r'\[Function\]\s*(\w*)\((.*?)\s*,\s*(.*?)\)', condition)[0]
-                self.function_transformer.execute_function(
-                    function_name.strip(),
-                    input_field.strip(),
-                    output_field.strip(),
-                    test_case
-                )
+    def _transformer_handler(self, test_case: Dict[str, Any]) -> None:
+        transformers = test_case.get('Variable Transform', '').splitlines()
+        transformers_data = []
+        for transformer in transformers:
+            match = re.findall(r'(\w*)\((.*?)\s*(?:,\s*(.*?))?\)', transformer.strip())
+            if match:
+                function_name, input_field, output_field = match[0]
+                transformers_data.append((function_name.strip(), input_field.strip(), output_field.strip() if output_field else None))
+
+        self.variable_transformer.transform(transformers_data, test_case)
+        logging.info(f"{self.__class__.__name__}: Transformed variables for test case {test_case['TCID']}.")
+        logging.info("=" * 100)

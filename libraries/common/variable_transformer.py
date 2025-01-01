@@ -23,13 +23,18 @@ class VariableTransformer:
             'divide': self._divide,
         }
 
-    def execute_function(self, function_name: str, input_field: str, output_field: str, test_case: Dict[str, Any]) -> None:
-        if function_name not in self.functions:
-            raise ValueError(f"Unknown function: {function_name}")
+    def transform(self, transformations, test_case: Dict[str, Any]) -> None:
+        for function_name, input_field, output_field in transformations:
+            if output_field is None:
+                output_field = self._get_output_field(input_field)
+            input_value = self._get_input_value(input_field, test_case)
 
-        input_value = self._get_input_value(input_field, test_case)
-        result = self.functions[function_name](input_value)
-        self._save_as_global_variable(output_field, result)
+            if function_name not in self.functions:
+                raise ValueError(f"Unknown function: {function_name}")
+
+            output_value = self.functions[function_name](input_value)
+
+            self._save_as_global_variable(output_field, output_value)
 
     def _get_input_value(self, input_field: str, test_case: Dict[str, Any]) -> Any:
         if input_field.startswith('{{') and input_field.endswith('}}'):
@@ -45,6 +50,14 @@ class VariableTransformer:
         else:
             # Try to get it as a global variable
             return self.builtin.get_variable_value(f"${{{input_field}}}")
+
+    def _get_output_field(self, input_field: str) -> Any:
+        if input_field.startswith('{{') and input_field.endswith('}}'):
+            dynamic_field = re.findall(r'{{(.*?)}}', input_field)[0]
+            return dynamic_field
+        elif input_field.startswith('${') and input_field.endswith('}'):
+            field_name = re.findall(r'\$\{\s*(.*?)\s*\}', input_field)[0]
+            return field_name
 
     def _save_as_global_variable(self, output_field: str, value: Any) -> None:
         logger.info(ColorLogger.info(f"=> {self.__class__.__name__}: Setting global variable ${{{output_field}}} to {value}."), html=True)
