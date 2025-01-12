@@ -5,6 +5,7 @@ from time import sleep
 from typing import Dict, List, Any
 import pandas as pd
 from matplotlib import pyplot as plt
+from pandas import DataFrame
 
 from libraries.common.config_manager import ConfigManager
 from libraries.common.db_validator import DBValidator
@@ -222,15 +223,15 @@ class APITestKeywords:
         logging.info(f"{self.__class__.__name__}: Transformed variables for test case {test_case['TCID']}.")
         logging.info("=" * 100)
 
-    def generate_test_report_table(self, test_results: Dict[str, List[Dict]]) -> plt.Figure:
+    def generate_html_report(self, test_results: Dict[str, List[Dict]]) -> str:
         """
-        Generates a tabular report from the test results without merging TCID cells.
+        Generates an HTML report from the test results with a title, merged TCID and Description cells, and color-coded results.
 
         Args:
-            test_results: The test results data (self.api_response_validator.test_results).
+            test_results: The test results data.
 
         Returns:
-            A matplotlib Figure object containing the table.
+            HTML string containing the report.
         """
 
         def flatten_results(test_results: Dict[str, List[Dict]]):
@@ -238,6 +239,7 @@ class APITestKeywords:
                 for result in results:
                     row = {
                         "TCID": tcid,
+                        "Description": result.get("description", ""),  # Add description field
                         "Type": result["type"],
                         "Field": result["field"],
                         "Pre Value": '',
@@ -265,12 +267,13 @@ class APITestKeywords:
                     yield row
 
         flattened_data = list(flatten_results(test_results))
-        df = pd.DataFrame(flattened_data)
+        df = DataFrame(flattened_data)
 
         # Reorder columns if needed
         df = df[
             [
                 "TCID",
+                "Description",  # Add Description column
                 "Type",
                 "Field",
                 "Pre Value",
@@ -281,41 +284,91 @@ class APITestKeywords:
             ]
         ]
 
-        fig, ax = plt.subplots(figsize=(12, 4))
-        ax.axis("off")
+        # Create an HTML table with a title, merged TCID and Description cells, and color-coded results
+        html_table = '<h1 style="text-align: center; color: #333;">API Test Report</h1>\n'  # Add title
+        html_table += '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">\n'
 
-        table = ax.table(
-            cellText=df.values,
-            colLabels=df.columns,
-            loc="center",
-            cellLoc="center",
-            colWidths=[0.15, 0.15, 0.25, 0.08, 0.08, 0.12, 0.12, 0.08]
-        )
+        # Add table headers
+        html_table += '<tr>\n'
+        for col in df.columns:
+            html_table += f'<th style="background-color: #f2f2f2; text-align: center;">{col}</th>\n'
+        html_table += '</tr>\n'
 
-        table.auto_set_font_size(False)
-        table.set_fontsize(10)
-        # 设置 Result 列的颜色
+        # Add table rows
+        current_tcid = None
+        current_description = None
+        tcid_rowspan = 1
+        description_rowspan = 1
         for i, row in df.iterrows():
-            result_cell = table[i + 1, 7]  # Result 列的索引是 7
-            if row["Result"].upper() == "PASS":
-                result_cell.set_text_props(color="green")
-            elif row["Result"].upper() == "FAIL":
-                result_cell.set_text_props(color="red")
+            if row["TCID"] == current_tcid and row["Description"] == current_description:
+                tcid_rowspan += 1
+                description_rowspan += 1
+                html_table += '<tr>\n'
+                for col in df.columns[2:]:  # Skip TCID and Description columns
+                    if col == "Result":
+                        color = "green" if row[col].upper() == "PASS" else ("red" if row[col].upper() == "FAIL" else "orange")
+                        html_table += f'<td style="text-align: center; background-color: {color};">{row[col]}</td>\n'
+                    else:
+                        html_table += f'<td style="text-align: center;">{row[col]}</td>\n'
+                html_table += '</tr>\n'
             else:
-                result_cell.set_text_props(color="orange")
+                if current_tcid is not None:
+                    # Update the rowspan for the previous TCID and Description groups
+                    html_table = html_table.replace(
+                        f'<td rowspan="placeholder_tcid">{current_tcid}</td>',
+                        f'<td rowspan="{tcid_rowspan}" style="text-align: center; vertical-align: middle;">{current_tcid}</td>',
+                        1
+                    )
+                    html_table = html_table.replace(
+                        f'<td rowspan="placeholder_description">{current_description}</td>',
+                        f'<td rowspan="{description_rowspan}" style="text-align: center; vertical-align: middle;">{current_description}</td>',
+                        1
+                    )
+                current_tcid = row["TCID"]
+                current_description = row["Description"]
+                tcid_rowspan = 1
+                description_rowspan = 1
+                html_table += '<tr>\n'
+                html_table += f'<td rowspan="placeholder_tcid">{row["TCID"]}</td>\n'  # Placeholder for TCID rowspan
+                html_table += f'<td rowspan="placeholder_description">{row["Description"]}</td>\n'  # Placeholder for Description rowspan
+                for col in df.columns[2:]:  # Skip TCID and Description columns
+                    if col == "Result":
+                        color = "green" if row[col].upper() == "PASS" else ("red" if row[col].upper() == "FAIL" else "orange")
+                        html_table += f'<td style="text-align: center; background-color: {color};">{row[col]}</td>\n'
+                    else:
+                        html_table += f'<td style="text-align: center;">{row[col]}</td>\n'
+                html_table += '</tr>\n'
 
-        return fig
+        # Update the rowspan for the last TCID and Description groups
+        if current_tcid is not None:
+            html_table = html_table.replace(
+                f'<td rowspan="placeholder_tcid">{current_tcid}</td>',
+                f'<td rowspan="{tcid_rowspan}" style="text-align: center; vertical-align: middle;">{current_tcid}</td>',
+                1
+            )
+            html_table = html_table.replace(
+                f'<td rowspan="placeholder_description">{current_description}</td>',
+                f'<td rowspan="{description_rowspan}" style="text-align: center; vertical-align: middle;">{current_description}</td>',
+                1
+            )
+
+        html_table += '</table>'
+        return html_table
 
     @keyword
     def generate_report(self):
-        """Generates and logs the test report table."""
-        fig = self.generate_test_report_table(self.api_response_validator.test_results)
+        """Generates and logs the test report as an HTML file, embedded in the Robot Framework log."""
+        html_content = self.generate_html_report(self.api_response_validator.test_results)
 
-        report_file = os.path.join(self.project_root, "test_report.png")
-        plt.savefig(report_file, bbox_inches="tight", dpi=300)
+        # Save the HTML report to a file
+        report_file = os.path.join(self.project_root, "report", "test_report.html")
+        os.makedirs(os.path.dirname(report_file), exist_ok=True)  # Ensure the directory exists
+        with open(report_file, "w", encoding="utf-8") as f:
+            f.write(html_content)
         logging.info(f"Test report saved to: {report_file}")
+
+        # Embed the HTML content directly in the Robot Framework log
         from robot.api import logger
-
-        logger.info(f'<img src="{report_file}" width="1000px">', html=True)
-
-        plt.close(fig)
+        # logger.info('<div style="width: 80%; overflow-x: auto;">', html=True)
+        logger.info(html_content, html=True)
+        # logger.info('</div>', html=True)

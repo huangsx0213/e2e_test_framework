@@ -70,6 +70,7 @@ class ResponseValidator(ResponseHandler):
         expected_results = test_case['Exp Result']
         expected_lines = expected_results.splitlines()
         test_case_id = test_case['TCID']
+        test_description = test_case['Descriptions']
         is_main_test = test_case['Run'].strip() == 'Y'
 
         response_content, response_format = self.get_content_and_format(actual_response)
@@ -83,6 +84,7 @@ class ResponseValidator(ResponseHandler):
             if line.strip().startswith('$'):
                 try:
                     result = self._assert_line(line.strip(), response_content, response_format)
+                    result['description'] = test_description
                     assertion_results.append(result)
                 except AssertionError as e:
                     logging.error(f"{self.__class__.__name__}: Assertion failed: {str(e)}")
@@ -99,6 +101,7 @@ class ResponseValidator(ResponseHandler):
     def validate_response_dynamic(self, test_case: dict, pre_check_responses: dict, post_check_responses: dict) -> None:
         exp_results = test_case['Exp Result'].splitlines()
         test_case_id = test_case['TCID']
+        test_description = test_case['Descriptions']
         is_main_test = test_case['Run'].strip() == 'Y'
 
         current_test_results = []
@@ -107,10 +110,10 @@ class ResponseValidator(ResponseHandler):
             pre_post_checks = re.findall(r'(\w+)\.(precheck|postcheck)\.(\$[.\[\]\w]+)=(.+)', exp_result)
 
             if dynamic_checks:
-                result = self._handle_dynamic_checks(dynamic_checks, pre_check_responses, post_check_responses)
+                result = self._handle_dynamic_checks(test_description, dynamic_checks, pre_check_responses, post_check_responses)
                 current_test_results.extend(result)
             elif pre_post_checks:
-                result = self._handle_pre_post_checks(pre_post_checks, pre_check_responses, post_check_responses)
+                result = self._handle_pre_post_checks(test_description, pre_post_checks, pre_check_responses, post_check_responses)
                 current_test_results.extend(result)
         if is_main_test:
             if test_case_id in self.test_results:
@@ -120,33 +123,36 @@ class ResponseValidator(ResponseHandler):
 
         logging.info(f"{self.__class__.__name__}: All dynamic and pre/post checks passed successfully.")
 
-    def _handle_dynamic_checks(self, checks, pre_check_responses, post_check_responses) -> List[Dict]:
+    def _handle_dynamic_checks(self,test_description, checks, pre_check_responses, post_check_responses) -> List[Dict]:
         results = []
-        for tcid, json_path, expected_value in checks:
-            pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
-            post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
+        try:
+            for tcid, json_path, expected_value in checks:
+                pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
+                post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
 
-            actual_value = round(float(post_value) - float(pre_value), 2)
+                actual_value = round(float(post_value) - float(pre_value), 2)
 
-            logging.info(f"{self.__class__.__name__}: Dynamic check for {tcid}.{json_path}. Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}")
-            logger.info(ColorLogger.success(f"=> {self.__class__.__name__}: Dynamic check for {tcid}.{json_path}. Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}"), html=True)
+                logging.info(f"{self.__class__.__name__}: Dynamic check for {tcid}.{json_path}. Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}")
+                logger.info(ColorLogger.success(f"=> {self.__class__.__name__}: Dynamic check for {tcid}.{json_path}. Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}"), html=True)
 
-            result =  {
-                    "type": "Dynamic Checks",
-                    "field": f"{tcid}.{json_path}",
-                    "Pre Value": pre_value,
-                    "Post Value": post_value,
-                    "Actual Diff": actual_value,
-                    "Expected Diff": round(float(expected_value), 2),
-                    "result": "Pass" if self._compare_diff(actual_value, expected_value) else "Fail"
-                }
-            results.append(result)
-            if not self._compare_diff(actual_value, expected_value):
-                raise AssertionError(
-                    f"{self.__class__.__name__}: Dynamic check failed for {tcid}.{json_path}. Expected diff: {expected_value}, Actual diff: {actual_value}")
-        return results
+                result =  {
+                        "type": "Dynamic Checks",
+                        "description": test_description,
+                        "field": f"{tcid}.{json_path}",
+                        "Pre Value": pre_value,
+                        "Post Value": post_value,
+                        "Actual Diff": actual_value,
+                        "Expected Diff": round(float(expected_value), 2),
+                        "result": "Pass" if self._compare_diff(actual_value, expected_value) else "Fail"
+                    }
+                results.append(result)
+                if not self._compare_diff(actual_value, expected_value):
+                    raise AssertionError(
+                        f"{self.__class__.__name__}: Dynamic check failed for {tcid}.{json_path}. Expected diff: {expected_value}, Actual diff: {actual_value}")
+        finally:
+            return results
 
-    def _handle_pre_post_checks(self, checks, pre_check_responses, post_check_responses) -> List[Dict]:
+    def _handle_pre_post_checks(self,test_description, checks, pre_check_responses, post_check_responses) -> List[Dict]:
         results = []
         for tcid, check_type, json_path, expected_value in checks:
             if check_type == 'precheck':
@@ -161,6 +167,7 @@ class ResponseValidator(ResponseHandler):
 
             result = {
                     "type": f"{check_type.capitalize()} Checks",
+                    "description": test_description,
                     "field": f"{tcid}.{json_path}",
                     "Expected Value": str(expected_value).strip(),
                     "Actual Value": str(actual_value),
