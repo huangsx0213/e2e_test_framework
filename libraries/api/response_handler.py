@@ -1,7 +1,7 @@
 import logging
 import json
 import re
-from typing import Any, Union, Tuple
+from typing import Any, Union, Tuple, List, Dict
 from jsonpath_ng import parse
 import xmltodict
 from requests import Response
@@ -62,52 +62,92 @@ class ResponseHandler:
             raise ValueError(f"{self.__class__.__name__}: No match found for JSONPath: {json_path}")
 
 class ResponseValidator(ResponseHandler):
-    def validate_response(self, expected_results: str, actual_response: Union[str, Response]) -> None:
+    def __init__(self):
+        super().__init__()
+        self.test_results = {}
+
+    def validate_response(self, test_case: str, actual_response: Union[str, Response]) -> None:
+        expected_results = test_case['Exp Result']
+        expected_lines = expected_results.splitlines()
+        test_case_id = test_case['TCID']
+        is_main_test = test_case['Run'].strip() == 'Y'
+
         response_content, response_format = self.get_content_and_format(actual_response)
         logging.info(f"{self.__class__.__name__}: Actual response:\n{response_content}")
 
-        expected_lines = expected_results.splitlines()
+
         assertion_errors = []
+        assertion_results = []
 
         for line in expected_lines:
             if line.strip().startswith('$'):
                 try:
-                    self._assert_line(line.strip(), response_content, response_format)
+                    result = self._assert_line(line.strip(), response_content, response_format)
+                    assertion_results.append(result)
                 except AssertionError as e:
                     logging.error(f"{self.__class__.__name__}: Assertion failed: {str(e)}")
                     assertion_errors.append(str(e))
-
+        if is_main_test:
+            if test_case_id in self.test_results:
+                self.test_results[test_case_id].extend(assertion_results)
+            else:
+                self.test_results[test_case_id] = assertion_results
         if assertion_errors:
             raise AssertionError(f"{self.__class__.__name__}: Assertions failed:\n" + "\n".join(assertion_errors))
         logging.info(f"{self.__class__.__name__}: All assertions passed successfully.")
 
     def validate_response_dynamic(self, test_case: dict, pre_check_responses: dict, post_check_responses: dict) -> None:
         exp_results = test_case['Exp Result'].splitlines()
+        test_case_id = test_case['TCID']
+        is_main_test = test_case['Run'].strip() == 'Y'
+
+        current_test_results = []
         for exp_result in exp_results:
             dynamic_checks = re.findall(r'(\w+)\.(?!precheck|postcheck)(\$[.\[\]\w]+)=([+-]\d*\.?\d+)', exp_result)
             pre_post_checks = re.findall(r'(\w+)\.(precheck|postcheck)\.(\$[.\[\]\w]+)=(.+)', exp_result)
 
             if dynamic_checks:
-                self._handle_dynamic_checks(dynamic_checks, pre_check_responses, post_check_responses)
+                result = self._handle_dynamic_checks(dynamic_checks, pre_check_responses, post_check_responses)
+                current_test_results.extend(result)
             elif pre_post_checks:
-                self._handle_pre_post_checks(pre_post_checks, pre_check_responses, post_check_responses)
+                result = self._handle_pre_post_checks(pre_post_checks, pre_check_responses, post_check_responses)
+                current_test_results.extend(result)
+        if is_main_test:
+            if test_case_id in self.test_results:
+                self.test_results[test_case_id].extend(current_test_results)
+            else:
+                self.test_results[test_case_id] = [current_test_results]
+
         logging.info(f"{self.__class__.__name__}: All dynamic and pre/post checks passed successfully.")
 
-    def _handle_dynamic_checks(self, checks, pre_check_responses, post_check_responses):
+    def _handle_dynamic_checks(self, checks, pre_check_responses, post_check_responses) -> List[Dict]:
+        results = []
         for tcid, json_path, expected_value in checks:
             pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
             post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
 
             actual_value = round(float(post_value) - float(pre_value), 2)
 
-            logging.info(f"{self.__class__.__name__}: Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}")
-            logger.info(ColorLogger.success(f"=> {self.__class__.__name__}: Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}"), html=True)
+            logging.info(f"{self.__class__.__name__}: Dynamic check for {tcid}.{json_path}. Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}")
+            logger.info(ColorLogger.success(f"=> {self.__class__.__name__}: Dynamic check for {tcid}.{json_path}. Actual diff: {actual_value}, Expected diff: {round(float(expected_value), 2)}"), html=True)
 
+            result =  {
+                    "type": "Dynamic Checks",
+                    "field": f"{tcid}.{json_path}",
+                    "Pre Value": pre_value,
+                    "Post Value": post_value,
+                    "Actual Diff": actual_value,
+                    "Expected Diff": round(float(expected_value), 2),
+                    "result": "Pass" if self._compare_diff(actual_value, expected_value) else "Fail"
+                }
+            results.append(result)
             if not self._compare_diff(actual_value, expected_value):
                 raise AssertionError(
                     f"{self.__class__.__name__}: Dynamic check failed for {tcid}.{json_path}. Expected diff: {expected_value}, Actual diff: {actual_value}")
+        return results
 
-    def _handle_pre_post_checks(self, checks, pre_check_responses, post_check_responses):
+    def _handle_pre_post_checks(self, checks, pre_check_responses, post_check_responses) -> List[Dict]:
+        results = []
         for tcid, check_type, json_path, expected_value in checks:
             if check_type == 'precheck':
                 actual_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
@@ -116,13 +156,22 @@ class ResponseValidator(ResponseHandler):
             else:
                 raise ValueError(f"{self.__class__.__name__}: Invalid check type: {check_type}")
 
-            logging.info(f"{self.__class__.__name__}: {check_type.capitalize()} - Actual value: {actual_value}, Expected value: {expected_value}")
-            logger.info(ColorLogger.success(f"=> {self.__class__.__name__}: {check_type.capitalize()} - Actual value: {actual_value}, Expected value: {expected_value}"), html=True)
+            logging.info(f"{self.__class__.__name__}: {check_type.capitalize()} for {tcid}.{json_path} - Actual value: {actual_value}, Expected value: {expected_value}")
+            logger.info(ColorLogger.success(f"=> {self.__class__.__name__}: {check_type.capitalize()} for {tcid}.{json_path} - Actual value: {actual_value}, Expected value: {expected_value}"), html=True)
 
+            result = {
+                    "type": f"{check_type.capitalize()} Checks",
+                    "field": f"{tcid}.{json_path}",
+                    "Expected Value": str(expected_value).strip(),
+                    "Actual Value": str(actual_value),
+                    "result": "Pass" if str(actual_value) == str(expected_value.strip()) else "Fail"
+                }
+            results.append(result)
             if str(actual_value) != str(expected_value.strip()):
                 raise AssertionError(f"{self.__class__.__name__}: {check_type.capitalize()} failed for {tcid}.{json_path}. Expected: {expected_value}, Actual: {actual_value}")
+        return results
 
-    def _assert_line(self, line: str, response_content: str, response_format: str) -> None:
+    def _assert_line(self, line: str, response_content: str, response_format: str) -> Dict:
         key, expected_value = map(str.strip, line.split('=', 1))
 
         actual_value = self._extract_value_from_response(response_content, key)
@@ -135,7 +184,17 @@ class ResponseValidator(ResponseHandler):
 
         logging.info(f"{self.__class__.__name__}: Asserting: {key}, Expected: {expected_value}, Actual: {actual_value}")
         logger.info(ColorLogger.success(f"=> {self.__class__.__name__}: Asserting: {key}, Expected: {expected_value}, Actual: {actual_value}"), html=True)
-        assert actual_value == expected_value, f"{self.__class__.__name__}: Assertion failed for key '{key}'. Expected: {expected_value}, Actual: {actual_value}"
+
+        result = {
+            "type": "Assertions",
+            "field": key,
+            "Expected Value": str(expected_value),
+            "Actual Value": str(actual_value),
+            "result": "Pass" if actual_value == expected_value else "Fail"
+        }
+        if actual_value != expected_value:
+           raise AssertionError(f"{self.__class__.__name__}: Assertion failed for key '{key}'. Expected: {expected_value}, Actual: {actual_value}")
+        return result
 
     def _compare_diff(self, actual_diff: float, expected_diff: str) -> bool:
         expected_operator = expected_diff[0]

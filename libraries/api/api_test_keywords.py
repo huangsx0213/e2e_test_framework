@@ -4,6 +4,8 @@ import re
 from time import sleep
 from typing import Dict, List, Any
 import pandas as pd
+from matplotlib import pyplot as plt
+
 from libraries.common.config_manager import ConfigManager
 from libraries.common.db_validator import DBValidator
 from libraries.common.utility_helpers import PROJECT_ROOT
@@ -58,7 +60,7 @@ class APITestKeywords:
         self._load_endpoints()
         self.body_generator: BodyGenerator = BodyGenerator(self.api_test_loader)
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
-        self.api_response_asserter: ResponseValidator = ResponseValidator()
+        self.api_response_validator: ResponseValidator = ResponseValidator()
         self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
         self.variable_transformer = VariableTransformer()
         self.db_validator = DBValidator()
@@ -76,6 +78,7 @@ class APITestKeywords:
         if self.test_config.get('clear_saved_fields_after_test', False):
             self.saved_fields_manager.clear_saved_fields()
             logging.info(f"{self.__class__.__name__}: Cleared saved fields")
+        self.generate_report()
 
     @keyword
     def execute_conditions_cases(self, conditions_case_ids: List[str] = None):
@@ -135,7 +138,7 @@ class APITestKeywords:
     def _execute_single_test_case(self, test_case):
         response, execution_time = self.send_request(test_case)
         logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time:.2f} seconds")
-        self.api_response_asserter.validate_response(test_case['Exp Result'], response)
+        self.api_response_validator.validate_response(test_case, response)
         self.response_field_saver.save_fields_to_robot_variables(response, test_case)
         self.validate_data_base(test_case)
         wait = float(test_case['Wait']) if test_case['Wait'] != '' else 0
@@ -185,7 +188,7 @@ class APITestKeywords:
 
     def _validate_dynamic_checks(self, test_case, pre_check_responses, post_check_responses):
         logging.info(f"{self.__class__.__name__}: Validating dynamic checks for test case {test_case['TCID']}:")
-        self.api_response_asserter.validate_response_dynamic(test_case, pre_check_responses, post_check_responses)
+        self.api_response_validator.validate_response_dynamic(test_case, pre_check_responses, post_check_responses)
 
     def send_request(self, test_case):
         ex_endpoint = test_case['Endpoint']
@@ -218,3 +221,101 @@ class APITestKeywords:
         self.variable_transformer.transform(transformers_data, test_case)
         logging.info(f"{self.__class__.__name__}: Transformed variables for test case {test_case['TCID']}.")
         logging.info("=" * 100)
+
+    def generate_test_report_table(self, test_results: Dict[str, List[Dict]]) -> plt.Figure:
+        """
+        Generates a tabular report from the test results without merging TCID cells.
+
+        Args:
+            test_results: The test results data (self.api_response_validator.test_results).
+
+        Returns:
+            A matplotlib Figure object containing the table.
+        """
+
+        def flatten_results(test_results: Dict[str, List[Dict]]):
+            for tcid, results in test_results.items():
+                for result in results:
+                    row = {
+                        "TCID": tcid,
+                        "Type": result["type"],
+                        "Field": result["field"],
+                        "Pre Value": '',
+                        "Post Value": '',
+                        "Actual": '',
+                        "Expected": '',
+                        "Result": '',
+                    }
+
+                    if result["type"] == "Dynamic Checks":
+                        row["Pre Value"] = result["Pre Value"]
+                        row["Post Value"] = result["Post Value"]
+                        row["Actual"] = result["Actual Diff"]
+                        row["Expected"] = result["Expected Diff"]
+                        row["Result"] = result["result"]
+                    elif result["type"] in ("Precheck Checks", "Postcheck Checks"):
+                        row["Actual"] = result["Actual Value"]
+                        row["Expected"] = result["Expected Value"]
+                        row["Result"] = result["result"]
+                    elif result["type"] == "Assertions":
+                        row["Actual"] = result["Actual Value"]
+                        row["Expected"] = result["Expected Value"]
+                        row["Result"] = result["result"]
+
+                    yield row
+
+        flattened_data = list(flatten_results(test_results))
+        df = pd.DataFrame(flattened_data)
+
+        # Reorder columns if needed
+        df = df[
+            [
+                "TCID",
+                "Type",
+                "Field",
+                "Pre Value",
+                "Post Value",
+                "Actual",
+                "Expected",
+                "Result",
+            ]
+        ]
+
+        fig, ax = plt.subplots(figsize=(12, 4))
+        ax.axis("off")
+
+        table = ax.table(
+            cellText=df.values,
+            colLabels=df.columns,
+            loc="center",
+            cellLoc="center",
+            colWidths=[0.15, 0.15, 0.25, 0.08, 0.08, 0.12, 0.12, 0.08]
+        )
+
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        # 设置 Result 列的颜色
+        for i, row in df.iterrows():
+            result_cell = table[i + 1, 7]  # Result 列的索引是 7
+            if row["Result"].upper() == "PASS":
+                result_cell.set_text_props(color="green")
+            elif row["Result"].upper() == "FAIL":
+                result_cell.set_text_props(color="red")
+            else:
+                result_cell.set_text_props(color="orange")
+
+        return fig
+
+    @keyword
+    def generate_report(self):
+        """Generates and logs the test report table."""
+        fig = self.generate_test_report_table(self.api_response_validator.test_results)
+
+        report_file = os.path.join(self.project_root, "test_report.png")
+        plt.savefig(report_file, bbox_inches="tight", dpi=300)
+        logging.info(f"Test report saved to: {report_file}")
+        from robot.api import logger
+
+        logger.info(f'<img src="{report_file}" width="1000px">', html=True)
+
+        plt.close(fig)
