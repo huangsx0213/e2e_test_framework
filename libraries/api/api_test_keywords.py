@@ -4,7 +4,6 @@ import re
 from time import sleep
 from typing import Dict, List, Any
 import pandas as pd
-from matplotlib import pyplot as plt
 from pandas import DataFrame
 
 from libraries.common.config_manager import ConfigManager
@@ -124,9 +123,10 @@ class APITestKeywords:
                 response, execution_time = self._execute_single_test_case(test_case)
                 logging.info("============================================")
                 post_check_responses = self._execute_check_with_cases(check_with_tcids)
-                self._validate_dynamic_checks(test_case, pre_check_responses, post_check_responses)
+                self.api_response_validator.validate(test_case, response, pre_check_responses, post_check_responses)
             else:
                 response, execution_time = self._execute_single_test_case(test_case)
+                self.api_response_validator.validate(test_case, response)
 
             logging.info(f"{self.__class__.__name__}: Finished execution of test case {test_case_id}")
             logging.info("============================================")
@@ -139,7 +139,7 @@ class APITestKeywords:
     def _execute_single_test_case(self, test_case):
         response, execution_time = self.send_request(test_case)
         logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time:.2f} seconds")
-        self.api_response_validator.validate_response(test_case, response)
+        # self.api_response_validator.validate_response(test_case, response)
         self.response_field_saver.save_fields_to_robot_variables(response, test_case)
         self.validate_data_base(test_case)
         wait = float(test_case['Wait']) if test_case['Wait'] != '' else 0
@@ -186,10 +186,6 @@ class APITestKeywords:
             response, _ = self.execute_api_test_case(tcid, is_dynamic_check=True)
             responses[tcid] = response
         return responses
-
-    def _validate_dynamic_checks(self, test_case, pre_check_responses, post_check_responses):
-        logging.info(f"{self.__class__.__name__}: Validating dynamic checks for test case {test_case['TCID']}:")
-        self.api_response_validator.validate_response_dynamic(test_case, pre_check_responses, post_check_responses)
 
     def send_request(self, test_case):
         ex_endpoint = test_case['Endpoint']
