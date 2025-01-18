@@ -248,8 +248,9 @@ class APITestKeywords:
                     if result["type"] == "Dynamic Checks":
                         row["Pre Value"] = result["Pre Value"]
                         row["Post Value"] = result["Post Value"]
-                        row["Actual"] = result["Actual Diff"]
-                        row["Expected"] = result["Expected Diff"]
+                        # Add sign to Actual and Expected differences, and format to two decimal places
+                        row["Actual"] = f"{result['Actual Diff']:+0.2f}"
+                        row["Expected"] = f"{result['Expected Diff']:+0.2f}"
                         row["Result"] = result["result"]
                     elif result["type"] in ("Precheck Checks", "Postcheck Checks"):
                         row["Actual"] = result["Actual Value"]
@@ -303,7 +304,8 @@ class APITestKeywords:
                 for col in df.columns[2:]:  # Skip TCID and Description columns
                     if col == "Result":
                         color = "green" if row[col].upper() == "PASS" else ("red" if row[col].upper() == "FAIL" else "orange")
-                        html_table += f'<td style="text-align: center; background-color: {color};">{row[col]}</td>\n'
+                        # Use font color instead of background color
+                        html_table += f'<td style="text-align: center; color: {color};">{row[col]}</td>\n'
                     else:
                         html_table += f'<td style="text-align: center;">{row[col]}</td>\n'
                 html_table += '</tr>\n'
@@ -330,7 +332,8 @@ class APITestKeywords:
                 for col in df.columns[2:]:  # Skip TCID and Description columns
                     if col == "Result":
                         color = "green" if row[col].upper() == "PASS" else ("red" if row[col].upper() == "FAIL" else "orange")
-                        html_table += f'<td style="text-align: center; background-color: {color};">{row[col]}</td>\n'
+                        # Use font color instead of background color
+                        html_table += f'<td style="text-align: center; color: {color};">{row[col]}</td>\n'
                     else:
                         html_table += f'<td style="text-align: center;">{row[col]}</td>\n'
                 html_table += '</tr>\n'
