@@ -68,9 +68,6 @@ class APIRobotCasesGenerator:
 
         self._create_test_cases(filtered_cases)
 
-        # Add a new test case for generating the report
-        self._add_report_generation_test()
-
         logging.info(f"{self.__class__.__name__}: Test suite created successfully")
         return self.api_suite
 

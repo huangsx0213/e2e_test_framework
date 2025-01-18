@@ -1,15 +1,122 @@
 import logging
 import os
-from typing import Dict, List
+from typing import Dict, List, Any
 from jinja2 import FileSystemLoader, Environment, TemplateNotFound
 from pandas import DataFrame
+from robot.api import ExecutionResult
 from libraries.common.utility_helpers import PROJECT_ROOT
+import re
 
 
 class HTMLReportGenerator:
-    def __init__(self, test_results: Dict[str, List[Dict]]):
-        self.test_results = test_results
+    def __init__(self, output_xml_path: str):
+        self.output_xml_path = output_xml_path
         self.templates_dir = os.path.join(PROJECT_ROOT, 'templates')
+        self.test_results = self._parse_robot_output()
+
+    def _parse_robot_output(self) -> List[Dict]:
+        """Parses the robot output.xml and extracts test results."""
+        try:
+            result = ExecutionResult(self.output_xml_path)
+            all_results = []
+
+            for test in result.suite.tests:
+                test_results = self._extract_results_from_test(test)
+                all_results.extend(test_results)
+
+            return all_results
+
+        except Exception as e:
+            logging.error(f"HTMLReportGenerator: Error parsing Robot output.xml: {e}")
+            return []
+
+    def _extract_results_from_test(self, test) -> List[Dict]:
+        """Extracts all test results from a robot test case."""
+        test_results = []
+        for keyword in test.body:
+            if keyword.name == 'Execute Api Test Case':
+                test_case_id = keyword.args[0]
+
+                for log_msg in keyword.messages:
+                     if "Main Test=> ResponseValidator: Asserting" in log_msg.message:
+                        test_results.append(self._parse_assertion_log(log_msg.message, test_case_id, test.doc))
+
+                     elif "Main Test=> ResponseValidator: Dynamic check" in log_msg.message:
+                         test_results.append(self._parse_dynamic_check_log(log_msg.message, test_case_id, test.doc))
+
+                     elif "Main Test=> ResponseValidator: Postcheck" in log_msg.message:
+                          test_results.append(
+                              self._parse_pre_post_check_log(log_msg.message, "Postcheck", test_case_id, test.doc))
+
+                     elif "Main Test=> ResponseValidator: Precheck" in log_msg.message:
+                         test_results.append(
+                             self._parse_pre_post_check_log(log_msg.message, "Precheck", test_case_id, test.doc))
+        return test_results
+
+
+    def _parse_assertion_log(self, log_message, tcid, description):
+        parts = re.split(r"Main Test=> ResponseValidator: Asserting:\s*(.*?),\s*Expected:\s*(.*?),\s*Actual:\s*([^<]*)", log_message,
+                         flags=re.DOTALL | re.MULTILINE)
+        if len(parts) < 3:
+            logging.error(f"Could not parse assertion log message: {log_message}")
+            return {}
+
+        field, expected, actual = parts[1].strip(), parts[2].strip(), parts[3].strip()
+
+        return {
+             "TCID": tcid,
+             "Description": description,
+             "Type": "Assertions",
+             "Field": field,
+             "Pre Value": '',
+             "Post Value": '',
+             "Expected": expected.strip(),
+             "Actual": actual.strip(),
+             "Result": "Pass" if actual.strip() == expected.strip() else "Fail",
+         }
+
+    def _parse_dynamic_check_log(self, log_message, tcid, description):
+        parts = re.split(
+            r"Main Test=> ResponseValidator: Dynamic check for\s*(.*?)\.\s*(?:Pre Value:\s*(.*?),\s*Post Value:\s*(.*?),\s*)?Expected diff:\s*([^<]*?),\s*Actual diff:\s*([^<]*)",
+            log_message, flags=re.DOTALL | re.MULTILINE)
+        if len(parts) < 5:
+            logging.error(f"Could not parse dynamic check log message: {log_message}")
+            return {}
+
+        field, pre_value, post_value, expected_diff, actual_diff_str = parts[1].strip(), parts[2].strip() if parts[2] else None , parts[3].strip() if parts[3] else None , parts[4].strip(), parts[5].strip()
+        actual_diff = float(actual_diff_str)
+
+        return {
+            "TCID": tcid,
+            "Description": description,
+            "Type": "Dynamic Checks",
+            "Field": field,
+            "Pre Value": pre_value if pre_value else '',
+            "Post Value": post_value if post_value else '',
+            "Actual Diff": actual_diff,
+            "Expected Diff": expected_diff,
+            "Result": "Pass" if actual_diff == float(expected_diff) else "Fail",
+        }
+
+    def _parse_pre_post_check_log(self, log_message, check_type, tcid, description):
+        parts = re.split(rf"Main Test=> ResponseValidator: {check_type} for\s*(.*?)\s*- Expected value:\s*([^<]*?),\s*Actual value:\s*([^<]*)", log_message, flags=re.DOTALL | re.MULTILINE)
+        if len(parts) < 3:
+            logging.error(f"Could not parse pre/post check log message: {log_message}")
+            return {}
+
+        field, expected_value, actual_value = parts[1].strip(), parts[2].strip(), parts[3].strip()
+
+        return {
+            "TCID": tcid,
+             "Description": description,
+            "Type": f"{check_type} Checks",
+            "Field": field,
+            "Pre Value": '',
+            "Post Value": '',
+            "Expected": expected_value.strip(),
+            "Actual": actual_value.strip(),
+            "Result": "Pass" if actual_value.strip() == expected_value.strip() else "Fail",
+        }
 
     def generate_html_report(self) -> str:
         """
@@ -21,19 +128,22 @@ class HTMLReportGenerator:
             template = env.get_template('api_report_template.html')
 
             flattened_data = self._flatten_results(self.test_results)
+            if not flattened_data:  # Check if flattened_data is empty
+                return "No test results to display."
+
             df = DataFrame(flattened_data)
 
             # Reorder columns if needed
             df = df[
                 [
                     "TCID",
-                    "Description",  # Add Description column
+                    "Description",
                     "Type",
                     "Field",
                     "Pre Value",
                     "Post Value",
-                    "Actual",
                     "Expected",
+                    "Actual",
                     "Result",
                 ]
             ]
@@ -49,41 +159,23 @@ class HTMLReportGenerator:
             logging.error(f"HTMLReportGenerator: Error generating HTML report: {e}")
             raise
 
-    def _flatten_results(self, test_results: Dict[str, List[Dict]]):
+    def _flatten_results(self, test_results: List[Dict]):
         """
         Flattens the test results data.
         """
-        for tcid, results in test_results.items():
-            for result in results:
-                row = {
-                    "TCID": tcid,
-                    "Description": result.get("description", ""),  # Add description field
-                    "Type": result["type"],
-                    "Field": result["field"],
-                    "Pre Value": '',
-                    "Post Value": '',
-                    "Actual": '',
-                    "Expected": '',
-                    "Result": '',
-                }
-
-                if result["type"] == "Dynamic Checks":
-                    row["Pre Value"] = result["Pre Value"]
-                    row["Post Value"] = result["Post Value"]
-                    # Add sign to Actual and Expected differences, and format to two decimal places
-                    row["Actual"] = f"{result['Actual Diff']:+0.2f}"
-                    row["Expected"] = f"{result['Expected Diff']:+0.2f}"
-                    row["Result"] = result["result"]
-                elif result["type"] in ("Precheck Checks", "Postcheck Checks"):
-                    row["Actual"] = result["Actual Value"]
-                    row["Expected"] = result["Expected Value"]
-                    row["Result"] = result["result"]
-                elif result["type"] == "Assertions":
-                    row["Actual"] = result["Actual Value"]
-                    row["Expected"] = result["Expected Value"]
-                    row["Result"] = result["result"]
-
-                yield row
+        for result in test_results:
+            row = {
+                "TCID": result["TCID"],
+                "Description": result["Description"],
+                "Type": result["Type"],
+                "Field": result["Field"],
+                "Pre Value": result.get("Pre Value", ""),
+                "Post Value": result.get("Post Value", ""),
+                "Expected": result.get("Expected Diff", "") if result.get("Expected Diff") else result.get("Expected", ""),
+                "Actual": result.get("Actual Diff", "") if result.get("Actual Diff") else result.get("Actual", ""),
+                "Result": result["Result"]
+            }
+            yield row
 
     def _create_html_table(self, df: DataFrame) -> str:
         """

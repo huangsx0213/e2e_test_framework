@@ -16,7 +16,6 @@ from libraries.api.api_test_loader import APITestLoader
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api.deco import keyword, library
 from libraries.common.variable_transformer import VariableTransformer
-from libraries.robot.api_report_generator import HTMLReportGenerator
 
 builtin_lib = BuiltIn()
 
@@ -217,15 +216,3 @@ class APITestKeywords:
         logging.info(f"{self.__class__.__name__}: Transformed variables for test case {test_case['TCID']}.")
         logging.info("=" * 100)
 
-    @keyword
-    def generate_report(self):
-        """Generates and logs the test report as an HTML file, embedded in the Robot Framework log."""
-        report_generator = HTMLReportGenerator(self.api_response_validator.test_results)
-        html_content = report_generator.generate_html_report()
-
-        # Save the HTML report to a file
-        report_file = os.path.join(self.project_root, "report", "test_report.html")
-        os.makedirs(os.path.dirname(report_file), exist_ok=True)  # Ensure the directory exists
-        with open(report_file, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        logging.info(f"Test report saved to: {report_file}")
