@@ -81,52 +81,45 @@ class ResponseHandler:
 class ResponseValidator(ResponseHandler):
     def __init__(self):
         super().__init__()
-        self.test_results = {}
         self.is_main_test = False
 
     def validate(self, test_case: dict, response, pre_check_responses=None, post_check_responses=None) -> None:
         logging.info(f"{self.__class__.__name__}: Validating response for test case: {test_case['TCID']}")
-        test_case_id = test_case['TCID']
         self.is_main_test = test_case['Run'].strip() == 'Y'
         response_content, response_format = self.get_content_and_format(response)
         logging.info(f"{self.__class__.__name__}: Actual response:\n{response_content}")
 
         current_test_results = self._process_expected_results(test_case, response, pre_check_responses, post_check_responses)
 
-        if self.is_main_test:
-            self.test_results.setdefault(test_case_id, []).extend(current_test_results)
-
         if current_test_results and any(result['Result'] == 'Fail' for result in current_test_results):
-            raise AssertionError(f"{self.__class__.__name__}: Results validation failed for test case: {test_case_id}")
+            raise AssertionError(f"{self.__class__.__name__}: Results validation failed for test case: {test_case['TCID']}")
 
         logging.info(f"{self.__class__.__name__}: All checks passed successfully.")
 
     def _process_expected_results(self, test_case, response, pre_check_responses, post_check_responses):
         """Processes expected results from the test case."""
         exp_results = test_case['Exp Result'].splitlines()
-        test_description = test_case['Descriptions']
         current_test_results = []
         for exp_result in exp_results:
             current_test_results.extend(
-                self._process_single_expected_result(test_description, exp_result, response, pre_check_responses, post_check_responses))
+                self._process_single_expected_result(exp_result, response, pre_check_responses, post_check_responses))
         return current_test_results
 
-    def _process_single_expected_result(self, test_description, exp_result, response, pre_check_responses, post_check_responses):
+    def _process_single_expected_result(self, exp_result, response, pre_check_responses, post_check_responses):
         """Processes a single expected result line."""
         dynamic_checks = re.findall(r'(\w+)\.(?!precheck|postcheck)(\$[.\[\]\w]+)=([+-]\d*\.?\d+)', exp_result)
         pre_post_checks = re.findall(r'(\w+)\.(precheck|postcheck)\.(\$[.\[\]\w]+)=(.+)', exp_result)
         results = []
         if dynamic_checks:
-            results.extend(self._handle_dynamic_checks(test_description, dynamic_checks, pre_check_responses, post_check_responses))
+            results.extend(self._handle_dynamic_checks(dynamic_checks, pre_check_responses, post_check_responses))
         elif pre_post_checks:
-            results.extend(self._handle_pre_post_checks(test_description, pre_post_checks, pre_check_responses, post_check_responses))
+            results.extend(self._handle_pre_post_checks(pre_post_checks, pre_check_responses, post_check_responses))
         elif exp_result.strip().startswith('$'):
             result = self._handle_response_checks(exp_result.strip(), response)
-            result['Description'] = test_description
             results.append(result)
         return results
 
-    def _handle_dynamic_checks(self, test_description, checks, pre_check_responses, post_check_responses) -> List[Dict]:
+    def _handle_dynamic_checks(self, checks, pre_check_responses, post_check_responses) -> List[Dict]:
         """Handles dynamic checks (e.g., TC01.$result.total=+1)."""
         results = []
         for tcid, json_path, expected_diff in checks:
@@ -138,21 +131,12 @@ class ResponseValidator(ResponseHandler):
 
             success = self._compare_diff(actual_diff, expected_diff)
             log_msg = f"Dynamic check for {tcid}.{json_path}. Pre Value: {pre_value}, Post Value:{post_value}, Expected diff: {expected_diff_val}, Actual diff: {actual_diff}"
-
-            results.append({
-                "Type": "Dynamic Checks",
-                "Description": test_description,
-                "Field": f"{tcid}.{json_path}",
-                "Pre Value": pre_value,
-                "Post Value": post_value,
-                "Actual Diff": actual_diff,
-                "Expected Diff": expected_diff_val,
-                "Result": "Pass" if success else "Fail"
-            })
             self._log_result(success, log_msg)
+
+            results.append({"Result": "Pass" if success else "Fail"})
         return results
 
-    def _handle_pre_post_checks(self, test_description, checks, pre_check_responses, post_check_responses) -> List[Dict]:
+    def _handle_pre_post_checks(self, checks, pre_check_responses, post_check_responses) -> List[Dict]:
         """Handles pre/post checks (e.g., TC01.precheck.$result.status=success)."""
         results = []
         for tcid, check_type, json_path, expected_value in checks:
@@ -162,14 +146,7 @@ class ResponseValidator(ResponseHandler):
             success = str(actual_value) == str(expected_value)
             log_msg = f"{check_type.capitalize()} for {tcid}.{json_path} - Expected value: {expected_value}, Actual value: {actual_value}"
 
-            results.append({
-                "Type": f"{check_type.capitalize()} Checks",
-                "Description": test_description,
-                "Field": f"{tcid}.{json_path}",
-                "Expected Value": expected_value,
-                "Actual Value": str(actual_value),
-                "Result": "Pass" if success else "Fail"
-            })
+            results.append({"Result": "Pass" if success else "Fail"})
             self._log_result(success, log_msg)
         return results
 
@@ -184,13 +161,7 @@ class ResponseValidator(ResponseHandler):
             pass
         success = actual_value == expected_value
         log_msg = f"Asserting: {key}, Expected: {expected_value}, Actual: {actual_value}"
-        result = {
-            "Type": "Assertions",
-            "Field": key,
-            "Expected Value": str(expected_value),
-            "Actual Value": str(actual_value),
-            "Result": "Pass" if success else "Fail"
-        }
+        result = {"Result": "Pass" if success else "Fail"}
         self._log_result(success, log_msg)
         return result
 
@@ -212,7 +183,9 @@ class ResponseValidator(ResponseHandler):
         if self.is_main_test:
             case_type = 'Main Test'
         logging.info(f"{self.__class__.__name__}: {message}")
-        logger.info(ColorLogger.success(f"{case_type}=> {self.__class__.__name__}: {message}") if success else ColorLogger.error(f"{case_type}=> {self.__class__.__name__}: {message}"), html=True)
+        logger.info(
+            ColorLogger.success(f"{case_type}=> {self.__class__.__name__}: {message}") if success else ColorLogger.error(f"{case_type}=> {self.__class__.__name__}: {message}"),
+            html=True)
 
 
 class ResponseFieldSaver(ResponseHandler):

@@ -1,3 +1,4 @@
+import codecs
 import logging
 import os
 from typing import Dict, List, Any
@@ -125,7 +126,7 @@ class HTMLReportGenerator:
         try:
             file_loader = FileSystemLoader(self.templates_dir)
             env = Environment(loader=file_loader)
-            template = env.get_template('api_report_template.html')
+            template = env.get_template('test_summary_template.html')
 
             flattened_data = self._flatten_results(self.test_results)
             if not flattened_data:  # Check if flattened_data is empty
@@ -150,8 +151,15 @@ class HTMLReportGenerator:
 
             # Create the HTML table with merged cells and color-coded results
             html_table = self._create_html_table(df)
+            html_content = template.render(html_table=html_table)
 
-            return template.render(html_table=html_table)
+             # Save the HTML report to a file
+            report_file = os.path.join(PROJECT_ROOT, "report", "test_summary.html")
+            os.makedirs(os.path.dirname(report_file), exist_ok=True)  # Ensure the directory exists
+            with codecs.open(report_file, "w", encoding="utf-8") as f:
+                f.write(html_content)
+            logging.info(f"HTMLReportGenerator: Test report saved to: {report_file}")
+
         except TemplateNotFound as e:
             logging.error(f"HTMLReportGenerator: Template not found: {e}")
             raise
