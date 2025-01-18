@@ -56,7 +56,6 @@ class APIRobotCasesGenerator:
         logging.info(f"{self.__class__.__name__}: Components initialized successfully")
 
     def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None, test_suite=None) -> TestSuite:
-        """Create a test suite from the filtered test cases."""
         self.api_suite = test_suite if test_suite else TestSuite('API TestSuite')
         self.api_suite.teardown.config(name='clear_saved_fields', args=[])
 
@@ -69,8 +68,19 @@ class APIRobotCasesGenerator:
 
         self._create_test_cases(filtered_cases)
 
+        # Add a new test case for generating the report
+        self._add_report_generation_test()
+
         logging.info(f"{self.__class__.__name__}: Test suite created successfully")
         return self.api_suite
+
+    def _add_report_generation_test(self):
+        report_test = self.api_suite.tests.create(
+            name="Generate API Test Report",
+            doc="Generates the API test report after all tests have been executed"
+        )
+        report_test.body.create_keyword(name='generate_report', args=[])
+
 
     def _configure_test_resources(self) -> None:
         """Configure the test resources for the test suite."""

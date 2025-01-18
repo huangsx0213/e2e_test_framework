@@ -4,8 +4,6 @@ import re
 from time import sleep
 from typing import Dict, List, Any
 import pandas as pd
-from pandas import DataFrame
-
 from libraries.common.config_manager import ConfigManager
 from libraries.common.db_validator import DBValidator
 from libraries.common.utility_helpers import PROJECT_ROOT
@@ -18,6 +16,7 @@ from libraries.api.api_test_loader import APITestLoader
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api.deco import keyword, library
 from libraries.common.variable_transformer import VariableTransformer
+from libraries.robot.api_report_generator import HTMLReportGenerator
 
 builtin_lib = BuiltIn()
 
@@ -78,7 +77,6 @@ class APITestKeywords:
         if self.test_config.get('clear_saved_fields_after_test', False):
             self.saved_fields_manager.clear_saved_fields()
             logging.info(f"{self.__class__.__name__}: Cleared saved fields")
-        self.generate_report()
 
     @keyword
     def execute_conditions_cases(self, conditions_case_ids: List[str] = None):
@@ -219,145 +217,11 @@ class APITestKeywords:
         logging.info(f"{self.__class__.__name__}: Transformed variables for test case {test_case['TCID']}.")
         logging.info("=" * 100)
 
-    def generate_html_report(self, test_results: Dict[str, List[Dict]]) -> str:
-        """
-        Generates an HTML report from the test results with a title, merged TCID and Description cells, and color-coded results.
-
-        Args:
-            test_results: The test results data.
-
-        Returns:
-            HTML string containing the report.
-        """
-
-        def flatten_results(test_results: Dict[str, List[Dict]]):
-            for tcid, results in test_results.items():
-                for result in results:
-                    row = {
-                        "TCID": tcid,
-                        "Description": result.get("description", ""),  # Add description field
-                        "Type": result["type"],
-                        "Field": result["field"],
-                        "Pre Value": '',
-                        "Post Value": '',
-                        "Actual": '',
-                        "Expected": '',
-                        "Result": '',
-                    }
-
-                    if result["type"] == "Dynamic Checks":
-                        row["Pre Value"] = result["Pre Value"]
-                        row["Post Value"] = result["Post Value"]
-                        # Add sign to Actual and Expected differences, and format to two decimal places
-                        row["Actual"] = f"{result['Actual Diff']:+0.2f}"
-                        row["Expected"] = f"{result['Expected Diff']:+0.2f}"
-                        row["Result"] = result["result"]
-                    elif result["type"] in ("Precheck Checks", "Postcheck Checks"):
-                        row["Actual"] = result["Actual Value"]
-                        row["Expected"] = result["Expected Value"]
-                        row["Result"] = result["result"]
-                    elif result["type"] == "Assertions":
-                        row["Actual"] = result["Actual Value"]
-                        row["Expected"] = result["Expected Value"]
-                        row["Result"] = result["result"]
-
-                    yield row
-
-        flattened_data = list(flatten_results(test_results))
-        df = DataFrame(flattened_data)
-
-        # Reorder columns if needed
-        df = df[
-            [
-                "TCID",
-                "Description",  # Add Description column
-                "Type",
-                "Field",
-                "Pre Value",
-                "Post Value",
-                "Actual",
-                "Expected",
-                "Result",
-            ]
-        ]
-
-        # Create an HTML table with a title, merged TCID and Description cells, and color-coded results
-        html_table = '<h1 style="text-align: center; color: #333;">API Test Report</h1>\n'  # Add title
-        html_table += '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">\n'
-
-        # Add table headers
-        html_table += '<tr>\n'
-        for col in df.columns:
-            html_table += f'<th style="background-color: #f2f2f2; text-align: center;">{col}</th>\n'
-        html_table += '</tr>\n'
-
-        # Add table rows
-        current_tcid = None
-        current_description = None
-        tcid_rowspan = 1
-        description_rowspan = 1
-        for i, row in df.iterrows():
-            if row["TCID"] == current_tcid and row["Description"] == current_description:
-                tcid_rowspan += 1
-                description_rowspan += 1
-                html_table += '<tr>\n'
-                for col in df.columns[2:]:  # Skip TCID and Description columns
-                    if col == "Result":
-                        color = "green" if row[col].upper() == "PASS" else ("red" if row[col].upper() == "FAIL" else "orange")
-                        # Use font color instead of background color
-                        html_table += f'<td style="text-align: center; color: {color};">{row[col]}</td>\n'
-                    else:
-                        html_table += f'<td style="text-align: center;">{row[col]}</td>\n'
-                html_table += '</tr>\n'
-            else:
-                if current_tcid is not None:
-                    # Update the rowspan for the previous TCID and Description groups
-                    html_table = html_table.replace(
-                        f'<td rowspan="placeholder_tcid">{current_tcid}</td>',
-                        f'<td rowspan="{tcid_rowspan}" style="text-align: center; vertical-align: middle;">{current_tcid}</td>',
-                        1
-                    )
-                    html_table = html_table.replace(
-                        f'<td rowspan="placeholder_description">{current_description}</td>',
-                        f'<td rowspan="{description_rowspan}" style="text-align: center; vertical-align: middle;">{current_description}</td>',
-                        1
-                    )
-                current_tcid = row["TCID"]
-                current_description = row["Description"]
-                tcid_rowspan = 1
-                description_rowspan = 1
-                html_table += '<tr>\n'
-                html_table += f'<td rowspan="placeholder_tcid">{row["TCID"]}</td>\n'  # Placeholder for TCID rowspan
-                html_table += f'<td rowspan="placeholder_description">{row["Description"]}</td>\n'  # Placeholder for Description rowspan
-                for col in df.columns[2:]:  # Skip TCID and Description columns
-                    if col == "Result":
-                        color = "green" if row[col].upper() == "PASS" else ("red" if row[col].upper() == "FAIL" else "orange")
-                        # Use font color instead of background color
-                        html_table += f'<td style="text-align: center; color: {color};">{row[col]}</td>\n'
-                    else:
-                        html_table += f'<td style="text-align: center;">{row[col]}</td>\n'
-                html_table += '</tr>\n'
-
-        # Update the rowspan for the last TCID and Description groups
-        if current_tcid is not None:
-            html_table = html_table.replace(
-                f'<td rowspan="placeholder_tcid">{current_tcid}</td>',
-                f'<td rowspan="{tcid_rowspan}" style="text-align: center; vertical-align: middle;">{current_tcid}</td>',
-                1
-            )
-            html_table = html_table.replace(
-                f'<td rowspan="placeholder_description">{current_description}</td>',
-                f'<td rowspan="{description_rowspan}" style="text-align: center; vertical-align: middle;">{current_description}</td>',
-                1
-            )
-
-        html_table += '</table>'
-        return html_table
-
     @keyword
     def generate_report(self):
         """Generates and logs the test report as an HTML file, embedded in the Robot Framework log."""
-        html_content = self.generate_html_report(self.api_response_validator.test_results)
+        report_generator = HTMLReportGenerator(self.api_response_validator.test_results)
+        html_content = report_generator.generate_html_report()
 
         # Save the HTML report to a file
         report_file = os.path.join(self.project_root, "report", "test_report.html")
@@ -365,9 +229,3 @@ class APITestKeywords:
         with open(report_file, "w", encoding="utf-8") as f:
             f.write(html_content)
         logging.info(f"Test report saved to: {report_file}")
-
-        # Embed the HTML content directly in the Robot Framework log
-        from robot.api import logger
-        # logger.info('<div style="width: 80%; overflow-x: auto;">', html=True)
-        logger.info(html_content, html=True)
-        # logger.info('</div>', html=True)

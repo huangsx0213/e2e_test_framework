@@ -186,6 +186,10 @@
             <i class="fa fa-file-text"></i>
             <span>Robot Logs</span>
         </a>
+        <a class="nav-link" href="#" onclick="openPage('apiResults', this);">
+            <i class="fa fa-code"></i>
+            <span>API Results</span>
+        </a>
     </div>
 </nav>
 
@@ -273,107 +277,118 @@
     </div>
 
     <div class="tabcontent" id="dashboard">
-    <h4><b><i class="fa fa-dashboard"></i> Dashboard</b></h4>
-    <hr>
-    <div class="row mb-4">
-        <div class="col-sm-3 col-md-3 mb-3">
-            <div class="card bg-dark text-white text-center">
-                <div class="card-body">
-                    <h5 class="card-title">Suite</h5>
-                    <p class="card-text">Statistics</p>
+        <h4><b><i class="fa fa-dashboard"></i> Dashboard</b></h4>
+        <hr>
+        <div class="row mb-4">
+            <div class="col-sm-3 col-md-3 mb-3">
+                <div class="card bg-dark text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Suite</h5>
+                        <p class="card-text">Statistics</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3 col-md-3 mb-3">
+                <div class="card bg-primary text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{suite_stats['Total']}}</h5>
+                        <p class="card-text">Total</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-2 mb-2">
+                <div class="card bg-success text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{suite_stats['Pass']}}</h5>
+                        <p class="card-text">Passed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-2 mb-2">
+                <div class="card bg-danger text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{suite_stats['Fail']}}</h5>
+                        <p class="card-text">Failed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-2 mb-2">
+                <div class="card bg-warning text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{suite_stats['Skip']}}</h5>
+                        <p class="card-text">Skipped</p>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-3 col-md-3 mb-3">
-            <div class="card bg-primary text-white text-center">
-                <div class="card-body">
-                    <h5 class="card-title">{{suite_stats['Total']}}</h5>
-                    <p class="card-text">Total</p>
+
+        <div class="row mb-4">
+            <div class="col-sm-3 col-md-3 mb-3">
+                <div class="card bg-dark text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Test Case</h5>
+                        <p class="card-text">Statistics</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3 col-md-3 mb-3">
+                <div class="card bg-primary text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{test_stats['Total']}}</h5>
+                        <p class="card-text">Total</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-2 mb-2">
+                <div class="card bg-success text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{test_stats['Pass']}}</h5>
+                        <p class="card-text">Passed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-2 mb-2">
+                <div class="card bg-danger text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{test_stats['Fail']}}</h5>
+                        <p class="card-text">Failed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-2 mb-2">
+                <div class="card bg-warning text-white text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">{{test_stats['Skip']}}</h5>
+                        <p class="card-text">Skipped</p>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-2 col-md-2 mb-2">
-            <div class="card bg-success text-white text-center">
-                <div class="card-body">
-                    <h5 class="card-title">{{suite_stats['Pass']}}</h5>
-                    <p class="card-text">Passed</p>
+
+        <div class="row">
+            <div class="col-sm-6 col-md-6 mb-4">
+                <div class="pie-chart">
+                    <canvas id="suiteChart"></canvas>
                 </div>
             </div>
-        </div>
-        <div class="col-sm-2 col-md-2 mb-2">
-            <div class="card bg-danger text-white text-center">
-                <div class="card-body">
-                    <h5 class="card-title">{{suite_stats['Fail']}}</h5>
-                    <p class="card-text">Failed</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-2 col-md-2 mb-2">
-            <div class="card bg-warning text-white text-center">
-                <div class="card-body">
-                    <h5 class="card-title">{{suite_stats['Skip']}}</h5>
-                    <p class="card-text">Skipped</p>
+            <div class="col-sm-6 col-md-6 mb-4">
+                <div class="pie-chart">
+                    <canvas id="testChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-sm-3 col-md-3 mb-3">
-            <div class="card bg-dark text-white text-center">
-                <div class="card-body">
-                    <h5 class="card-title">Test Case</h5>
-                    <p class="card-text">Statistics</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-3 col-md-3 mb-3">
-            <div class="card bg-primary text-white text-center">
-                <div class="card-body">
-                    <h5 class="card-title">{{test_stats['Total']}}</h5>
-                    <p class="card-text">Total</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-2 col-md-2 mb-2">
-            <div class="card bg-success text-white text-center">
-                <div class="card-body">
-                    <h5 class="card-title">{{test_stats['Pass']}}</h5>
-                    <p class="card-text">Passed</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-2 col-md-2 mb-2">
-            <div class="card bg-danger text-white text-center">
-                <div class="card-body">
-                    <h5 class="card-title">{{test_stats['Fail']}}</h5>
-                    <p class="card-text">Failed</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-2 col-md-2 mb-2">
-            <div class="card bg-warning text-white text-center">
-                <div class="card-body">
-                    <h5 class="card-title">{{test_stats['Skip']}}</h5>
-                    <p class="card-text">Skipped</p>
-                </div>
-            </div>
+    <div class="tabcontent" id="apiResults">
+        <h4><b><i class="fa fa-code"></i> API Results</b></h4>
+        <hr>
+        <p class="text-end">
+            ** <b>API Test Report</b> needs to be in the current folder to display here
+        </p>
+        <div class="ratio ratio-16x9">
+            <iframe src="test_report.html"></iframe>
         </div>
     </div>
-
-    <div class="row">
-        <div class="col-sm-6 col-md-6 mb-4">
-            <div class="pie-chart">
-                <canvas id="suiteChart"></canvas>
-            </div>
-        </div>
-        <div class="col-sm-6 col-md-6 mb-4">
-            <div class="pie-chart">
-                <canvas id="testChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -383,122 +398,122 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            document.getElementById("loadingDiv").style.display = "none";
-            document.getElementById("defaultOpen").click();
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("loadingDiv").style.display = "none";
+        document.getElementById("defaultOpen").click();
 
-            createPieChart('suiteChart', 'Suite Results', ['Pass', 'Fail', 'Skip'],
-                           [{{ suite_stats['Pass'] }}, {{ suite_stats['Fail'] }},{{ suite_stats['Skip'] }}],
-                           {{ suite_stats['Total'] }});
+        createPieChart('suiteChart', 'Suite Results', ['Pass', 'Fail', 'Skip'],
+                       [{{ suite_stats['Pass'] }}, {{ suite_stats['Fail'] }},{{ suite_stats['Skip'] }}],
+                       {{ suite_stats['Total'] }});
 
-        createPieChart('testChart', 'Test Case Results', ['Pass', 'Fail', 'Skip'],
-                       [{{ test_stats['Pass'] }}, {{ test_stats['Fail'] }}, {{ test_stats['Skip'] }}],
-                       {{ test_stats['Total'] }});
+    createPieChart('testChart', 'Test Case Results', ['Pass', 'Fail', 'Skip'],
+                   [{{ test_stats['Pass'] }}, {{ test_stats['Fail'] }}, {{ test_stats['Skip'] }}],
+                   {{ test_stats['Total'] }});
 
-        // Toggle sidebar on menu button click
-        document.getElementById('menu-toggle').addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('show');
-        });
+    // Toggle sidebar on menu button click
+    document.getElementById('menu-toggle').addEventListener('click', function() {
+        document.getElementById('sidebar').classList.toggle('show');
     });
+});
 
-        function createPieChart(canvasId, title, labels, data, total) {
-            var ctx = document.getElementById(canvasId).getContext('2d');
-            Chart.register(ChartDataLabels);
-            var chart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: title,
-                        data: data,
-                        backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        },
-                        title: {
-                            display: true,
-                            text: title
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(tooltipItem) {
-                                    var value = tooltipItem.raw;
-                                    var percentage = ((value / total) * 100).toFixed(2);
-                                    return tooltipItem.label + ': ' + value + ' (' + percentage + '%)';
-                                }
-                            }
-                        },
-                        datalabels: {
-                            color: '#fff',
-                            font: {
-                                weight: 'bold'
-                            },
-                            formatter: function(value, context) {
+    function createPieChart(canvasId, title, labels, data, total) {
+        var ctx = document.getElementById(canvasId).getContext('2d');
+        Chart.register(ChartDataLabels);
+        var chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: title,
+                    data: data,
+                    backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    title: {
+                        display: true,
+                        text: title
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(tooltipItem) {
+                                var value = tooltipItem.raw;
                                 var percentage = ((value / total) * 100).toFixed(2);
-                                return percentage + '%';
+                                return tooltipItem.label + ': ' + value + ' (' + percentage + '%)';
                             }
                         }
+                    },
+                    datalabels: {
+                        color: '#fff',
+                        font: {
+                            weight: 'bold'
+                        },
+                        formatter: function(value, context) {
+                            var percentage = ((value / total) * 100).toFixed(2);
+                            return percentage + '%';
+                        }
                     }
-                }
-            });
-        }
-
-    function openPage(pageName, elmnt) {
-        var i, tabcontent, tablinks;
-        tabcontent = document.getElementsByClassName("tabcontent");
-        for (i = 0; i < tabcontent.length; i++) {
-            tabcontent[i].style.display = "none";
-        }
-        tablinks = document.getElementsByClassName("nav-link");
-        for (i = 0; i < tablinks.length; i++) {
-            tablinks[i].className = tablinks[i].className.replace(" active", "");
-        }
-        document.getElementById(pageName).style.display = "block";
-        elmnt.className += " active";
-
-        // Hide sidebar on page change for mobile devices
-        if (window.innerWidth <= 767.98) {
-            document.getElementById('sidebar').classList.remove('show');
-        }
-    }
-
-    function executeDataTable(tableID, minRows, sortIndex) {
-        if ($.fn.DataTable.isDataTable(tableID)) {
-            $(tableID).DataTable().destroy();
-        }
-        $(tableID).DataTable({
-            "pageLength": minRows,
-            "ordering": true,
-            "searching": true,
-            "paging": true,
-            "info": true,
-            "lengthChange": true,
-            "order": [[sortIndex, "asc"]],
-            "language": {
-                "paginate": {
-                    "previous": "<",
-                    "next": ">"
                 }
             }
         });
     }
 
-    $(document).ready(function () {
-        $('[data-bs-toggle="tooltip"]').tooltip();
-        executeDataTable('#sm', 10, 6);
-        executeDataTable('#tm', 10, 3);
-        document.getElementById("defaultOpen").click();
-    });
-    function openInNewTab(url) {
-        window.open(url, '_blank').focus();
+function openPage(pageName, elmnt) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
     }
+    tablinks = document.getElementsByClassName("nav-link");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(pageName).style.display = "block";
+    elmnt.className += " active";
+
+    // Hide sidebar on page change for mobile devices
+    if (window.innerWidth <= 767.98) {
+        document.getElementById('sidebar').classList.remove('show');
+    }
+}
+
+function executeDataTable(tableID, minRows, sortIndex) {
+    if ($.fn.DataTable.isDataTable(tableID)) {
+        $(tableID).DataTable().destroy();
+    }
+    $(tableID).DataTable({
+        "pageLength": minRows,
+        "ordering": true,
+        "searching": true,
+        "paging": true,
+        "info": true,
+        "lengthChange": true,
+        "order": [[sortIndex, "asc"]],
+        "language": {
+            "paginate": {
+                "previous": "<",
+                "next": ">"
+            }
+        }
+    });
+}
+
+$(document).ready(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip();
+    executeDataTable('#sm', 10, 6);
+    executeDataTable('#tm', 10, 3);
+    document.getElementById("defaultOpen").click();
+});
+function openInNewTab(url) {
+    window.open(url, '_blank').focus();
+}
 </script>
 </body>
 </html>
