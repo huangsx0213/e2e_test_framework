@@ -4,6 +4,7 @@ import argparse
 from robot.libraries.BuiltIn import BuiltIn
 from robot.reporting import ResultWriter
 from libraries.common.utility_helpers import PROJECT_ROOT
+from libraries.robot.api_report_generator import HTMLReportGenerator
 from libraries.robot.robot_dashboard_generator import DashboardGenerator
 from libraries.web.web_robot_generator import WebUIRobotCasesGenerator
 from libraries.e2e.e2e_robot_generator import E2ERobotCasesGenerator
@@ -36,6 +37,9 @@ def run_test_suite(suite):
 
     dashboard_generator = DashboardGenerator()
     dashboard_generator.generate_dashboard(output_xml)
+
+    report_generator = HTMLReportGenerator(output_xml)
+    report_generator.generate_html_report()
 
 
 def create_api_suite():
@@ -75,6 +79,6 @@ if __name__ == "__main__":
     elif args.performance:
         suite_to_run = create_performance_suite()
     else:
-        suite_to_run = create_e2e_suite()
+        suite_to_run = create_api_suite()
 
     run_test_suite(suite_to_run)
