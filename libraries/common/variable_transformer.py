@@ -16,6 +16,9 @@ class VariableTransformer:
             'to_iso_date': self._compact_to_iso_date,
             'to_compact_date': self._iso_to_compact_date,
             'utc_to_poland_iso_datetime': self._utc_to_poland_iso_datetime,
+            'to_uppercase': lambda x: x.upper(),
+            'to_lowercase': lambda x: x.lower(),
+            'assign_value': lambda x: x,
         }
 
     def transform(self, transformations, test_case: Dict[str, Any]) -> None:
