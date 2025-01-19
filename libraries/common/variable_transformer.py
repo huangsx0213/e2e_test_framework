@@ -1,5 +1,7 @@
 import re
 import datetime
+
+import pytz
 from robot.libraries.BuiltIn import BuiltIn
 from typing import Any, Dict
 from robot.api import logger
@@ -11,16 +13,9 @@ class VariableTransformer:
     def __init__(self):
         self.builtin = BuiltIn()
         self.functions = {
-            'to_iso_date': self._to_iso_date,
-            'to_timestamp': self._to_timestamp,
-            'to_upper': self._to_upper,
-            'to_lower': self._to_lower,
-            'remove_spaces': self._remove_spaces,
-            'extract_numbers': self._extract_numbers,
-            'add': self._add,
-            'subtract': self._subtract,
-            'multiply': self._multiply,
-            'divide': self._divide,
+            'to_iso_date': self._compact_to_iso_date,
+            'to_compact_date': self._iso_to_compact_date,
+            'utc_to_poland_iso_datetime': self._utc_to_poland_iso_datetime,
         }
 
     def transform(self, transformations, test_case: Dict[str, Any]) -> None:
@@ -63,42 +58,26 @@ class VariableTransformer:
         logger.info(ColorLogger.info(f"=> {self.__class__.__name__}: Setting global variable ${{{output_field}}} to {value}."), html=True)
         self.builtin.set_global_variable(f'${{{output_field}}}', value)
 
-    # Function definitions
-    def _to_iso_date(self, value: str) -> str:
+    # e.g. 20230101 -> 2023-01-01
+    def _compact_to_iso_date(self, value: str) -> str:
         date_obj = datetime.datetime.strptime(value, "%Y%m%d")
         return date_obj.strftime("%Y-%m-%d")
 
-    def _to_timestamp(self, value: str) -> int:
+    # e.g. 2023-01-01 -> 20230101
+    def _iso_to_compact_date(self, value: str) -> str:
         date_obj = datetime.datetime.strptime(value, "%Y-%m-%d")
-        return int(date_obj.timestamp())
+        return date_obj.strftime("%Y%m%d")
 
-    def _to_upper(self, value: str) -> str:
-        return value.upper()
+    # e.g. 2023-10-05T12:00:00.000Z -> 2023-10-05T14:00:00+02:00
+    def _utc_to_poland_iso_datetime(self, utc_datetime_str: str) -> str:
+        utc_datetime = datetime.datetime.strptime(utc_datetime_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(microsecond=0)
+        poland_zone = pytz.timezone('Europe/Warsaw')
+        poland_datetime = utc_datetime.astimezone(poland_zone)
+        return poland_datetime.isoformat()
 
-    def _to_lower(self, value: str) -> str:
-        return value.lower()
 
-    def _remove_spaces(self, value: str) -> str:
-        return value.replace(" ", "")
-
-    def _extract_numbers(self, value: str) -> str:
-        return ''.join(filter(str.isdigit, value))
-
-    def _add(self, value: str) -> float:
-        numbers = [float(n) for n in value.split(',')]
-        return sum(numbers)
-
-    def _subtract(self, value: str) -> float:
-        numbers = [float(n) for n in value.split(',')]
-        return numbers[0] - sum(numbers[1:])
-
-    def _multiply(self, value: str) -> float:
-        numbers = [float(n) for n in value.split(',')]
-        result = 1
-        for n in numbers:
-            result *= n
-        return result
-
-    def _divide(self, value: str) -> float:
-        numbers = [float(n) for n in value.split(',')]
-        return numbers[0] / numbers[1] if numbers[1] != 0 else float('inf')
+if __name__ == "__main__":
+    vt = VariableTransformer()
+    print(vt._compact_to_iso_date("20230101"))
+    print(vt._iso_to_compact_date("2023-01-01"))
+    print(vt._utc_to_poland_iso_datetime("2023-10-05T12:00:00.000Z"))
