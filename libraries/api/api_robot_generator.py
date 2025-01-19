@@ -78,7 +78,6 @@ class APIRobotCasesGenerator:
         )
         report_test.body.create_keyword(name='generate_report', args=[])
 
-
     def _configure_test_resources(self) -> None:
         """Configure the test resources for the test suite."""
         test_cases_path_arg = os.path.normpath(self.test_cases_path).replace(os.path.sep, '/')
@@ -105,7 +104,7 @@ class APIRobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error creating test cases: {str(e)}")
             raise
 
-    def _create_single_test_case(self,  test_case: pd.Series) -> None:
+    def _create_single_test_case(self, test_case: pd.Series) -> None:
         """Create a single test case in the test suite."""
         try:
             robot_api_test_name = f"API.{test_case['TCID']}"
@@ -136,36 +135,63 @@ class APIRobotCasesGenerator:
     def _configure_test_conditions(self, robot_api_test, test_case) -> None:
         """Configure setup and teardown conditions for the test case."""
         try:
-            if pd.notna(test_case['Conditions']):
-                conditions = test_case['Conditions'].splitlines()
-                for condition in conditions:
-                    if not condition.startswith('[TestSetup]'):
-                        self._process_condition(condition, robot_api_test)
+            has_setup_condition = '[TestSetup]' in test_case['Conditions']
+            has_transformer = test_case['Variable Transform'] != ''
 
-                test_setup_case_ids = re.findall(r'\[TestSetup\]\s*(\w*,*\s*\w*)', test_case['Conditions'])
-                if test_setup_case_ids:
-                    test_setup_case_ids = test_setup_case_ids[0].strip().split(',')
-                robot_api_test.setup.config(
-                    name='execute_conditions_cases_with_transformer',
-                    args=[test_case['TCID'], test_setup_case_ids]
-                )
+            if not has_transformer:
+                self._process_conditions(test_case['Conditions'], robot_api_test)
+            else:
+                self._process_transformer_conditions(test_case, robot_api_test, has_setup_condition)
+
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error configuring test conditions: {str(e)}")
             raise
+
+    def _process_conditions(self, conditions_str: str, robot_api_test) -> None:
+        """Processes conditions when no transformer is present."""
+        conditions = conditions_str.splitlines()
+        for condition in conditions:
+            self._process_condition(condition, robot_api_test)
+
+    def _process_transformer_conditions(self, test_case, robot_api_test, has_setup_condition):
+        """Processes conditions when a transformer is present."""
+        if not has_setup_condition:
+            robot_api_test.setup.config(
+                name='execute_transform', args=[test_case['TCID']])
+        else:
+            conditions = test_case['Conditions'].splitlines()
+            setup_case_ids = []
+            for condition in conditions:
+                if condition.startswith('[TestSetup]'):
+                    setup_case_ids = re.findall(r'\[TestSetup\]\s*([\w,\s]*)', condition)
+                    if setup_case_ids:
+                        setup_case_ids = setup_case_ids[0].strip().split(',')
+                else:
+                    self._process_condition(condition, robot_api_test)
+
+            if setup_case_ids:
+                robot_api_test.setup.config(
+                    name='execute_conditions_cases_with_transformer',
+                    args=[test_case['TCID'], setup_case_ids]
+                )
 
     def _process_condition(self, condition: str, robot_api_test) -> None:
         """Process a single condition for setup or teardown."""
         try:
             condition_mapping = {
+                '[TestSetup]': (robot_api_test.setup, 'Test setup'),
                 '[TestTeardown]': (robot_api_test.teardown, 'Test teardown'),
-                '[SuiteSetup]': (self.api_suite.setup, 'Suite setup'),
-                '[SuiteTeardown]': (self.api_suite.teardown, 'Suite teardown')
+                '[SuiteSetup]': (self.api_suite.setup, 'Suite setup'),  # Assuming self.api_suite exists
+                '[SuiteTeardown]': (self.api_suite.teardown, 'Suite teardown')  # Assuming self.api_suite exists
             }
             for condition_type, (config_object, condition_name) in condition_mapping.items():
                 if condition_type in condition:
-                    case_ids = condition.strip(condition_type).split(',')
-                    config_object.config(name='execute_conditions_cases', args=[case_ids])
-                    logging.info(f"{self.__class__.__name__}: Configured {condition_name} with case IDs: {case_ids}")
+                    case_ids_str = condition.replace(condition_type, '').strip()
+                    if case_ids_str:  # handle empty string after condition type
+                        case_ids = [case_id.strip() for case_id in case_ids_str.split(',')]
+                        config_object.config(name='execute_conditions_cases', args=[case_ids])
+                        logging.info(f"{self.__class__.__name__}: Configured {condition_name} with case IDs: {case_ids}")
+                    break  # Exit loop after processing a condition
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error processing condition '{condition}': {str(e)}")
             raise

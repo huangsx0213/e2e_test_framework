@@ -84,25 +84,23 @@ class APITestKeywords:
             logging.info(f"{self.__class__.__name__}: Executing test case: {tcid}")
             result = self.execute_api_test_case(tcid)
             results[tcid] = result
-
         return results
 
     @keyword
     def execute_conditions_cases_with_transformer(self, original_tcid, setup_case_ids: List[str] = None):
-
-        test_cases = APITestLoader(self.test_cases_path).get_api_test_cases()
-
-        # Execute function transformations before creating the test case
-        test_case = test_cases.loc[test_cases['TCID'] == original_tcid].to_dict('records')[0]
-        self._transformer_handler(test_case)
-
+        self.execute_transform(original_tcid)
         results = {}
         for setup_id in setup_case_ids:
             logging.info(f"{self.__class__.__name__}: Executing setup test case: {setup_id}")
             result = self.execute_api_test_case(setup_id)
             results[setup_id] = result
-
         return results
+
+    @keyword
+    def execute_transform(self, original_tcid):
+        test_cases = APITestLoader(self.test_cases_path).get_api_test_cases()
+        test_case = test_cases.loc[test_cases['TCID'] == original_tcid].to_dict('records')[0]
+        self._transformer_handler(test_case)
 
     @keyword
     def execute_api_test_case(self, test_case_id: str, is_dynamic_check: bool = False):
