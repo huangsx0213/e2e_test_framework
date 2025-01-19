@@ -9,6 +9,7 @@ builtin_lib = BuiltIn()
 class DBValidator:
     def __init__(self):
         self.db = None
+        self.db_name = None
         self.db_cache = {}
 
     def setup_database(self, db_config):
@@ -27,8 +28,8 @@ class DBValidator:
         db_type = db_config['type'].lower()
         host = db_config.get('host', 'localhost')
         port = db_config.get('port', 3306)
-        db_name = db_config.get('database', '')
-        return f"{db_type}_{host}_{port}_{db_name}"
+        self.db_name = db_config.get('database', '')
+        return f"{db_type}_{host}_{port}_{self.db_name}"
 
     def validate_database_value(self, db_clause):
         if not self.db:
@@ -87,12 +88,12 @@ class DBValidator:
             raise AssertionError(no_data_message)
 
         actual_value = result[0][field_name]
-        msg = f"Database validation for '{field_name}' in table '{table_name}'. Expected: '{expected_value}', Actual: '{actual_value}'."
+        msg = f"Database validation for '{field_name}' in table '{self.db_name}.{table_name}'. Expected: '{expected_value}', Actual: '{actual_value}'."
         if actual_value != expected_value:
             return False, msg
 
         logging.info(
-            f"{self.__class__.__name__}: Database value matched for '{field_name}' in table '{table_name}'. "
+            f"{self.__class__.__name__}: Database value matched for '{field_name}' in table '{self.db_name}.{table_name}'. "
             f"Expected: '{expected_value}', Actual: '{actual_value}'. Executed SQL: {sql_query}"
         )
 
