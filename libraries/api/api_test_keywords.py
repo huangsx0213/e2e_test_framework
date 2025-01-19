@@ -58,7 +58,7 @@ class APITestKeywords:
         self._load_endpoints()
         self.body_generator: BodyGenerator = BodyGenerator(self.api_test_loader)
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
-        self.api_response_validator: ResponseValidator = ResponseValidator()
+        self.api_response_validator: ResponseValidator = ResponseValidator(self.db_configs)
         self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
         self.variable_transformer = VariableTransformer()
         self.db_validator = DBValidator()
@@ -138,33 +138,13 @@ class APITestKeywords:
         logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time:.2f} seconds")
         # self.api_response_validator.validate_response(test_case, response)
         self.response_field_saver.save_fields_to_robot_variables(response, test_case)
-        self.validate_data_base(test_case)
+        # self.validate_data_base(test_case)
         wait = float(test_case['Wait']) if test_case['Wait'] != '' else 0
         if wait > 0:
             sleep(wait)
             logging.info(f"{self.__class__.__name__}: Waiting for results of {test_case['TCID']} in {wait} seconds.")
 
         return response, execution_time
-
-    def validate_data_base(self, test_case):
-        try:
-            for line in test_case['Exp Result'].splitlines():
-                if line.strip().startswith('db_'):
-                    prefix = line.strip().split('.')[0]
-                    db_config = self._get_db_config_by_prefix(prefix)
-                    if not db_config:
-                        raise ValueError(f"No database configuration found for prefix: {prefix}")
-                    self.db_validator.setup_database(db_config)
-                    self.db_validator.validate_database_value(line.strip())
-        except Exception as e:
-            logging.error(f"{self.__class__.__name__}: Failed to validate database: {str(e)}")
-            raise e
-
-    def _get_db_config_by_prefix(self, prefix: str) -> dict:
-        db_config = self.db_configs.get(prefix.lower(), {})
-        if not db_config:
-            raise ValueError(f"No database configuration found for prefix: {prefix}")
-        return db_config
 
     def _extract_check_with_tcids(self, test_case):
         conditions = test_case['Conditions']
@@ -215,4 +195,3 @@ class APITestKeywords:
         self.variable_transformer.transform(transformers_data, test_case)
         logging.info(f"{self.__class__.__name__}: Transformed variables for test case {test_case['TCID']}.")
         logging.info("=" * 100)
-

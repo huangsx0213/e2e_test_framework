@@ -87,13 +87,13 @@ class DBValidator:
             raise AssertionError(no_data_message)
 
         actual_value = result[0][field_name]
-
+        msg = f"Database validation for '{field_name}' in table '{table_name}'. Expected: '{expected_value}', Actual: '{actual_value}'."
         if actual_value != expected_value:
-            raise AssertionError(
-                f"{self.__class__.__name__}: Database value mismatch. Expected '{expected_value}' but got '{actual_value}' for field '{field_name}' in table '{table_name}'."
-            )
+            return False, msg
 
         logging.info(
             f"{self.__class__.__name__}: Database value matched for '{field_name}' in table '{table_name}'. "
             f"Expected: '{expected_value}', Actual: '{actual_value}'. Executed SQL: {sql_query}"
         )
+
+        return True, msg

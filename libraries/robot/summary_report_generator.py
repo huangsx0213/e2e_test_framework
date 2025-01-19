@@ -9,7 +9,7 @@ from libraries.common.utility_helpers import PROJECT_ROOT
 import re
 
 
-class HTMLReportGenerator:
+class SummaryReportGenerator:
     def __init__(self, output_xml_path: str):
         self.output_xml_path = output_xml_path
         self.templates_dir = os.path.join(PROJECT_ROOT, 'templates')
@@ -52,13 +52,15 @@ class HTMLReportGenerator:
                      elif "Main Test=> ResponseValidator: Precheck" in log_msg.message:
                          test_results.append(
                              self._parse_pre_post_check_log(log_msg.message, "Precheck", test_case_id, test.doc))
+                     elif "Main Test=> ResponseValidator: Database validation" in log_msg.message:
+                         test_results.append(self._parse_database_validation_log(log_msg.message, test_case_id, test.doc))
         return test_results
 
 
     def _parse_assertion_log(self, log_message, tcid, description):
         parts = re.split(r"Main Test=> ResponseValidator: Asserting:\s*(.*?),\s*Expected:\s*(.*?),\s*Actual:\s*([^<]*)", log_message,
                          flags=re.DOTALL | re.MULTILINE)
-        if len(parts) < 3:
+        if len(parts) != 5:
             logging.error(f"Could not parse assertion log message: {log_message}")
             return {}
 
@@ -80,12 +82,14 @@ class HTMLReportGenerator:
         parts = re.split(
             r"Main Test=> ResponseValidator: Dynamic check for\s*(.*?)\.\s*(?:Pre Value:\s*(.*?),\s*Post Value:\s*(.*?),\s*)?Expected diff:\s*([^<]*?),\s*Actual diff:\s*([^<]*)",
             log_message, flags=re.DOTALL | re.MULTILINE)
-        if len(parts) < 5:
+        if len(parts) != 7:
             logging.error(f"Could not parse dynamic check log message: {log_message}")
             return {}
 
-        field, pre_value, post_value, expected_diff, actual_diff_str = parts[1].strip(), parts[2].strip() if parts[2] else None , parts[3].strip() if parts[3] else None , parts[4].strip(), parts[5].strip()
+        field, pre_value, post_value, expected_diff_str, actual_diff_str = parts[1].strip(), parts[2].strip() if parts[2] else None, parts[3].strip() if parts[3] else None, parts[
+            4].strip(), parts[5].strip()
         actual_diff = float(actual_diff_str)
+        expected_diff = float(expected_diff_str)
 
         return {
             "TCID": tcid,
@@ -94,14 +98,14 @@ class HTMLReportGenerator:
             "Field": field,
             "Pre Value": pre_value if pre_value else '',
             "Post Value": post_value if post_value else '',
-            "Actual Diff": actual_diff,
-            "Expected Diff": expected_diff,
-            "Result": "Pass" if actual_diff == float(expected_diff) else "Fail",
+            "Actual Diff": actual_diff_str,
+            "Expected Diff": expected_diff_str,
+            "Result": "Pass" if actual_diff == expected_diff else "Fail",
         }
 
     def _parse_pre_post_check_log(self, log_message, check_type, tcid, description):
         parts = re.split(rf"Main Test=> ResponseValidator: {check_type} for\s*(.*?)\s*- Expected value:\s*([^<]*?),\s*Actual value:\s*([^<]*)", log_message, flags=re.DOTALL | re.MULTILINE)
-        if len(parts) < 3:
+        if len(parts) != 5:
             logging.error(f"Could not parse pre/post check log message: {log_message}")
             return {}
 
@@ -119,6 +123,30 @@ class HTMLReportGenerator:
             "Result": "Pass" if actual_value.strip() == expected_value.strip() else "Fail",
         }
 
+    def _parse_database_validation_log(self, log_message, tcid, description):
+        """Parses the database validation log message."""
+        parts = re.split(
+            r"Main Test=> ResponseValidator: Database validation for '([^']*)' in table '([^']*)'\. Expected: '([^']*)', Actual: '([^']*)'\.",
+            log_message, flags=re.DOTALL | re.MULTILINE
+        )
+
+        if len(parts) != 6:
+            logging.error(f"Could not parse database validation log message: {log_message}")
+            return {}
+
+        field, table_name, expected_value, actual_value = parts[1].strip(), parts[2].strip(), parts[3].strip(), parts[4].strip()
+
+        return {
+            "TCID": tcid,
+            "Description": description,
+            "Type": "Database Checks",
+            "Field": f"{table_name}.{field}",  # added table name to the field
+            "Pre Value": '',
+            "Post Value": '',
+            "Expected": expected_value,
+            "Actual": actual_value,
+            "Result": "Pass" if actual_value == expected_value else "Fail",
+        }
     def generate_html_report(self) -> str:
         """
         Generates the HTML report content.

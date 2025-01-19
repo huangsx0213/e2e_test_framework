@@ -7,6 +7,8 @@ import xmltodict
 from requests import Response
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api import logger
+
+from libraries.common.db_validator import DBValidator
 from libraries.common.log_manager import ColorLogger
 from libraries.common.utility_helpers import UtilityHelpers
 
@@ -79,8 +81,10 @@ class ResponseHandler:
 
 
 class ResponseValidator(ResponseHandler):
-    def __init__(self):
+    def __init__(self, db_configs):
         super().__init__()
+        self.db_configs = db_configs
+        self.db_validator = DBValidator()
         self.is_main_test = False
 
     def validate(self, test_case: dict, response, pre_check_responses=None, post_check_responses=None) -> None:
@@ -117,6 +121,9 @@ class ResponseValidator(ResponseHandler):
         elif exp_result.strip().startswith('$'):
             result = self._handle_response_checks(exp_result.strip(), response)
             results.append(result)
+        elif exp_result.strip().startswith('db_'):  # Use 'db_' as prefix
+            result= self._handle_db_checks(exp_result.strip())
+            results.append(result)
         return results
 
     def _handle_dynamic_checks(self, checks, pre_check_responses, post_check_responses) -> List[Dict]:
@@ -126,11 +133,16 @@ class ResponseValidator(ResponseHandler):
             pre_value = self._extract_value_from_response(pre_check_responses[tcid], json_path)
             post_value = self._extract_value_from_response(post_check_responses[tcid], json_path)
 
-            actual_diff = round(float(post_value) - float(pre_value), 2)
-            expected_diff_val = round(float(expected_diff), 2)
+            # Format actual_diff to include "+" sign for positive values
+            actual_diff_value = round(float(post_value) - float(pre_value), 2)
+            actual_diff_str = f"{actual_diff_value:+g}"
 
-            success = self._compare_diff(actual_diff, expected_diff)
-            log_msg = f"Dynamic check for {tcid}.{json_path}. Pre Value: {pre_value}, Post Value:{post_value}, Expected diff: {expected_diff_val}, Actual diff: {actual_diff}"
+            # Format expected_diff to include "+" sign for positive values
+            expected_diff_val = round(float(expected_diff), 2)
+            expected_diff_str = f"{expected_diff_val:+g}"
+
+            success = actual_diff_value == expected_diff_val
+            log_msg = f"Dynamic check for {tcid}.{json_path}. Pre Value: {pre_value}, Post Value:{post_value}, Expected diff: {expected_diff_str}, Actual diff: {actual_diff_str}"
             self._log_result(success, log_msg)
 
             results.append({"Result": "Pass" if success else "Fail"})
@@ -165,17 +177,27 @@ class ResponseValidator(ResponseHandler):
         self._log_result(success, log_msg)
         return result
 
-    def _compare_diff(self, actual_diff: float, expected_diff: str) -> bool:
-        """Compares the actual difference with the expected difference."""
-        expected_operator = expected_diff[0]
-        expected_value = float(expected_diff[1:])
+    def _handle_db_checks(self, exp_result):
+        """Handles database validation checks."""
+        try:
+            if exp_result.startswith('db_'):
+                prefix = exp_result.split('.')[0]
+                db_config = self._get_db_config_by_prefix(prefix)
+                if not db_config:
+                    raise ValueError(f"No database configuration found for prefix: {prefix}")
+                self.db_validator.setup_database(db_config)
+                is_valid,msg = self.db_validator.validate_database_value(exp_result)
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Failed to validate database: {str(e)}")
+        result = {"Result": "Pass" if is_valid else "Fail"}
+        self._log_result(is_valid, msg)
+        return result
 
-        if expected_operator == '+':
-            return actual_diff == expected_value
-        elif expected_operator == '-':
-            return actual_diff == -expected_value
-        else:
-            raise ValueError(f"{self.__class__.__name__}: Unsupported operator in expected diff: {expected_operator}")
+    def _get_db_config_by_prefix(self, prefix: str) -> dict:
+        db_config = self.db_configs.get(prefix.lower(), {})
+        if not db_config:
+            raise ValueError(f"No database configuration found for prefix: {prefix}")
+        return db_config
 
     def _log_result(self, success: bool, message: str):
         """Logs the result of a check with appropriate color."""
