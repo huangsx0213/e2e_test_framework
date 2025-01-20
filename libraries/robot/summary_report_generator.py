@@ -163,25 +163,25 @@ class SummaryReportGenerator:
             df = DataFrame(flattened_data)
 
             # Reorder columns if needed
-            df = df[
-                [
-                    "TCID",
-                    "Description",
-                    "Type",
-                    "Field",
-                    "Pre Value",
-                    "Post Value",
-                    "Expected",
-                    "Actual",
-                    "Result",
-                ]
+            # Ensure columns exist before trying to reorder
+            columns_to_order = [
+                "TCID",
+                "Description",
+                "Type",
+                "Field",
+                "Pre Value",
+                "Post Value",
+                "Expected",
+                "Actual",
+                "Result",
             ]
+            df = df[[col for col in columns_to_order if col in df.columns]]
 
             # Create the HTML table with merged cells and color-coded results
             html_table = self._create_html_table(df)
             html_content = template.render(html_table=html_table)
 
-             # Save the HTML report to a file
+            # Save the HTML report to a file
             report_file = os.path.join(PROJECT_ROOT, "report", "test_summary.html")
             os.makedirs(os.path.dirname(report_file), exist_ok=True)  # Ensure the directory exists
             with codecs.open(report_file, "w", encoding="utf-8") as f:
