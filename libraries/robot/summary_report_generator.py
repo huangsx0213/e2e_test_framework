@@ -69,7 +69,7 @@ class SummaryReportGenerator:
         return {
              "TCID": tcid,
              "Description": description,
-             "Type": "Assertions",
+             "Type": "Self",
              "Field": field,
              "Pre Value": '',
              "Post Value": '',
@@ -94,7 +94,7 @@ class SummaryReportGenerator:
         return {
             "TCID": tcid,
             "Description": description,
-            "Type": "Dynamic Checks",
+            "Type": "Diff",
             "Field": field,
             "Pre Value": pre_value if pre_value else '',
             "Post Value": post_value if post_value else '',
@@ -114,7 +114,7 @@ class SummaryReportGenerator:
         return {
             "TCID": tcid,
              "Description": description,
-            "Type": f"{check_type} Checks",
+            "Type": f"{check_type}",
             "Field": field,
             "Pre Value": '',
             "Post Value": '',
@@ -139,7 +139,7 @@ class SummaryReportGenerator:
         return {
             "TCID": tcid,
             "Description": description,
-            "Type": "Database Checks",
+            "Type": "DB",
             "Field": f"{table_name}.{field}",  # added table name to the field
             "Pre Value": '',
             "Post Value": '',
@@ -214,15 +214,17 @@ class SummaryReportGenerator:
             yield row
 
     def _create_html_table(self, df: DataFrame) -> str:
-        """
-        Creates the HTML table content.
-        """
         html_table = '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">\n'
 
         # Add table headers
         html_table += '<tr>\n'
         for col in df.columns:
-            html_table += f'<th style="background-color: #f2f2f2; text-align: center;">{col}</th>\n'
+            if col == "Description":
+                html_table += f'<th style="background-color: #f2f2f2; text-align: center;" class="description-cell">{col}</th>\n'
+            elif col == "Field":
+                html_table += f'<th style="background-color: #f2f2f2; text-align: center;">Field</th>\n'
+            else:
+                html_table += f'<th style="background-color: #f2f2f2; text-align: center;">{col}</th>\n'
         html_table += '</tr>\n'
 
         # Add table rows
@@ -238,8 +240,9 @@ class SummaryReportGenerator:
                 for col in df.columns[2:]:  # Skip TCID and Description columns
                     if col == "Result":
                         color = "green" if row[col].upper() == "PASS" else ("red" if row[col].upper() == "FAIL" else "orange")
-                        # Use font color instead of background color
                         html_table += f'<td style="text-align: center; color: {color};">{row[col]}</td>\n'
+                    elif col == "Field":
+                        html_table += f'<td class="field-cell" title="{row[col]}">{row[col]}</td>\n'
                     else:
                         html_table += f'<td style="text-align: center;">{row[col]}</td>\n'
                 html_table += '</tr>\n'
@@ -253,7 +256,7 @@ class SummaryReportGenerator:
                     )
                     html_table = html_table.replace(
                         f'<td rowspan="placeholder_description">{current_description}</td>',
-                        f'<td rowspan="{description_rowspan}" style="text-align: center; vertical-align: middle;">{current_description}</td>',
+                        f'<td rowspan="{description_rowspan}" style="text-align: center; vertical-align: middle;" class="description-cell">{current_description}</td>',
                         1
                     )
                 current_tcid = row["TCID"]
@@ -266,8 +269,9 @@ class SummaryReportGenerator:
                 for col in df.columns[2:]:  # Skip TCID and Description columns
                     if col == "Result":
                         color = "green" if row[col].upper() == "PASS" else ("red" if row[col].upper() == "FAIL" else "orange")
-                        # Use font color instead of background color
                         html_table += f'<td style="text-align: center; color: {color};">{row[col]}</td>\n'
+                    elif col == "Field":
+                        html_table += f'<td class="field-cell" title="{row[col]}">{row[col]}</td>\n'
                     else:
                         html_table += f'<td style="text-align: center;">{row[col]}</td>\n'
                 html_table += '</tr>\n'
@@ -281,7 +285,7 @@ class SummaryReportGenerator:
             )
             html_table = html_table.replace(
                 f'<td rowspan="placeholder_description">{current_description}</td>',
-                f'<td rowspan="{description_rowspan}" style="text-align: center; vertical-align: middle;">{current_description}</td>',
+                f'<td rowspan="{description_rowspan}" style="text-align: center; vertical-align: middle;" class="description-cell">{current_description}</td>',
                 1
             )
 
