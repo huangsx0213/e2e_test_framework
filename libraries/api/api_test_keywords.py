@@ -15,7 +15,6 @@ from libraries.api.response_handler import ResponseValidator, ResponseFieldSaver
 from libraries.api.api_test_loader import APITestLoader
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api.deco import keyword, library
-from libraries.common.variable_transformer import VariableTransformer
 
 builtin_lib = BuiltIn()
 
@@ -60,7 +59,6 @@ class APITestKeywords:
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
         self.api_response_validator: ResponseValidator = ResponseValidator(self.db_configs)
         self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
-        self.variable_transformer = VariableTransformer()
         self.db_validator = DBValidator()
 
     @keyword
@@ -85,22 +83,6 @@ class APITestKeywords:
             result = self.execute_api_test_case(tcid)
             results[tcid] = result
         return results
-
-    @keyword
-    def execute_conditions_cases_with_transformer(self, original_tcid, setup_case_ids: List[str] = None):
-        self.execute_transform(original_tcid)
-        results = {}
-        for setup_id in setup_case_ids:
-            logging.info(f"{self.__class__.__name__}: Executing setup test case: {setup_id}")
-            result = self.execute_api_test_case(setup_id)
-            results[setup_id] = result
-        return results
-
-    @keyword
-    def execute_transform(self, original_tcid):
-        test_cases = APITestLoader(self.test_cases_path).get_api_test_cases()
-        test_case = test_cases.loc[test_cases['TCID'] == original_tcid].to_dict('records')[0]
-        self._transformer_handler(test_case)
 
     @keyword
     def execute_api_test_case(self, test_case_id: str, is_dynamic_check: bool = False):
@@ -134,9 +116,7 @@ class APITestKeywords:
     def _execute_single_test_case(self, test_case):
         response, execution_time = self.send_request(test_case)
         logging.info(f"{self.__class__.__name__}: Time taken to execute test case {test_case['TCID']}: {execution_time:.2f} seconds")
-        # self.api_response_validator.validate_response(test_case, response)
         self.response_field_saver.save_fields_to_robot_variables(response, test_case)
-        # self.validate_data_base(test_case)
         wait = float(test_case['Wait']) if test_case['Wait'] != '' else 0
         if wait > 0:
             sleep(wait)
@@ -180,16 +160,3 @@ class APITestKeywords:
         response, execution_time = RequestSender.send_request(url, method, headers, body, format_type)
 
         return response, execution_time
-
-    def _transformer_handler(self, test_case: Dict[str, Any]) -> None:
-        transformers = test_case.get('Variable Transform', '').splitlines()
-        transformers_data = []
-        for transformer in transformers:
-            match = re.findall(r'(\w*)\((.*?)\s*(?:,\s*(.*?))?\)', transformer.strip())
-            if match:
-                function_name, input_field, output_field = match[0]
-                transformers_data.append((function_name.strip(), input_field.strip(), output_field.strip() if output_field else None))
-
-        self.variable_transformer.transform(transformers_data, test_case)
-        logging.info(f"{self.__class__.__name__}: Transformed variables for test case {test_case['TCID']}.")
-        logging.info("=" * 100)

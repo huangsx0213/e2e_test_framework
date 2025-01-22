@@ -7,10 +7,10 @@ import xmltodict
 from requests import Response
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api import logger
-
 from libraries.common.db_validator import DBValidator
 from libraries.common.log_manager import ColorLogger
 from libraries.common.utility_helpers import UtilityHelpers
+from libraries.common.variable_transformer import VariableTransformer
 
 builtin_lib = BuiltIn()
 
@@ -122,7 +122,7 @@ class ResponseValidator(ResponseHandler):
             result = self._handle_response_checks(exp_result.strip(), response)
             results.append(result)
         elif exp_result.strip().startswith('db_'):  # Use 'db_' as prefix
-            result= self._handle_db_checks(exp_result.strip())
+            result = self._handle_db_checks(exp_result.strip())
             results.append(result)
         return results
 
@@ -186,7 +186,7 @@ class ResponseValidator(ResponseHandler):
                 if not db_config:
                     raise ValueError(f"No database configuration found for prefix: {prefix}")
                 self.db_validator.setup_database(db_config)
-                is_valid,msg = self.db_validator.validate_database_value(exp_result)
+                is_valid, msg = self.db_validator.validate_database_value(exp_result)
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Failed to validate database: {str(e)}")
         result = {"Result": "Pass" if is_valid else "Fail"}
@@ -211,15 +211,35 @@ class ResponseValidator(ResponseHandler):
 
 
 class ResponseFieldSaver(ResponseHandler):
+    def __init__(self):
+        super().__init__()
+        self.variable_transformer = VariableTransformer()
+
     def save_fields_to_robot_variables(self, response: Union[str, Response], test_case: dict) -> None:
-        response_content, response_format = self.get_content_and_format(response)
+        response_content, _ = self.get_content_and_format(response)
         save_fields = test_case.get('Save Fields', '').splitlines()
+        # Regular expression to match patterns like: assign_value($.result.amount,my_amount) or assign_value($.result.amount)
+        transform_pattern = re.compile(r'^\s*(\w+)\(([^,]+)(?:,\s*([^)]+))?\)\s*$')
 
         for field in save_fields:
-            try:
-                value = self._extract_value_from_response(response_content, field)
-                field_name = f'{test_case["TCID"]}.{field.strip()}'
-                logger.info(ColorLogger.info(f"=> {self.__class__.__name__}: Setting global variable ${{{field_name}}} to {value}."), html=True)
-                BuiltIn().set_global_variable(f'${{{field_name}}}', value)
-            except Exception as e:
-                logging.error(f"{self.__class__.__name__}: Failed to process field '{field}': {e}")
+            if not field.strip():
+                continue  # Skip empty lines
+            field = field.strip()
+            # Check if field matches transform format
+            match = transform_pattern.match(field)
+            if match:
+                method_name, input_field, output_field = match.groups()
+                # If no second parameter, use JSON Path as Robot variable name
+                if output_field is None:
+                    output_field = input_field
+                input_value = self._extract_value_from_response(response_content, input_field)
+                self.variable_transformer.transform_and_save(method_name, input_value, output_field)
+            else:
+                # Handle standard field format
+                try:
+                    value = self._extract_value_from_response(response_content, field)
+                    field_name = f'{test_case["TCID"]}.{field.strip()}'
+                    logger.info(ColorLogger.info(f"=> {self.__class__.__name__}: Setting global variable ${{{field_name}}} to {value}."), html=True)
+                    BuiltIn().set_global_variable(f'${{{field_name}}}', value)
+                except Exception as e:
+                    logging.error(f"{self.__class__.__name__}: Failed to process field '{field}': {e}")

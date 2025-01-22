@@ -5,7 +5,7 @@ import os
 from typing import Dict, Any
 from libraries.common.utility_helpers import PROJECT_ROOT
 from robot.libraries.BuiltIn import BuiltIn
-
+from libraries.common.variable_transformer import VariableTransformer
 
 builtin_lib = BuiltIn()
 
@@ -14,6 +14,7 @@ class SavedFieldsManager:
     def __init__(self, file_path: str = None) -> None:
         self.project_root: str = PROJECT_ROOT
         self.file_path: str = file_path or os.path.join(self.project_root, 'configs', 'saved_fields.yaml')
+        self.variable_transformer = VariableTransformer()
 
     def clear_saved_fields(self):
         with open(self.file_path, 'w') as f:
@@ -54,13 +55,50 @@ class SavedFieldsManager:
 
     def apply_suite_variables(self, test_case) -> None:
         try:
+            # Regular expression to match patterns like: assign_value($.result.amount,my_amount) or assign_value($.result.amount)
+            transform_pattern = re.compile(r'(\w+)\(([^,]+)(?:,\s*([^)]+))?\)')
+
             for key in ['Body Override', 'Exp Result']:
-                matches = re.findall(r'\$\{[^}]+\}', test_case[key])
-                for match in matches:
-                    replacement_value = builtin_lib.get_variable_value(match)
-                    test_case[key] = test_case[key].replace(match, str(replacement_value))
-                    logging.info(f"{self.__class__.__name__}: [{key}] Replaced {match} variable value {replacement_value}")
+                if key not in test_case or not test_case[key]:
+                    continue  # Skip empty fields
+
+                lines = test_case[key].splitlines()
+                updated_lines = []
+
+                for line in lines:
+                    if not line.strip():
+                        updated_lines.append(line)  # Preserve empty lines
+                        continue
+
+                    # Check if line matches transformation pattern
+                    match = transform_pattern.search(line.strip())
+                    if match:
+                        # Handle transformation format
+                        method_name, input_field, output_field = match.groups()
+                        # If no second parameter, use input field as output variable name
+                        if output_field is None:
+                            output_field = input_field
+
+                        # Extract input field value and transform it
+                        input_value = BuiltIn().get_variable_value(input_field)
+                        transformed_value = self.variable_transformer.transform(method_name, input_value)
+
+                        # Replace entire pattern with transformed value
+                        line = transform_pattern.sub(str(transformed_value), line)
+                        logging.info(f"{self.__class__.__name__}: [{key}] Replaced transform pattern {match.group(0)} with [{transformed_value}]")
+                    else:
+                        # Handle standard variable replacement
+                        matches = re.findall(r'\$\{[^}]+\}', line)
+                        for match in matches:
+                            replacement_value = BuiltIn().get_variable_value(match)
+                            line = line.replace(match, str(replacement_value))
+                            logging.info(f"{self.__class__.__name__}: [{key}] Replaced {match} with [{replacement_value}]")
+
+                    updated_lines.append(line)
+
+                # Update field content
+                test_case[key] = "\n".join(updated_lines)
 
         except Exception as e:
-            logging.error(f"{self.__class__.__name__}: [{key}] Replaced {match} with {replacement_value} failed: {str(e)}")
+            logging.error(f"{self.__class__.__name__}: Failed to apply suite variables: {str(e)}")
             raise
