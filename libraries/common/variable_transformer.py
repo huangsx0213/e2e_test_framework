@@ -42,7 +42,7 @@ class VariableTransformer:
     # e.g. 2023-01-01 -> 20230101
     def _iso_to_compact_date(self, value: str) -> str:
         date_obj = datetime.datetime.strptime(value, "%Y-%m-%d")
-        return date_obj.strftime("%Y%m%d")
+        return date_obj.strftime("%y%m%d")
 
     # e.g. 2023-10-05T12:00:00.000Z -> 2023-10-05T14:00:00+02:00
     def _utc_to_poland_iso_datetime(self, utc_datetime_str: str) -> str:
