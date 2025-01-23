@@ -136,9 +136,9 @@ class APITestLoader:
 
         for _, row in df.iterrows():
             try:
-                json.loads(row['Content'])
-            except json.JSONDecodeError:
-                raise ValueError(f"Invalid JSON in BodyDefaults sheet for Name: {row['Name']}")
+                yaml.safe_load(row['Content'])
+            except yaml.YAMLError as e:
+                raise ValueError(f"Invalid YAML in BodyDefaults sheet for Name: {row['Name']}. Error: {e}")
 
     def _validate_headers_sheet(self, df: pd.DataFrame):
         required_columns = ['HeaderName', 'Content']

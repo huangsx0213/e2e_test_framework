@@ -129,7 +129,7 @@ class APITestKeywords:
         if pd.isna(conditions):
             return []
 
-        check_with_match = re.search(r'\[Checkwith\](.*)', conditions)
+        check_with_match = re.search(r'\[CheckWith\](.*)', conditions)
         if check_with_match:
             return [tcid.strip() for tcid in check_with_match.group(1).split(',')]
         return []

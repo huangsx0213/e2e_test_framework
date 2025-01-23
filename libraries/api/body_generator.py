@@ -3,6 +3,9 @@ import logging
 import re
 
 from typing import Any, Dict, Union
+
+import yaml
+
 from libraries.common.utility_helpers import UtilityHelpers
 from libraries.api.template_renderer import TemplateRenderer
 from libraries.common.variable_generator import VariableGenerator
@@ -57,15 +60,18 @@ class BodyGenerator:
             default = defaults[defaults['Name'] == default_name]
             if default.empty:
                 raise ValueError(f"Default values '{default_name}' not found.")
-            return json.loads(default.iloc[0]['Content'])
-        except Exception as e:
+            return yaml.safe_load(default.iloc[0]['Content'])
+        except yaml.YAMLError as e:
             logging.error(f"Error loading default values: {e}")
             raise
 
     def parse_user_defined_fields(self, field_string):
+        if field_string is None or field_string.strip() == "":
+            return {}
         try:
-            return json.loads(field_string)
-        except json.JSONDecodeError as e:
+            field_string = field_string.replace(":", ": ")
+            return yaml.safe_load(field_string)
+        except yaml.YAMLError as e:
             logging.error(f"Error parsing user-defined fields: {e}")
             raise
 
