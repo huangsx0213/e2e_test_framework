@@ -70,13 +70,6 @@ class APIRobotCasesGenerator:
         logging.info(f"{self.__class__.__name__}: Test suite created successfully")
         return self.api_suite
 
-    def _add_report_generation_test(self):
-        report_test = self.api_suite.tests.create(
-            name="Generate API Test Report",
-            doc="Generates the API test report after all tests have been executed"
-        )
-        report_test.body.create_keyword(name='generate_report', args=[])
-
     def _configure_test_resources(self) -> None:
         """Configure the test resources for the test suite."""
         test_cases_path_arg = os.path.normpath(self.test_cases_path).replace(os.path.sep, '/')
