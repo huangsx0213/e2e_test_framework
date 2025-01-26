@@ -1,7 +1,7 @@
 import codecs
 import logging
 import os
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Generator
 from jinja2 import FileSystemLoader, Environment, TemplateNotFound
 from pandas import DataFrame
 from robot.api import ExecutionResult
@@ -20,16 +20,22 @@ class SummaryReportGenerator:
         try:
             result = ExecutionResult(self.output_xml_path)
             all_results = []
-
-            for test in result.suite.tests:
-                test_results = self._extract_results_from_test(test)
-                all_results.extend(test_results)
-
+            self._traverse_suite(result.suite, all_results)
             return all_results
 
         except Exception as e:
-            logging.error(f"HTMLReportGenerator: Error parsing Robot output.xml: {e}")
+            logging.error(f"SummaryReportGenerator: Error parsing Robot output.xml: {e}")
             return []
+
+    def _traverse_suite(self, suite, all_results: List[Dict]):
+        """Recursively traverses suites to extract all test results in order."""
+        # Process tests in the current suite in order
+        for test in suite.tests:
+            test_results = self._extract_results_from_test(test)
+            all_results.extend(test_results)
+        # Recursively process child suites
+        for child_suite in suite.suites:
+            self._traverse_suite(child_suite, all_results)
 
     def _extract_results_from_test(self, test) -> List[Dict]:
         """Extracts all test results from a robot test case."""
@@ -39,23 +45,31 @@ class SummaryReportGenerator:
                 test_case_id = keyword.args[0]
 
                 for log_msg in keyword.messages:
-                     if "Main Test=> ResponseValidator: Asserting" in log_msg.message:
-                        test_results.append(self._parse_assertion_log(log_msg.message, test_case_id, test.doc))
+                    if "Main Test=> ResponseValidator: Asserting" in log_msg.message:
+                        parsed = self._parse_assertion_log(log_msg.message, test_case_id, test.doc)
+                        if parsed:
+                            test_results.append(parsed)
 
-                     elif "Main Test=> ResponseValidator: Dynamic check" in log_msg.message:
-                         test_results.append(self._parse_dynamic_check_log(log_msg.message, test_case_id, test.doc))
+                    elif "Main Test=> ResponseValidator: Dynamic check" in log_msg.message:
+                        parsed = self._parse_dynamic_check_log(log_msg.message, test_case_id, test.doc)
+                        if parsed:
+                            test_results.append(parsed)
 
-                     elif "Main Test=> ResponseValidator: Postcheck" in log_msg.message:
-                          test_results.append(
-                              self._parse_pre_post_check_log(log_msg.message, "Postcheck", test_case_id, test.doc))
+                    elif "Main Test=> ResponseValidator: Postcheck" in log_msg.message:
+                        parsed = self._parse_pre_post_check_log(log_msg.message, "Postcheck", test_case_id, test.doc)
+                        if parsed:
+                            test_results.append(parsed)
 
-                     elif "Main Test=> ResponseValidator: Precheck" in log_msg.message:
-                         test_results.append(
-                             self._parse_pre_post_check_log(log_msg.message, "Precheck", test_case_id, test.doc))
-                     elif "Main Test=> ResponseValidator: Database validation" in log_msg.message:
-                         test_results.append(self._parse_database_validation_log(log_msg.message, test_case_id, test.doc))
+                    elif "Main Test=> ResponseValidator: Precheck" in log_msg.message:
+                        parsed = self._parse_pre_post_check_log(log_msg.message, "Precheck", test_case_id, test.doc)
+                        if parsed:
+                            test_results.append(parsed)
+
+                    elif "Main Test=> ResponseValidator: Database validation" in log_msg.message:
+                        parsed = self._parse_database_validation_log(log_msg.message, test_case_id, test.doc)
+                        if parsed:
+                            test_results.append(parsed)
         return test_results
-
 
     def _parse_assertion_log(self, log_message, tcid, description):
         parts = re.split(r"Main Test=> ResponseValidator: Asserting:\s*(.*?),\s*Expected:\s*(.*?),\s*Actual:\s*([^<]*)", log_message,
@@ -73,9 +87,9 @@ class SummaryReportGenerator:
              "Field": field,
              "Pre Value": '',
              "Post Value": '',
-             "Expected": expected.strip(),
-             "Actual": actual.strip(),
-             "Result": "Pass" if actual.strip() == expected.strip() else "Fail",
+             "Expected": expected,
+             "Actual": actual,
+             "Result": "Pass" if actual == expected else "Fail",
          }
 
     def _parse_dynamic_check_log(self, log_message, tcid, description):
@@ -113,21 +127,22 @@ class SummaryReportGenerator:
 
         return {
             "TCID": tcid,
-             "Description": description,
+            "Description": description,
             "Type": f"{check_type}",
             "Field": field,
             "Pre Value": '',
             "Post Value": '',
-            "Expected": expected_value.strip(),
-            "Actual": actual_value.strip(),
-            "Result": "Pass" if actual_value.strip() == expected_value.strip() else "Fail",
+            "Expected": expected_value,
+            "Actual": actual_value,
+            "Result": "Pass" if actual_value == expected_value else "Fail",
         }
 
     def _parse_database_validation_log(self, log_message, tcid, description):
         """Parses the database validation log message."""
         parts = re.split(
             r"Main Test=> ResponseValidator: Database validation for '([^']*)' in table '([^']*)'\. Expected: '([^']*)', Actual: '([^']*)'\.",
-            log_message, flags=re.DOTALL | re.MULTILINE
+            log_message,
+            flags=re.DOTALL | re.MULTILINE
         )
 
         if len(parts) != 6:
@@ -147,6 +162,7 @@ class SummaryReportGenerator:
             "Actual": actual_value,
             "Result": "Pass" if actual_value == expected_value else "Fail",
         }
+
     def generate_html_report(self) -> str:
         """
         Generates the HTML report content.
@@ -156,7 +172,7 @@ class SummaryReportGenerator:
             env = Environment(loader=file_loader)
             template = env.get_template('test_summary_template.html')
 
-            flattened_data = self._flatten_results(self.test_results)
+            flattened_data = list(self._flatten_results(self.test_results))
             if not flattened_data:  # Check if flattened_data is empty
                 return "No test results to display."
 
@@ -177,7 +193,7 @@ class SummaryReportGenerator:
             ]
             df = df[[col for col in columns_to_order if col in df.columns]]
 
-            # Create the HTML table with merged cells and color-coded results
+            # Create the HTML table with ordered rows and color-coded results
             html_table = self._create_html_table(df)
             html_content = template.render(html_table=html_table)
 
@@ -186,18 +202,18 @@ class SummaryReportGenerator:
             os.makedirs(os.path.dirname(report_file), exist_ok=True)  # Ensure the directory exists
             with codecs.open(report_file, "w", encoding="utf-8") as f:
                 f.write(html_content)
-            logging.info(f"HTMLReportGenerator: Test report saved to: {report_file}")
+            logging.info(f"SummaryReportGenerator: Test report saved to: {report_file}")
 
         except TemplateNotFound as e:
-            logging.error(f"HTMLReportGenerator: Template not found: {e}")
+            logging.error(f"SummaryReportGenerator: Template not found: {e}")
             raise
         except Exception as e:
-            logging.error(f"HTMLReportGenerator: Error generating HTML report: {e}")
+            logging.error(f"SummaryReportGenerator: Error generating HTML report: {e}")
             raise
 
-    def _flatten_results(self, test_results: List[Dict]):
+    def _flatten_results(self, test_results: List[Dict]) -> Generator[Dict, None, None]:
         """
-        Flattens the test results data.
+        Flattens the test results data while maintaining the original order.
         """
         for result in test_results:
             row = {
