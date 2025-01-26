@@ -70,7 +70,10 @@ class APITestKeywords:
             logging.info(f"{self.__class__.__name__}: Sanity check succeeded, continuing with the test.")
 
     @keyword
-    def clear_saved_fields(self):
+    def suite_teardown(self):
+        self.clear_save_fields()
+
+    def clear_save_fields(self):
         if self.test_config.get('clear_saved_fields_after_test', False):
             self.saved_fields_manager.clear_saved_fields()
             logging.info(f"{self.__class__.__name__}: Cleared saved fields")
