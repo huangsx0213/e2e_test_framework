@@ -57,7 +57,7 @@ class WebUIRobotCasesGenerator:
         try:
             # Create main test suite
             self.robot_suite = TestSuite('Web UI TestSuite')
-            self._import_required_libraries()
+            self._import_required_libraries(self.robot_suite)
 
             # Filter test cases
             tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
@@ -68,9 +68,17 @@ class WebUIRobotCasesGenerator:
                 logging.warning(f"{self.__class__.__name__}: No test cases found matching criteria")
                 return self.robot_suite
 
-            # Create test cases
+            # Iterate through test cases in order
             for _, test_case in test_cases.iterrows():
-                self.create_test_case(test_case)
+                suite_name = test_case['Suite']
+
+                # If the suite doesn't exist yet, create it
+                if suite_name not in [suite.name for suite in self.robot_suite.suites]:
+                    sub_suite = self.robot_suite.suites.create(name=suite_name)
+                    self._import_required_libraries(sub_suite)
+
+                # Create the test case within the correct suite
+                self.create_test_case(sub_suite, test_case)
 
             # Configure suite teardown
             self.robot_suite.teardown.config(name='close_browser', args=[])
@@ -79,7 +87,7 @@ class WebUIRobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error creating test suite: {str(e)}")
             raise RuntimeError(f"Failed to create test suite: {str(e)}")
 
-    def create_test_case(self, test_case: Dict):
+    def create_test_case(self, suite, test_case: Dict):
         try:
             # Load test steps and data sets
             case_id = test_case['Case ID']
@@ -94,7 +102,7 @@ class WebUIRobotCasesGenerator:
             # Generate tests for each data set
             for data_set_index, data_set in enumerate(test_data_sets, 1):
                 test_name = f"UI.{case_id}.{data_set_index}"
-                robot_test = self.robot_suite.tests.create(name=test_name, doc=test_case['Descriptions'])
+                robot_test = suite.tests.create(name=test_name, doc=test_case['Descriptions'])
                 robot_test.body.create_keyword(name='sanity_check', args=[])
 
                 # Add tags
@@ -111,9 +119,9 @@ class WebUIRobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error creating test case {test_case.get('Case ID', 'Unknown')}: {str(e)}")
             raise
 
-    def _import_required_libraries(self):
+    def _import_required_libraries(self, suite):
         try:
-            self.robot_suite.resource.imports.library('libraries.web.page_object.PageObject')
+            suite.resource.imports.library('libraries.web.page_object.PageObject')
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error importing required libraries: {str(e)}")
             raise
@@ -125,7 +133,6 @@ class WebUIRobotCasesGenerator:
                     # Get step information
                     page_name = step['Page Name']
                     module_name = step['Module Name']
-
                     # Create UI test step
                     self._generate_ui_step(robot_test, page_name, module_name, data_set)
 
@@ -139,4 +146,3 @@ class WebUIRobotCasesGenerator:
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error generating UI step for {page_name}.{module_name}: {str(e)}")
             raise
-

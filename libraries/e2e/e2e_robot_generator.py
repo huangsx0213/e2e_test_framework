@@ -60,6 +60,7 @@ class E2ERobotCasesGenerator:
         try:
             # Create main test suite
             self.robot_suite = TestSuite('End To End TestSuite')
+            self._import_required_libraries(self.robot_suite)
 
             # Filter test cases
             tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
@@ -69,11 +70,18 @@ class E2ERobotCasesGenerator:
             if test_cases.empty:
                 logging.warning(f"{self.__class__.__name__}: No test cases found matching criteria.")
                 return self.robot_suite
-
-            # Iterate through test cases and generate tests
+            # Iterate through test cases in order
             for _, test_case in test_cases.iterrows():
-                self.create_test_case(test_case)
+                # Add a new sub-suite for each unique 'Suite' value
+                suite_name = test_case['Suite']
+                if suite_name not in [suite.name for suite in self.robot_suite.suites]:
+                    self.sub_suite = self.robot_suite.suites.create(name=suite_name)
+                    self._import_required_libraries(self.sub_suite)
 
+                self.create_test_case(test_case)  # Create test case within the sub-suite
+
+            # Configure suite teardown
+            self.robot_suite.teardown.config(name='close_browser', args=[])
             return self.robot_suite
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error creating test suite: {str(e)}")
@@ -88,76 +96,65 @@ class E2ERobotCasesGenerator:
 
             # Create empty data set if none exists
             if not test_data_sets:
+                logging.warning(f"{self.__class__.__name__}: No data sets found for test case {case_id}. Using empty data")
                 test_data_sets = [{}]
 
-            # Create child test suite
-            self.child_suite = TestSuite(name=case_id, doc=test_case['Descriptions'])
-            self.robot_suite.suites.append(self.child_suite)
-
-            # Import required libraries
-            self._import_required_libraries()
-
-            # Iterate through data sets and generate tests
+            # Generate tests for each data set
             for data_set_index, data_set in enumerate(test_data_sets, 1):
                 test_name = f"UI.{case_id}.{data_set_index}"
-                robot_ui_test = self.child_suite.tests.create(name=test_name)
-                robot_ui_test.body.create_keyword(name='sanity_check', args=[])
+                robot_test = self.sub_suite.tests.create(name=test_name, doc=test_case['Descriptions'])
+                robot_test.body.create_keyword(name='sanity_check', args=[])
 
                 # Add tags
                 if 'Tags' in test_case and pd.notna(test_case['Tags']):
                     tags = [tag.strip() for tag in test_case['Tags'].split(',')]
                     for tag in tags:
-                        robot_ui_test.tags.add(tag)
+                        robot_test.tags.add(tag)
 
                 # Create test steps
-                self.create_test_steps(robot_ui_test, test_steps, data_set)
+                self.create_test_steps(robot_test, test_steps, data_set)
                 logging.info(f"{self.__class__.__name__}: Test case {case_id}.{data_set_index} created successfully.")
 
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error creating test case {test_case.get('Case ID', 'Unknown')}: {str(e)}")
             raise
 
-    def _import_required_libraries(self):
+    def _import_required_libraries(self, suite):
         try:
-            test_config_path_arg = os.path.normpath(self.test_config_path).replace(os.path.sep, '/')
-            test_cases_path_arg = os.path.normpath(self.test_cases_path).replace(os.path.sep, '/')
-            self.child_suite.resource.imports.library(
-                'libraries.web.page_object.PageObject', args=[test_config_path_arg, test_cases_path_arg]
-            )
+            suite.resource.imports.library('libraries.web.page_object.PageObject')
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error importing required libraries: {str(e)}")
             raise
 
-    def create_test_steps(self, robot_ui_test, test_steps: List[Dict], data_set: Dict):
+    def create_test_steps(self, robot_test, test_steps: List[Dict], data_set: Dict):
         try:
             for _, step in test_steps.iterrows():
-                # Get step information
-                page_name = step['Page Name']
-                module_name = step['Module Name']
+                if step['Run'] == 'Y':
+                    # Get step information
+                    page_name = step['Page Name']
+                    module_name = step['Module Name']
 
                 # Generate steps based on module type
                 if module_name == 'API':
-                    self._generate_api_step(step, robot_ui_test)
+                    self._generate_api_step(step, robot_test)
                 else:
-                    self._generate_ui_step(robot_ui_test, step, page_name, module_name, data_set)
+                    self._generate_ui_step(robot_test, step, page_name, module_name, data_set)
 
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error creating test steps: {str(e)}")
             raise
 
-    def _generate_api_step(self, step, robot_ui_test):
+    def _generate_api_step(self, step, robot_test):
         try:
-            self.child_suite.tests.remove(robot_ui_test)
-            self.child_suite.name = f"APISubSuite.{step['Page Name']}.{step['Case ID']}"
+            self.sub_suite.tests.remove(robot_test)
             tc_id_list = step['APIs'].split(',')
-            self.api_robot_generator.create_test_suite(tc_id_list, None, self.child_suite)
+            self.api_robot_generator.create_test_suite(tc_id_list, None, self.sub_suite)
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error generating API step: {str(e)}")
             raise
 
     def _generate_ui_step(self, robot_ui_test, step, page_name, module_name, params):
         try:
-            self.child_suite.name = f"UISubSuite.{page_name}.{step['Case ID']}"
             robot_ui_test.body.create_keyword(name='execute_module', args=[page_name, module_name, params])
             # self.child_suite.teardown.config(name='close_browser', args=[])
         except Exception as e:

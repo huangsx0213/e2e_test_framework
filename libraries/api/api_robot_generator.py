@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Dict, List, Any
+from typing import Dict, List
 import pandas as pd
 from libraries.api.api_test_loader import APITestLoader
 from libraries.common.config_manager import ConfigManager
@@ -81,14 +81,18 @@ class APIRobotCasesGenerator:
     def _create_test_cases(self, filtered_cases: pd.DataFrame) -> None:
         """Create test cases in the provided test suite."""
         try:
-            # Group test cases by suite
-            grouped_cases = filtered_cases.groupby('Suite')
+            # Iterate through the filtered cases in order
+            for index, row in filtered_cases.iterrows():
+                suite_name = row['Suite']
 
-            for suite_name, suite_cases in grouped_cases:
-                suite = self.api_suite.suites.create(name=suite_name)
-                self._configure_test_resources(suite)
-                for _, test_case in suite_cases.iterrows():
-                    self._create_single_test_case(test_case, suite)
+                # If the suite doesn't exist yet, create it
+                if suite_name not in [suite.name for suite in self.api_suite.suites]:
+                    suite = self.api_suite.suites.create(name=suite_name)
+                    self._configure_test_resources(suite)
+
+                # Create the test case within the correct suite
+                self._create_single_test_case(row, suite)
+
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error creating test cases: {str(e)}")
             raise
@@ -129,17 +133,17 @@ class APIRobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error adding tags to test case: {str(e)}")
             raise
 
-    def _configure_test_conditions(self,suite, robot_api_test, test_case) -> None:
+    def _configure_test_conditions(self, suite, robot_api_test, test_case) -> None:
         try:
             if pd.notna(test_case['Conditions']):
                 conditions = test_case['Conditions'].splitlines()
                 for condition in conditions:
-                    self._process_condition(condition,suite, robot_api_test)
+                    self._process_condition(condition, suite, robot_api_test)
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error configuring test conditions: {str(e)}")
             raise
 
-    def _process_condition(self, condition: str,suite, robot_api_test) -> None:
+    def _process_condition(self, condition: str, suite, robot_api_test) -> None:
         try:
             condition_mapping = {
                 '[TestSetup]': (robot_api_test.setup, 'Test setup'),
