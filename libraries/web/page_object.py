@@ -127,6 +127,7 @@ class PageObject:
             wait = action_info['wait']
             locator = self.page_elements[page_name][element_name] if element_name else None
             action_params = self._extract_parameters(data_set, action_info['parameter_names'])
+            element_name_plus = f'{page_name}.{module_name}.{element_name}' if element_name else f'{page_name}.{module_name}'
 
             logging.info(
                 f"{self.__class__.__name__}: Executing action:[{action}] on page:[{page_name}] module:[{module_name}]"
@@ -137,7 +138,7 @@ class PageObject:
             if highlight:
                 self.web_actions.highlight_element(locator)
 
-            self._execute_action(action, locator, *action_params)
+            self._execute_action(action, locator,element_name_plus, *action_params)
 
             if wait:
                 try:
@@ -152,7 +153,7 @@ class PageObject:
 
             logging.info("=" * 80)
 
-    def _execute_action(self, action: str, locator, *args, **kwargs):
+    def _execute_action(self, action: str, locator, element_name_plus, *args, **kwargs):
         action_map = {
             # ElementActions
             'send_keys': self.web_actions.send_keys,
@@ -177,14 +178,14 @@ class PageObject:
             'verify_figure_text_contains': self.web_actions.verify_figure_text_contains,
             'verify_title_is': self.web_actions.verify_title_is,
             'verify_title_contains': self.web_actions.verify_title_contains,
-            'check_element_exists': self.web_actions.check_element_exists,
-            'check_element_visible': self.web_actions.check_element_visible,
-            'check_element_invisible': self.web_actions.check_element_invisible,
-            'check_element_clickable': self.web_actions.check_element_clickable,
-            'check_element_selected': self.web_actions.check_element_selected,
-            'check_element_enabled': self.web_actions.check_element_enabled,
+            'verify_element_exists': self.web_actions.verify_element_exists,
+            'verify_element_visible': self.web_actions.verify_element_visible,
+            'verify_element_invisible': self.web_actions.verify_element_invisible,
+            'verify_element_clickable': self.web_actions.verify_element_clickable,
+            'verify_element_selected': self.web_actions.verify_element_selected,
+            'verify_element_enabled': self.web_actions.verify_element_enabled,
             'get_text_save_to_variable': self.web_actions.get_text_save_to_variable,
-            'verify_value_changed_by': self.web_actions.verify_value_changed_by,
+            'verify_element_value_diff': self.web_actions.verify_element_value_diff,
 
             # WaitActions
             'wait_for_element_present': self.web_actions.wait_for_element_present,
@@ -280,10 +281,15 @@ class PageObject:
             # Add the processed (or original) argument to the new list
             new_args.append(arg)
 
+        is_verification = action.startswith('verify_')
+
+        if is_verification:
+            kwargs['element_name'] = element_name_plus
+
         if action in action_map:
-            return action_map[action](locator, *new_args, **kwargs) if locator else action_map[action](*new_args, **kwargs)
+            return action_map[action](locator, *args, **kwargs) if locator else action_map[action](*args, **kwargs)
         elif action in self.custom_action_executor.custom_actions:
-            return self.custom_action_executor.execute_custom_action(action, locator, self.web_actions, *new_args, **kwargs)
+            return self.custom_action_executor.execute_custom_action(action, locator, self.web_actions, *args, **kwargs)
         else:
             raise ValueError(f"{self.__class__.__name__}: Unsupported web_action: {action}")
 

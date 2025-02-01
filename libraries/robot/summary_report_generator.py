@@ -69,6 +69,14 @@ class SummaryReportGenerator:
                         parsed = self._parse_database_validation_log(log_msg.message, test_case_id, test.doc)
                         if parsed:
                             test_results.append(parsed)
+            elif keyword.name == 'Execute Module':
+                test_case_id = test.name.split('.')[1]
+                page = keyword.args[0]
+                for log_msg in keyword.messages:
+                    if "UI Verification: Asserting" in log_msg.message:
+                        parsed = self._parse_ui_verification_log(log_msg.message, test_case_id,page, test.doc)
+                        if parsed:
+                            test_results.append(parsed)
         return test_results
 
     def _parse_assertion_log(self, log_message, tcid, description):
@@ -163,6 +171,32 @@ class SummaryReportGenerator:
             "Result": "Pass" if actual_value == expected_value else "Fail",
         }
 
+    def _parse_ui_verification_log(self, log_message, tcid,page, description):
+        parts = re.split(r"UI Verification: Asserting:\s*(.*?),\s*(.*?),\s*Expected:\s*(.*?),\s*Actual:\s*([^<]*)", log_message)
+        if len(parts) != 6:
+            logging.error(f"Could not parse UI verification log message: {log_message}")
+            return {}
+
+        field, field_type, expected, actual = parts[1].strip(), parts[2].strip(), parts[3].strip(), parts[4].strip()
+
+        result = self._evaluate_ui_verification_result(field_type, expected, actual)
+
+        return {
+            "TCID": tcid,
+            "Description": description,
+            "Type": field_type,
+            "Field": field,
+            "Expected": expected,
+            "Actual": actual,
+            "Result": "Pass" if result else "Fail",
+        }
+
+    def _evaluate_ui_verification_result(self, field_type, expected, actual):
+        if 'contains' in field_type.lower():
+            return expected in actual
+        else:
+            return actual == expected
+
     def generate_html_report(self) -> str:
         """
         Generates the HTML report content.
@@ -236,9 +270,9 @@ class SummaryReportGenerator:
         html_table += '<tr>\n'
         for col in df.columns:
             if col == "Description":
-                html_table += f'<th style="background-color: #f2f2f2; text-align: center;" class="description-cell">{col}</th>\n'
+                html_table += f'<th style="background-color: #f2f2f2; text-align: center;">{col}</th>\n'
             elif col == "Field":
-                html_table += f'<th style="background-color: #f2f2f2; text-align: center;">Field</th>\n'
+                html_table += f'<th style="background-color: #f2f2f2; text-align: center;">{col}</th>\n'
             else:
                 html_table += f'<th style="background-color: #f2f2f2; text-align: center;">{col}</th>\n'
         html_table += '</tr>\n'
@@ -259,6 +293,8 @@ class SummaryReportGenerator:
                         html_table += f'<td style="text-align: center; color: {color};">{row[col]}</td>\n'
                     elif col == "Field":
                         html_table += f'<td class="field-cell" title="{row[col]}">{row[col]}</td>\n'
+                    elif col == "Type":
+                        html_table += f'<td class="type-cell">{row[col]}</td>\n'
                     else:
                         html_table += f'<td style="text-align: center;">{row[col]}</td>\n'
                 html_table += '</tr>\n'
@@ -272,7 +308,7 @@ class SummaryReportGenerator:
                     )
                     html_table = html_table.replace(
                         f'<td rowspan="placeholder_description">{current_description}</td>',
-                        f'<td rowspan="{description_rowspan}" style="text-align: center; vertical-align: middle;" class="description-cell">{current_description}</td>',
+                        f'<td rowspan="{description_rowspan}" style="text-align: left; vertical-align: middle;" class="description-cell">{current_description}</td>',
                         1
                     )
                 current_tcid = row["TCID"]
@@ -288,6 +324,8 @@ class SummaryReportGenerator:
                         html_table += f'<td style="text-align: center; color: {color};">{row[col]}</td>\n'
                     elif col == "Field":
                         html_table += f'<td class="field-cell" title="{row[col]}">{row[col]}</td>\n'
+                    elif col == "Type":
+                        html_table += f'<td class="type-cell">{row[col]}</td>\n'
                     else:
                         html_table += f'<td style="text-align: center;">{row[col]}</td>\n'
                 html_table += '</tr>\n'
@@ -301,7 +339,7 @@ class SummaryReportGenerator:
             )
             html_table = html_table.replace(
                 f'<td rowspan="placeholder_description">{current_description}</td>',
-                f'<td rowspan="{description_rowspan}" style="text-align: center; vertical-align: middle;" class="description-cell">{current_description}</td>',
+                f'<td rowspan="{description_rowspan}" style="text-align: left; vertical-align: middle;" class="description-cell">{current_description}</td>',
                 1
             )
 
