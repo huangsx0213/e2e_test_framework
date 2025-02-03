@@ -6,12 +6,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from libraries.web.web_action.table_verifier import TableVerifier
 
+
 class Base:
     def __init__(self, driver: WebDriver, default_timeout: int = 60):
         self.driver = driver
         self.default_timeout = default_timeout
         self.table_verifier = TableVerifier(self.driver)
-
 
     def _get_element_description(self, element):
         if isinstance(element, WebElement):
@@ -42,12 +42,17 @@ class Base:
         else:
             return str(element)
 
-    def wait_for_element(self, locator, condition="presence", timeout=None):
+    def _resolve_element(self, element, element_desc, condition, timeout=None):
+        """ 解析元素，若传入的是 locator 元组，则等待元素加载 """
+        if isinstance(element, tuple):
+            return self.wait_for_element(element, element_desc, condition=condition, timeout=timeout)
+        return element
+
+    def wait_for_element(self, locator, element_desc=None, condition="presence", timeout=None):
         if timeout is None:
             timeout = self.default_timeout
 
-        logging.info(
-            f"{self.__class__.__name__}: Waiting for element with locator {locator}, condition: {condition}, timeout: {timeout}")
+        logging.debug(f"{self.__class__.__name__}: Waiting for element {element_desc} with locator {locator}, condition: {condition}, timeout: {timeout}")
         wait = WebDriverWait(self.driver, timeout)
 
         try:
@@ -62,9 +67,9 @@ class Base:
             else:
                 raise ValueError(f"{self.__class__.__name__}: Unsupported condition: {condition}")
 
-            element_desc = self._get_element_description(result)
-            logging.info(f"{self.__class__.__name__}: Element found successfully: {element_desc}")
+            element_desc = element_desc or self._get_element_description(result)
+            logging.info(f"{self.__class__.__name__}: Element found {element_desc} with locator {locator}, condition: {condition}.")
             return result
         except TimeoutException:
-            logging.error(f"{self.__class__.__name__}: Timeout waiting for element: {locator}, condition: {condition}")
+            logging.error(f"{self.__class__.__name__}: Timeout waiting for element {element_desc} with locator {locator}, condition: {condition}, timeout: {timeout}")
             raise

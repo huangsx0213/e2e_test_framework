@@ -204,7 +204,7 @@ class ResponseValidator(ResponseHandler):
         case_type = 'Sub Test'
         if self.is_main_test:
             case_type = 'Main Test'
-        logging.info(f"{self.__class__.__name__}: {message}")
+        logging.debug(f"{self.__class__.__name__}: {message}")
         logger.info(
             ColorLogger.success(f"{case_type}=> {self.__class__.__name__}: {message}") if success else ColorLogger.error(f"{case_type}=> {self.__class__.__name__}: {message}"),
             html=True)

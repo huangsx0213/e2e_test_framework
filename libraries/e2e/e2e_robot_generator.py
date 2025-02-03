@@ -121,7 +121,9 @@ class E2ERobotCasesGenerator:
 
     def _import_required_libraries(self, suite):
         try:
-            suite.resource.imports.library('libraries.web.page_object.PageObject')
+            test_config_path_arg = os.path.normpath(self.test_config_path).replace(os.path.sep, '/')
+            test_cases_path_arg = os.path.normpath(self.test_cases_path).replace(os.path.sep, '/')
+            suite.resource.imports.library('libraries.web.page_object.PageObject', args=[test_config_path_arg, test_cases_path_arg])
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error importing required libraries: {str(e)}")
             raise

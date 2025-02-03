@@ -127,7 +127,7 @@ class PageObject:
             wait = action_info['wait']
             locator = self.page_elements[page_name][element_name] if element_name else None
             action_params = self._extract_parameters(data_set, action_info['parameter_names'])
-            element_name_plus = f'{page_name}.{module_name}.{element_name}' if element_name else f'{page_name}.{module_name}'
+            element_desc = f'{page_name}.{module_name}.{element_name}' if element_name else f'{page_name}.{module_name}'
 
             logging.info(
                 f"{self.__class__.__name__}: Executing action:[{action}] on page:[{page_name}] module:[{module_name}]"
@@ -136,9 +136,9 @@ class PageObject:
             )
 
             if highlight:
-                self.web_actions.highlight_element(locator)
+                self.web_actions.highlight_element(locator, element_desc=element_desc)
 
-            self._execute_action(action, locator,element_name_plus, *action_params)
+            self._execute_action(action, locator, element_desc, *action_params)
 
             if wait:
                 try:
@@ -153,8 +153,9 @@ class PageObject:
 
             logging.info("=" * 80)
 
-    def _execute_action(self, action: str, locator, element_name_plus, *args, **kwargs):
-        action_map = {
+    def _execute_action(self, action: str, locator, element_desc, *args, **kwargs):
+        # 定义需要页面元素的操作映射
+        element_actions = {
             # ElementActions
             'send_keys': self.web_actions.send_keys,
             'click': self.web_actions.click,
@@ -165,13 +166,11 @@ class PageObject:
             'hover': self.web_actions.hover,
             'double_click': self.web_actions.double_click,
             'right_click': self.web_actions.right_click,
-            'scroll_into_view': self.web_actions.scroll_into_view,
-            'scroll_to_element': self.web_actions.scroll_to_element,
             'get_text': self.web_actions.get_text,
             'get_attribute': self.web_actions.get_attribute,
             'select_radio_by_value': self.web_actions.select_radio_by_value,
 
-            # VerificationActions
+            # VerificationActions（需要传入element_name用于错误提示或日志记录）
             'verify_text_is': self.web_actions.verify_text_is,
             'verify_figure_is': self.web_actions.verify_figure_is,
             'verify_text_contains': self.web_actions.verify_text_contains,
@@ -187,15 +186,31 @@ class PageObject:
             'get_text_save_to_variable': self.web_actions.get_text_save_to_variable,
             'verify_element_value_diff': self.web_actions.verify_element_value_diff,
 
-            # WaitActions
+            # WaitActions（部分等待操作依赖于页面元素）
             'wait_for_element_present': self.web_actions.wait_for_element_present,
             'wait_for_element_visible': self.web_actions.wait_for_element_visible,
             'wait_for_element_invisible': self.web_actions.wait_for_element_invisible,
             'wait_for_element_clickable': self.web_actions.wait_for_element_clickable,
             'wait_for_text_present_in_element': self.web_actions.wait_for_text_present_in_element,
             'wait_for_staleness_of': self.web_actions.wait_for_staleness_of,
-            'wait': self.web_actions.wait,
 
+            # JavaScriptActions
+            'fill_by_js': self.web_actions.fill_by_js,
+            'click_by_js': self.web_actions.click_by_js,
+            'js_click': self.web_actions.js_click,
+            'js_send_keys': self.web_actions.js_send_keys,
+            'js_clear': self.web_actions.js_clear,
+            'js_scroll_into_view': self.web_actions.js_scroll_into_view,
+            'js_scroll_to_element': self.web_actions.js_scroll_to_element,
+            'js_select_option': self.web_actions.js_select_option,
+            'js_hover': self.web_actions.js_hover,
+
+            # UtilsActions
+            'highlight_element': self.web_actions.highlight_element,
+        }
+
+        # 定义不依赖页面元素的操作映射
+        non_element_actions = {
             # WindowActions
             'switch_to_frame': self.web_actions.switch_to_frame,
             'switch_to_default_content': self.web_actions.switch_to_default_content,
@@ -210,14 +225,6 @@ class PageObject:
             # JavaScriptActions
             'execute_script': self.web_actions.execute_script,
             'execute_async_script': self.web_actions.execute_async_script,
-            'fill_by_js': self.web_actions.fill_by_js,
-            'click_by_js': self.web_actions.click_by_js,
-            'js_click': self.web_actions.js_click,
-            'js_send_keys': self.web_actions.js_send_keys,
-            'js_clear': self.web_actions.js_clear,
-            'js_scroll_into_view': self.web_actions.js_scroll_into_view,
-            'js_select_option': self.web_actions.js_select_option,
-            'js_hover': self.web_actions.js_hover,
 
             # AlertActions
             'accept_alert': self.web_actions.accept_alert,
@@ -237,7 +244,7 @@ class PageObject:
             'go_forward': self.web_actions.go_forward,
             'get_current_url': self.web_actions.get_current_url,
 
-            # TableActions
+            # TableActions（假定表格相关操作不需要传入element_name）
             'verify_table_exact': self.web_actions.verify_table_exact,
             'verify_table_row_exact': self.web_actions.verify_table_row_exact,
             'verify_specific_cell_exact': self.web_actions.verify_specific_cell_exact,
@@ -257,39 +264,37 @@ class PageObject:
 
             # UtilsActions
             'capture_screenshot': self.web_actions.capture_screenshot,
-            'highlight_element': self.web_actions.highlight_element,
+
+            # WaitActions（全局等待，不依赖具体的元素）
+            'wait': self.web_actions.wait,
         }
 
-        if action not in action_map and action not in self.custom_action_executor.custom_actions:
-            raise ValueError(f"{self.__class__.__name__}: Unsupported web_action: {action}")
-
-        # Create a new list to store the modified arguments
+        # 先对传入的参数进行变量替换
         new_args = []
         for arg in args:
             if isinstance(arg, str):
-                # Use regex to find all occurrences of ${...} in the string
+                # 使用正则匹配所有 ${...} 格式的变量
                 matches = re.findall(r'\$\{([^}]+)\}', arg)
                 if matches:
                     for match in matches:
-                        # Retrieve the actual value for the variable using builtin_lib
                         replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
-                        # Replace the ${...} placeholder with the actual value
                         arg = arg.replace(f'${{{match}}}', str(replacement_value))
-
                         logging.info(f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for web_action: {action}")
-
-            # Add the processed (or original) argument to the new list
             new_args.append(arg)
 
-        is_verification = action.startswith('verify_')
-
-        if is_verification:
-            kwargs['element_name'] = element_name_plus
-
-        if action in action_map:
-            return action_map[action](locator, *args, **kwargs) if locator else action_map[action](*args, **kwargs)
+        # 判断该动作是否在 element_actions 中，如果在，则加入element_name信息
+        if action in element_actions:
+            kwargs['element_desc'] = element_desc
+            if locator:
+                return element_actions[action](locator, *new_args, **kwargs)
+            else:
+                # 如果 locator 不存在时，可选择报错或者直接调用（取决于具体需求）
+                return element_actions[action](*new_args, **kwargs)
+        elif action in non_element_actions:
+            return non_element_actions[action](*new_args, **kwargs)
         elif action in self.custom_action_executor.custom_actions:
-            return self.custom_action_executor.execute_custom_action(action, locator, self.web_actions, *args, **kwargs)
+            # 如果是自定义操作，继续原有的处理逻辑
+            return self.custom_action_executor.execute_custom_action(action, locator, self.web_actions, *new_args, **kwargs)
         else:
             raise ValueError(f"{self.__class__.__name__}: Unsupported web_action: {action}")
 

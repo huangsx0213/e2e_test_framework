@@ -29,23 +29,16 @@ class UtilsActions(Base):
             logging.error(f"{self.__class__.__name__}: Failed to capture screenshot: {str(e)}")
             BuiltIn().log(f"{self.__class__.__name__}: Failed to capture screenshot: {str(e)}", level="ERROR")
 
-    def highlight_element(self, element, duration=2, color="lightgreen", border="3px solid red", condition="visibility"):
-        element_desc = self._get_element_description(element)
-        logging.info(f"{self.__class__.__name__}: Highlighting element: {element_desc}")
-
-        # Wait for element to be visible
-        if isinstance(element, tuple):
-            element = self.wait_for_element(element, condition=condition)
-
+    def highlight_element(self, locator, duration=2, color="lightgreen", border="3px solid red", element_desc=None, condition="visibility"):
+        element = self._resolve_element(locator, element_desc, condition)
+        element_desc = element_desc or self._get_element_description(locator)
+        logging.debug(f"{self.__class__.__name__}: Highlighting element [ {element_desc}:{locator} ] using JavaScript.")
         def apply_style(s):
             self.driver.execute_script("arguments[0].setAttribute('style', arguments[1]);", element, s)
-
         original_style = element.get_attribute('style')
-
         for _ in range(int(duration)):
             apply_style(f"background: {color}; border: {border};")
             time.sleep(0.25)
             apply_style(original_style)
             time.sleep(0.25)
-
-        logging.info(f"{self.__class__.__name__}: Finished highlighting element: {element_desc}")
+        logging.info(f"{self.__class__.__name__}: Highlighted element [ {element_desc}:{locator} ] using JavaScript successfully.")
