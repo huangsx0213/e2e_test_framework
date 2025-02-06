@@ -115,6 +115,11 @@ class PageObject:
         return modules
 
     @keyword
+    def set_environment_variables(self):
+        """设置环境变量为Robot Framework全局变量"""
+        self.web_test_loader.set_global_variables()
+
+    @keyword
     def execute_module(self, page_name: str, module_name: str, data_set: Dict = None):
 
         module_actions = self.page_modules[page_name][module_name]

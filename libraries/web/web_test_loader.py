@@ -3,6 +3,8 @@ import logging
 import pandas as pd
 import os
 from typing import Dict, List
+from robot.libraries.BuiltIn import BuiltIn
+
 
 class WebTestLoader:
     _instances = {}
@@ -25,7 +27,7 @@ class WebTestLoader:
         self.initialized = True
 
     def _load_excel_data(self) -> Dict[str, pd.DataFrame]:
-        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments', 'CustomActions']
+        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments', 'CustomActions', 'EnvVariables']
         return {sheet: pd.read_excel(self.excel_path, sheet_name=sheet).fillna("") for sheet in sheets}
 
     def _validate_data(self):
@@ -35,6 +37,15 @@ class WebTestLoader:
         self._validate_test_data()
         self._validate_web_environments()
         self._validate_custom_actions()
+        self._validate_environments()  # 验证新添加的 Environments Sheet
+
+    def _validate_environments(self):
+        environments = self.get_data_by_sheet_name('EnvVariables')
+        required_columns = ['Environment', 'Variable Name', 'Variable Value']
+        missing_columns = set(required_columns) - set(environments.columns)
+        if missing_columns:
+            logging.error(f"WebTestLoader: Missing required columns in Environments sheet: {', '.join(missing_columns)}")
+            raise ValueError(f"WebTestLoader: Missing required columns in Environments sheet: {', '.join(missing_columns)}")
 
     def _validate_test_cases(self):
         test_cases = self.get_data_by_sheet_name('TestCases')
@@ -256,3 +267,26 @@ class WebTestLoader:
     def get_custom_actions(self) -> Dict[str, str]:
         custom_actions_df = self.get_data_by_sheet_name('CustomActions')
         return dict(zip(custom_actions_df['Action Name'], custom_actions_df['Python Code']))
+
+    def get_environments_variables(self) -> List[Dict[str, str]]:
+        """获取当前激活环境的所有变量"""
+        environments = self.get_data_by_sheet_name('EnvVariables')
+        active_env = self.test_config.get('active_environment')
+        if not active_env:
+            logging.error("WebTestLoader: 'active_environment' is not defined in test_config.")
+            return []
+        env_vars = environments[environments['Environment'] == active_env]
+        if env_vars.empty:
+            logging.warning(f"WebTestLoader: No variables found for environment '{active_env}'.")
+            return []
+        return env_vars.to_dict('records')
+
+    def set_global_variables(self):
+        """将环境变量设置为Robot Framework的全局变量"""
+        env_variables = self.get_environments_variables()
+        built_in = BuiltIn()
+        for var in env_variables:
+            var_name = var['Variable Name']
+            var_value = var['Variable Value']
+            built_in.set_global_variable(f"${{{var_name}}}", var_value)
+            logging.info(f"WebTestLoader: Set global variable ${{{var_name}}} = {var_value}")

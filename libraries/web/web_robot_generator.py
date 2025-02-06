@@ -59,6 +59,9 @@ class WebUIRobotCasesGenerator:
             self.robot_suite = TestSuite('Web UI TestSuite')
             self._import_required_libraries(self.robot_suite)
 
+            # 设置套件级别的 Setup 关键字以设置全局变量
+            self.robot_suite.setup.config(name='set_environment_variables', args=[])
+
             # Filter test cases
             tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
             tags = tags or self.test_config.get('tags', [])
