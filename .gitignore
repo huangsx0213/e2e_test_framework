@@ -3,3 +3,4 @@
 /logs/
 /report/
 **/__pycache__/
+**/.idea/
