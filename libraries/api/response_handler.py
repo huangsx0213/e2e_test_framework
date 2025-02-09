@@ -181,11 +181,8 @@ class ResponseValidator(ResponseHandler):
         """Handles database validation checks."""
         try:
             if exp_result.startswith('db_'):
-                prefix = exp_result.split('.')[0]
-                db_config = self._get_db_config_by_prefix(prefix)
-                if not db_config:
-                    raise ValueError(f"No database configuration found for prefix: {prefix}")
-                self.db_validator.setup_database(db_config)
+                db_name = exp_result.split('.')[0]
+                self.db_validator.setup_database(db_name, self.db_configs)
                 is_valid, msg = self.db_validator.validate_database_value(exp_result)
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Failed to validate database: {str(e)}")

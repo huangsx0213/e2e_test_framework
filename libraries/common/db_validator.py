@@ -12,14 +12,17 @@ class DBValidator:
         self.db_name = None
         self.db_cache = {}
 
-    def setup_database(self, db_config):
+    def setup_database(self, db_name: str, db_configs: dict) -> None:
+        db_config = db_configs.get(db_name.lower())
+        if not db_config:
+            raise ValueError(f"{self.__class__.__name__}: No database configuration found for prefix: {db_name}")
+
         db_key = self.get_db_key(db_config)
         if db_key in self.db_cache:
             self.db = self.db_cache[db_key]
             logging.info(f"{self.__class__.__name__}: Using cached DB connection for {db_key}")
         else:
-            db_type = db_config['type'].lower()
-            db_config.pop('type')
+            db_type = db_config.pop('type').lower()
             self.db = create_database(db_type, **db_config)
             self.db_cache[db_key] = self.db
             logging.info(f"{self.__class__.__name__}: New DB connection created and cached for {db_key}")

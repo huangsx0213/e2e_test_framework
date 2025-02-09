@@ -1,0 +1,35 @@
+database:
+  DEV:
+    db_name1:
+      type: postgresql  # or oracle
+      user: vhuang1
+      password: Apj.com1
+      host: 10.191.111.77
+      port: 5432
+      database: postgres
+    db_name2:
+      type: postgresql
+      user: vhuang1
+      password: Apj.com1
+      host: 10.191.111.77
+      port: 5432
+      database: postgres
+  UAT:
+    db_name1:
+      type: oracle
+      user: uat_user
+      password: uat_password
+      host: uat_host
+      port: 1521
+      service_name: uat_service_name
+      min_connections: 1
+      max_connections: 10
+    db_name2:
+      type: oracle
+      user: uat_user
+      password: uat_password
+      host: uat_host
+      port: 1521
+      service_name: uat_service_name
+      min_connections: 1
+      max_connections: 10
