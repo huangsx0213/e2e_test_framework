@@ -182,8 +182,7 @@ class ResponseValidator(ResponseHandler):
         try:
             if exp_result.startswith('db_'):
                 db_name = exp_result.split('.')[0]
-                self.db_validator.setup_database(db_name)
-                is_valid, msg = self.db_validator.validate_database_value(exp_result)
+                is_valid, msg = self.db_validator.validate_database_value(db_name, exp_result)
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Failed to validate database: {str(e)}")
         result = {"Result": "Pass" if is_valid else "Fail"}
