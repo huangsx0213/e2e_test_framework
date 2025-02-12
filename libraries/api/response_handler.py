@@ -7,7 +7,7 @@ import xmltodict
 from requests import Response
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api import logger
-from libraries.common.db_validator import DBValidator
+from libraries.common.db_operator import DBValidator
 from libraries.common.log_manager import ColorLogger
 from libraries.common.utility_helpers import UtilityHelpers
 from libraries.common.variable_transformer import VariableTransformer
@@ -182,7 +182,7 @@ class ResponseValidator(ResponseHandler):
         try:
             if exp_result.startswith('db_'):
                 db_name = exp_result.split('.')[0]
-                self.db_validator.setup_database(db_name, self.db_configs)
+                self.db_validator.setup_database(db_name)
                 is_valid, msg = self.db_validator.validate_database_value(exp_result)
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Failed to validate database: {str(e)}")

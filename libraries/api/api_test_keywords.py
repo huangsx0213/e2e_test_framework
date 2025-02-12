@@ -5,7 +5,7 @@ from time import sleep
 from typing import Dict, List, Any
 import pandas as pd
 from libraries.common.config_manager import ConfigManager
-from libraries.common.db_validator import DBValidator
+from libraries.common.db_operator import DBValidator
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator

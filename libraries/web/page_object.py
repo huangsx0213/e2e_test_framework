@@ -11,6 +11,7 @@ from libraries.web.web_test_loader import WebTestLoader
 from libraries.web.webdriver_factory import WebDriverFactory
 from libraries.web.custom_action_executor import CustomActionExecutor
 from robot.libraries.BuiltIn import BuiltIn
+from libraries.common.db_operator import DBOperator
 
 builtin_lib = BuiltIn()
 
@@ -46,6 +47,7 @@ class PageObject:
         self._driver = None
         self._load_configuration()
         self._initialize_components()
+        self.database_operator = DBOperator()
 
     def _load_configuration(self):
         self.test_config = ConfigManager.load_yaml(self.test_config_path)
@@ -55,6 +57,7 @@ class PageObject:
     def _load_environment_config(self):
         environments = self.web_test_loader.get_web_environments()
         active_env = self.test_config['active_environment']
+        builtin_lib.set_global_variable('${active_environment}', active_env)
         env_config = environments[environments['Environment'] == active_env].iloc[0].to_dict()
         env_config['BrowserOptions'] = json.loads(env_config['BrowserOptions'])
 
@@ -274,6 +277,12 @@ class PageObject:
             'wait': self.web_actions.wait,
         }
 
+        db_actions = {
+            "db_insert": self.database_operator.flexible_insert,
+            "db_update": self.database_operator.flexible_update,
+            "db_delete": self.database_operator.flexible_delete,
+        }
+
         # 先对传入的参数进行变量替换
         new_args = []
         for arg in args:
@@ -297,6 +306,8 @@ class PageObject:
                 return element_actions[action](*new_args, **kwargs)
         elif action in non_element_actions:
             return non_element_actions[action](*new_args, **kwargs)
+        elif action in db_actions:
+            return db_actions[action](*new_args, **kwargs)
         elif action in self.custom_action_executor.custom_actions:
             # 如果是自定义操作，继续原有的处理逻辑
             return self.custom_action_executor.execute_custom_action(action, locator, self.web_actions, *new_args, **kwargs)
