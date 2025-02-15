@@ -1,9 +1,7 @@
-from typing import List, Dict, Any, Optional, Type
+from typing import List, Dict, Optional, Any
 from abc import ABC, abstractmethod
-import cx_Oracle
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from psycopg2.pool import ThreadedConnectionPool
+from sqlalchemy import create_engine, Table, MetaData, select, update, insert, delete, text
+from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
 
 
@@ -33,230 +31,174 @@ class Database(ABC):
     def insert(self, table: str, data: List[Dict]) -> int:
         pass
 
+    @abstractmethod
+    def delete(self, table: str, where: Optional[str] = None) -> int:
+        pass
+
     @contextmanager
     def transaction(self):
         """Context manager for handling transactions"""
+        session = self.Session()
         try:
-            yield
-            self.connection.commit()
+            yield session
+            session.commit()
         except Exception as e:
-            self.connection.rollback()
+            session.rollback()
             raise DatabaseError(f"Transaction failed: {str(e)}")
+        finally:
+            session.close()
 
 
-class OracleDatabase(Database):
+class SQLAlchemyDatabase(Database):
     def __init__(self):
-        self.pool = None
-        self.connection = None
+        self.engine = None
+        self.Session = None
+        self.metadata = MetaData()
+        self.default_schema = None  # Store the default schema for the connection
+        self.db_type = None
 
-    def connect(self, user: str, password: str, host: str, port: int, service_name: str, min_connections: int = 1, max_connections: int = 10):
+    @classmethod
+    def create_databases(cls, db_configs: Dict) -> Dict[str, 'SQLAlchemyDatabase']:
+        databases = {}
+        for db_name, config in db_configs.items():
+            db_type = config.pop('type').lower()
+            schema = config.pop('schema', None)
+            db = cls()  # Use cls() to create an instance
+            db.connect(db_type=db_type, schema=schema, **config)
+            databases[db_name] = db
+        return databases
+
+    def connect(self, user: str, password: str, host: str, port: int, database: str, db_type: str = 'postgresql',
+                schema: Optional[str] = None):
         try:
-            dsn = cx_Oracle.makedsn(host, port, service_name=service_name)
-            self.pool = cx_Oracle.SessionPool(user, password, dsn, min=min_connections, max=max_connections, increment=1, threaded=True)
-        except cx_Oracle.Error as e:
-            raise DatabaseError(f"Failed to create connection pool for Oracle: {str(e)}")
+            self.db_type = db_type
+            if db_type == 'postgresql':
+                url = f"{db_type}://{user}:{password}@{host}:{port}/{database}"
+                self.default_schema = schema or 'public'
+            elif db_type == 'oracle':
+                url = f"oracle+cx_oracle://{user}:{password}@{host}:{port}/?service_name={database}"
+                self.default_schema = schema or user.upper()  # Oracle schema is usually the username in uppercase
+            elif db_type == 'mysql':
+                url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+                self.default_schema = schema or database  # In MySQL, schema is often the same as the database
+            else:
+                raise ValueError(f"Unsupported database type: {db_type}")
 
-    def _get_connection(self):
-        if not self.pool:
-            raise DatabaseError("Connection pool not initialized")
-        try:
-            return self.pool.acquire()
-        except cx_Oracle.Error as e:
-            raise DatabaseError(f"Failed to acquire connection from pool: {str(e)}")
-
-    def _release_connection(self):
-        if self.connection:
-            self.pool.release(self.connection)
-            self.connection = None
+            self.engine = create_engine(url)
+            self.Session = sessionmaker(bind=self.engine)
+            self.metadata.reflect(bind=self.engine, schema=self.default_schema if db_type != 'mysql' else None)  # Reflect only if not MySQL
+        except Exception as e:
+            raise DatabaseError(f"Failed to create connection to {db_type}: {str(e)}")
 
     def disconnect(self):
-        if self.pool:
-            try:
-                self.pool.close()
-            finally:
-                self.pool = None
+        if self.engine:
+            self.engine.dispose()
+
+    def _get_table(self, table_name: str, schema: Optional[str] = None) -> Table:
+        """Helper to get Table object, handling schema appropriately."""
+        effective_schema = schema or self.default_schema
+
+        if self.db_type == 'mysql':
+            # MySQL: No schema handling at the Table level.
+            if effective_schema != self.default_schema:
+                raise DatabaseError("MySQL does not support switching schemas after connection.")
+            table_obj = self.metadata.tables.get(table_name)
+        else:
+            # PostgreSQL, Oracle, etc.: Use schema if provided, otherwise use default.
+            table_obj = Table(table_name, self.metadata, schema=effective_schema, autoload_with=self.engine)
+
+        if table_obj is None:
+            raise DatabaseError(f"Table '{table_name}' not found in schema '{effective_schema}'.")
+        return table_obj
 
     def execute_query(self, table: str, fields: Optional[List[str]] = None, where: Optional[str] = None, order_by: Optional[str] = None) -> List[Dict]:
+        table_obj = self._get_table(table, self.default_schema)
+
+        # Determine which columns to select
         if fields:
-            field_str = ', '.join(fields)
+            columns = [table_obj.c[field] for field in fields if field in table_obj.c]
+            if len(columns) != len(fields):
+                missing_fields = set(fields) - set(col.name for col in columns)
+                raise ValueError(f"Invalid field(s) specified: {', '.join(missing_fields)}")
         else:
-            field_str = '*'
+            columns = [col for col in table_obj.columns]
 
-        query = f"SELECT {field_str} FROM {table}"
+        stmt = select(*columns)
+
         if where:
-            query += f" WHERE {where}"
+            stmt = stmt.where(text(where))
         if order_by:
-            query += f" ORDER BY {order_by}"
-
-        connection = self._get_connection()
-        try:
-            with connection.cursor() as cursor:
-                try:
-                    cursor.execute(query)
-                    if fields:
-                        return [{field: row[fields.index(field)] for field in fields} for row in cursor]
+            order_clauses = []
+            for order_term in order_by.split(','):
+                order_term = order_term.strip()
+                if order_term.lower().endswith(" desc"):
+                    col_name = order_term[:-5].strip()
+                    if col_name in table_obj.c:
+                        order_clauses.append(table_obj.c[col_name].desc())
                     else:
-                        return [dict(zip([desc[0].lower() for desc in cursor.description], row))
-                                for row in cursor.fetchall()]
-                except cx_Oracle.Error as e:
-                    raise DatabaseError(f"Query execution failed: {str(e)}")
-        finally:
-            self._release_connection()
+                        raise ValueError(f"Invalid order_by column: {col_name}")
+                elif order_term.lower().endswith(" asc"):
+                    col_name = order_term[:-4].strip()
+                    if col_name in table_obj.c:
+                        order_clauses.append(table_obj.c[col_name].asc())
+                    else:
+                        raise ValueError(f"Invalid order_by column: {col_name}")
+                else:
+                    if order_term in table_obj.c:
+                        order_clauses.append(table_obj.c[order_term].asc())
+                    else:
+                        raise ValueError(f"Invalid order_by column: {order_term}")
+            stmt = stmt.order_by(*order_clauses)
 
-    def update(self, table: str, values: Dict, where: Optional[str] = None) -> bool:
-        update_clause = ", ".join([f"{key} = :{key}" for key in values.keys()])
-        query = f"UPDATE {table} SET {update_clause}"
-        if where:
-            query += f" WHERE {where}"
+        with self.engine.connect() as connection:
+            result = connection.execute(stmt)
 
-        connection = self._get_connection()
-        try:
-            with connection.cursor() as cursor:
-                try:
-                    cursor.execute(query, values)
-                    connection.commit()
-                    return True
-                except cx_Oracle.Error as e:
-                    connection.rollback()
-                    raise DatabaseError(f"Update failed: {str(e)}")
-        finally:
-            self._release_connection()
+            # Use the Row object's _mapping attribute for dictionary-like access
+            return [row._mapping for row in result]
 
     def insert(self, table: str, data: List[Dict]) -> int:
-        if not data:
-            return 0
+        table_obj = self._get_table(table, self.default_schema)
+        stmt = insert(table_obj).values(data)
 
-        columns = ', '.join(data[0].keys())
-        placeholders = ', '.join([':' + key for key in data[0].keys()])
-        query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
-
-        connection = self._get_connection()
-        try:
-            with connection.cursor() as cursor:
+        with self.engine.connect() as connection:
+            with connection.begin() as transaction:
                 try:
-                    cursor.executemany(query, data)
-                    connection.commit()
-                    return cursor.rowcount
-                except cx_Oracle.Error as e:
-                    connection.rollback()
-                    raise DatabaseError(f"Insert failed: {str(e)}")
-        finally:
-            self._release_connection()
-
-
-class PostgreSQLDatabase(Database):
-    def __init__(self):
-        self.pool = None
-        self.connection = None
-
-    def connect(self, user: str, password: str, host: str, port: int, database: str, minconn: int = 1, maxconn: int = 10):
-        try:
-            self.pool = ThreadedConnectionPool(minconn, maxconn,
-                                                             user=user, password=password,
-                                                             host=host, port=port, database=database)
-        except psycopg2.Error as e:
-            raise DatabaseError(f"Failed to create connection pool for PostgreSQL: {str(e)}")
-
-    def _get_connection(self):
-        if not self.pool:
-            raise DatabaseError("Connection pool not initialized")
-        try:
-            return self.pool.getconn()
-        except psycopg2.Error as e:
-            raise DatabaseError(f"Failed to acquire connection from pool: {str(e)}")
-
-    def _release_connection(self, connection):
-        if connection:
-            self.pool.putconn(connection)
-
-    def disconnect(self):
-        if self.pool:
-            try:
-                self.pool.closeall()
-            except psycopg2.Error:
-                pass  # Ignore if already closed or if there's an error during close
-
-    def execute_query(self, table: str, fields: Optional[List[str]] = None, where: Optional[str] = None, order_by: Optional[str] = None) -> List[Dict]:
-        if fields:
-            field_str = ', '.join(fields)
-        else:
-            field_str = '*'
-
-        query = f"SELECT {field_str} FROM {table}"
-        if where:
-            query += f" WHERE {where}"
-        if order_by:
-            query += f" ORDER BY {order_by}"
-
-        connection = self._get_connection()
-        try:
-            with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-                try:
-                    cursor.execute(query)
-                    if fields:
-                        return [dict((k, row[k]) for k in fields if k in row)
-                                for row in cursor.fetchall()]
-                    return cursor.fetchall()
-                except psycopg2.Error as e:
-                    raise DatabaseError(f"Query execution failed: {str(e)}")
-        finally:
-            self._release_connection(connection)
+                    result = connection.execute(stmt)
+                    transaction.commit()
+                    return result.rowcount
+                except Exception as e:
+                    transaction.rollback()
+                    raise DatabaseError(f"Insert operation failed: {str(e)}")
 
     def update(self, table: str, values: Dict, where: Optional[str] = None) -> bool:
-        update_clause = ", ".join([f"{key} = %({key})s" for key in values.keys()])
-        query = f"UPDATE {table} SET {update_clause}"
+        table_obj = self._get_table(table, self.default_schema)
+        stmt = update(table_obj).values(values)
         if where:
-            query += f" WHERE {where}"
+            stmt = stmt.where(text(where))
 
-        connection = self._get_connection()
-        try:
-            with connection.cursor() as cursor:
+        with self.engine.connect() as connection:
+            with connection.begin() as transaction:
                 try:
-                    cursor.execute(query, values)
-                    connection.commit()
-                    return True
-                except psycopg2.Error as e:
-                    connection.rollback()
-                    raise DatabaseError(f"Update failed: {str(e)}")
-        finally:
-            self._release_connection(connection)
+                    result = connection.execute(stmt)
+                    transaction.commit()  # Commit the transaction
+                    return result.rowcount > 0
+                except Exception as e:
+                    transaction.rollback()  # Rollback if an error occurs
+                    raise DatabaseError(f"Update operation failed: {str(e)}")
 
-    def insert(self, table: str, data: List[Dict]) -> int:
-        if not data:
-            return 0
+    def delete(self, table: str, where: Optional[str] = None) -> int:
+        table_obj = self._get_table(table, self.default_schema)
+        stmt = delete(table_obj)
+        if where:
+            stmt = stmt.where(text(where))
 
-        columns = ', '.join(data[0].keys())
-        placeholders = ', '.join(['%(' + key + ')s' for key in data[0].keys()])
-        query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
-
-        connection = self._get_connection()
-        try:
-            with connection.cursor() as cursor:
+        with self.engine.connect() as connection:
+            with connection.begin() as transaction:
                 try:
-                    cursor.executemany(query, data)
-                    connection.commit()
-                    return cursor.rowcount
-                except psycopg2.Error as e:
-                    connection.rollback()
-                    raise DatabaseError(f"Insert failed: {str(e)}")
-        finally:
-            self._release_connection(connection)
+                    result = connection.execute(stmt)
+                    transaction.commit()  # Commit the transaction
+                    return result.rowcount
+                except Exception as e:
+                    transaction.rollback()  # Rollback if an error occurs
+                    raise DatabaseError(f"Delete operation failed: {str(e)}")
 
-
-def get_database(db_type: str) -> Type[Database]:
-    """Factory function to get the appropriate database class"""
-    databases = {
-        'oracle': OracleDatabase,
-        'postgresql': PostgreSQLDatabase
-    }
-    if db_type.lower() not in databases:
-        raise ValueError(f"Unsupported database type: {db_type}")
-    return databases[db_type.lower()]
-
-
-def create_database(db_type: str, **kwargs) -> Database:
-    """Factory function to create and connect to a database"""
-    DatabaseClass = get_database(db_type)
-    db = DatabaseClass()
-    db.connect(**kwargs)
-    return db

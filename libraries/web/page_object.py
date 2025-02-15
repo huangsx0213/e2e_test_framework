@@ -87,7 +87,7 @@ class PageObject:
     def driver(self):
         if self._driver is None:
             active_env_config = self.env_config['environments'][self.test_config['active_environment']]
-            if self._web_actions_instance is None:
+            if self._web_actions_instance:
                 self._driver = WebDriverSingleton.get_instance(active_env_config)
                 # self._driver.minimize_window()
         return self._driver
@@ -279,9 +279,9 @@ class PageObject:
         }
 
         db_actions = {
-            "db_insert": self.database_operator.flexible_insert,
-            "db_update": self.database_operator.flexible_update,
-            "db_delete": self.database_operator.flexible_delete,
+            "insert_data": self.database_operator.insert_data,
+            "update_data": self.database_operator.update_data,
+            "delete_data": self.database_operator.delete_data,
         }
 
         # 先对传入的参数进行变量替换

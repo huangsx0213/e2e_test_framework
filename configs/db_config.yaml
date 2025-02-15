@@ -2,6 +2,7 @@ database:
   DEV:
     db_name1:
       type: postgresql  # or oracle
+      schema: public
       user: vhuang1
       password: Apj.com1
       host: 10.191.111.77
@@ -9,6 +10,7 @@ database:
       database: postgres
     db_name2:
       type: postgresql
+      schema: public
       user: vhuang1
       password: Apj.com1
       host: 10.191.111.77

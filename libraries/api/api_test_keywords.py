@@ -39,6 +39,7 @@ class APITestKeywords:
         self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
 
         self.active_environment = self.test_config['active_environment']
+        builtin_lib.set_global_variable('${active_environment}', self.active_environment)
         self.active_db_configs = self.db_configs.get('database', {}).get(self.active_environment, {})
         if not self.active_db_configs:
             raise ValueError(f"No database configuration for environment: {self.active_environment}")
