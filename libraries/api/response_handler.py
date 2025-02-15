@@ -7,7 +7,7 @@ import xmltodict
 from requests import Response
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api import logger
-from libraries.common.db_operator import DBValidator
+from libraries.common.db_operator import DBOperator
 from libraries.common.log_manager import ColorLogger
 from libraries.common.utility_helpers import UtilityHelpers
 from libraries.common.variable_transformer import VariableTransformer
@@ -84,7 +84,7 @@ class ResponseValidator(ResponseHandler):
     def __init__(self, db_configs):
         super().__init__()
         self.db_configs = db_configs
-        self.db_validator = DBValidator()
+        self.db_validator = DBOperator()
         self.is_main_test = False
 
     def validate(self, test_case: dict, response, pre_check_responses=None, post_check_responses=None) -> None:

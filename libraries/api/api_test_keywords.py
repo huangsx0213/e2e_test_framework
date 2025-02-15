@@ -5,7 +5,7 @@ from time import sleep
 from typing import Dict, List, Any
 import pandas as pd
 from libraries.common.config_manager import ConfigManager
-from libraries.common.db_operator import DBValidator
+from libraries.common.db_operator import DBOperator
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator
@@ -60,7 +60,7 @@ class APITestKeywords:
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
         self.api_response_validator: ResponseValidator = ResponseValidator(self.active_db_configs)
         self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
-        self.db_validator = DBValidator()
+        self.db_validator = DBOperator()
 
     @keyword
     def api_sanity_check(self) -> None:
