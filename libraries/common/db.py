@@ -2,7 +2,7 @@ from typing import List, Dict, Optional, Any
 from abc import ABC, abstractmethod
 from sqlalchemy import create_engine, Table, MetaData, select, update, insert, delete, text
 from sqlalchemy.orm import sessionmaker
-from contextlib import contextmanager
+from contextlib import contextmanager, closing
 
 
 class DatabaseError(Exception):
@@ -54,16 +54,16 @@ class SQLAlchemyDatabase(Database):
         self.engine = None
         self.Session = None
         self.metadata = MetaData()
-        self.default_schema = None  # Store the default schema for the connection
+        self.default_schema = None
         self.db_type = None
 
     @classmethod
-    def create_databases(cls, db_configs: Dict) -> Dict[str, 'SQLAlchemyDatabase']:
+    def create_databases(cls, db_configs: Dict[str, Dict[str, Any]]) -> Dict[str, 'SQLAlchemyDatabase']:
         databases = {}
         for db_name, config in db_configs.items():
             db_type = config.pop('type').lower()
             schema = config.pop('schema', None)
-            db = cls()  # Use cls() to create an instance
+            db = cls()
             db.connect(db_type=db_type, schema=schema, **config)
             databases[db_name] = db
         return databases
@@ -71,22 +71,11 @@ class SQLAlchemyDatabase(Database):
     def connect(self, user: str, password: str, host: str, port: int, database: str, db_type: str = 'postgresql',
                 schema: Optional[str] = None):
         try:
-            self.db_type = db_type
-            if db_type == 'postgresql':
-                url = f"{db_type}://{user}:{password}@{host}:{port}/{database}"
-                self.default_schema = schema or 'public'
-            elif db_type == 'oracle':
-                url = f"oracle+cx_oracle://{user}:{password}@{host}:{port}/?service_name={database}"
-                self.default_schema = schema or user.upper()  # Oracle schema is usually the username in uppercase
-            elif db_type == 'mysql':
-                url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
-                self.default_schema = schema or database  # In MySQL, schema is often the same as the database
-            else:
-                raise ValueError(f"Unsupported database type: {db_type}")
-
+            url = self._build_db_url(user, password, host, port, database, db_type)
+            self.default_schema = schema or self._default_schema(db_type, database)
             self.engine = create_engine(url)
             self.Session = sessionmaker(bind=self.engine)
-            self.metadata.reflect(bind=self.engine, schema=self.default_schema if db_type != 'mysql' else None)  # Reflect only if not MySQL
+            self.metadata.reflect(bind=self.engine, schema=self.default_schema if db_type != 'mysql' else None)
         except Exception as e:
             raise DatabaseError(f"Failed to create connection to {db_type}: {str(e)}")
 
@@ -94,111 +83,88 @@ class SQLAlchemyDatabase(Database):
         if self.engine:
             self.engine.dispose()
 
-    def _get_table(self, table_name: str, schema: Optional[str] = None) -> Table:
-        """Helper to get Table object, handling schema appropriately."""
-        effective_schema = schema or self.default_schema
-
-        if self.db_type == 'mysql':
-            # MySQL: No schema handling at the Table level.
-            if effective_schema != self.default_schema:
-                raise DatabaseError("MySQL does not support switching schemas after connection.")
-            table_obj = self.metadata.tables.get(table_name)
+    def _build_db_url(self, user: str, password: str, host: str, port: int, database: str, db_type: str) -> str:
+        if db_type == 'postgresql':
+            return f"{db_type}://{user}:{password}@{host}:{port}/{database}"
+        elif db_type == 'oracle':
+            return f"oracle+cx_oracle://{user}:{password}@{host}:{port}/?service_name={database}"
+        elif db_type == 'mysql':
+            return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
         else:
-            # PostgreSQL, Oracle, etc.: Use schema if provided, otherwise use default.
-            table_obj = Table(table_name, self.metadata, schema=effective_schema, autoload_with=self.engine)
+            raise ValueError(f"Unsupported database type: {db_type}")
 
+    def _default_schema(self, db_type: str, database: str) -> str:
+        if db_type == 'oracle':
+            return database.upper()
+        elif db_type == 'mysql':
+            return database
+        return 'public'
+
+    def _get_table(self, table_name: str, schema: Optional[str] = None) -> Table:
+        effective_schema = schema or self.default_schema
+        if self.db_type == 'mysql' and effective_schema != self.default_schema:
+            raise DatabaseError("MySQL does not support switching schemas after connection.")
+        table_obj = self.metadata.tables.get(table_name) or Table(table_name, self.metadata, schema=effective_schema, autoload_with=self.engine)
         if table_obj is None:
             raise DatabaseError(f"Table '{table_name}' not found in schema '{effective_schema}'.")
         return table_obj
 
     def execute_query(self, table: str, fields: Optional[List[str]] = None, where: Optional[str] = None, order_by: Optional[str] = None) -> List[Dict]:
         table_obj = self._get_table(table, self.default_schema)
+        columns = self._construct_columns(fields, table_obj)
+        stmt = select(*columns).where(text(where)) if where else select(*columns)
+        if order_by:
+            stmt = stmt.order_by(*self._construct_order_by(order_by, table_obj))
+        with closing(self.engine.connect()) as connection:
+            return [row._mapping for row in connection.execute(stmt)]
 
-        # Determine which columns to select
+    def _construct_columns(self, fields: Optional[List[str]], table_obj: Table) -> List:
         if fields:
             columns = [table_obj.c[field] for field in fields if field in table_obj.c]
             if len(columns) != len(fields):
-                missing_fields = set(fields) - set(col.name for col in columns)
-                raise ValueError(f"Invalid field(s) specified: {', '.join(missing_fields)}")
+                raise ValueError(f"Invalid field(s) specified: {', '.join(set(fields) - set(col.name for col in columns))}")
         else:
-            columns = [col for col in table_obj.columns]
+            columns = list(table_obj.columns)
+        return columns
 
-        stmt = select(*columns)
-
-        if where:
-            stmt = stmt.where(text(where))
-        if order_by:
-            order_clauses = []
-            for order_term in order_by.split(','):
-                order_term = order_term.strip()
-                if order_term.lower().endswith(" desc"):
-                    col_name = order_term[:-5].strip()
-                    if col_name in table_obj.c:
-                        order_clauses.append(table_obj.c[col_name].desc())
-                    else:
-                        raise ValueError(f"Invalid order_by column: {col_name}")
-                elif order_term.lower().endswith(" asc"):
-                    col_name = order_term[:-4].strip()
-                    if col_name in table_obj.c:
-                        order_clauses.append(table_obj.c[col_name].asc())
-                    else:
-                        raise ValueError(f"Invalid order_by column: {col_name}")
-                else:
-                    if order_term in table_obj.c:
-                        order_clauses.append(table_obj.c[order_term].asc())
-                    else:
-                        raise ValueError(f"Invalid order_by column: {order_term}")
-            stmt = stmt.order_by(*order_clauses)
-
-        with self.engine.connect() as connection:
-            result = connection.execute(stmt)
-
-            # Use the Row object's _mapping attribute for dictionary-like access
-            return [row._mapping for row in result]
+    def _construct_order_by(self, order_by: str, table_obj: Table) -> List:
+        order_clauses = []
+        for term in order_by.split(','):
+            direction = 'desc' if term.lower().endswith(' desc') else 'asc'
+            col_name = term.split()[0]
+            if col_name not in table_obj.c:
+                raise ValueError(f"Invalid order_by column: {col_name}")
+            order_clauses.append(getattr(table_obj.c[col_name], direction)())
+        return order_clauses
 
     def insert(self, table: str, data: List[Dict]) -> int:
         table_obj = self._get_table(table, self.default_schema)
-        stmt = insert(table_obj).values(data)
-
-        with self.engine.connect() as connection:
-            with connection.begin() as transaction:
-                try:
-                    result = connection.execute(stmt)
-                    transaction.commit()
-                    return result.rowcount
-                except Exception as e:
-                    transaction.rollback()
-                    raise DatabaseError(f"Insert operation failed: {str(e)}")
+        with closing(self.engine.connect()) as connection, connection.begin() as transaction:
+            try:
+                result = connection.execute(insert(table_obj).values(data))
+                return result.rowcount
+            except Exception as e:
+                transaction.rollback()
+                raise DatabaseError(f"Insert operation failed: {str(e)}")
 
     def update(self, table: str, values: Dict, where: Optional[str] = None) -> bool:
         table_obj = self._get_table(table, self.default_schema)
-        stmt = update(table_obj).values(values)
-        if where:
-            stmt = stmt.where(text(where))
-
-        with self.engine.connect() as connection:
-            with connection.begin() as transaction:
-                try:
-                    result = connection.execute(stmt)
-                    transaction.commit()  # Commit the transaction
-                    return result.rowcount > 0
-                except Exception as e:
-                    transaction.rollback()  # Rollback if an error occurs
-                    raise DatabaseError(f"Update operation failed: {str(e)}")
+        stmt = update(table_obj).values(values).where(text(where)) if where else update(table_obj).values(values)
+        with closing(self.engine.connect()) as connection, connection.begin() as transaction:
+            try:
+                result = connection.execute(stmt)
+                return result.rowcount > 0
+            except Exception as e:
+                transaction.rollback()
+                raise DatabaseError(f"Update operation failed: {str(e)}")
 
     def delete(self, table: str, where: Optional[str] = None) -> int:
         table_obj = self._get_table(table, self.default_schema)
-        stmt = delete(table_obj)
-        if where:
-            stmt = stmt.where(text(where))
-
-        with self.engine.connect() as connection:
-            with connection.begin() as transaction:
-                try:
-                    result = connection.execute(stmt)
-                    transaction.commit()  # Commit the transaction
-                    return result.rowcount
-                except Exception as e:
-                    transaction.rollback()  # Rollback if an error occurs
-                    raise DatabaseError(f"Delete operation failed: {str(e)}")
-
+        stmt = delete(table_obj).where(text(where)) if where else delete(table_obj)
+        with closing(self.engine.connect()) as connection, connection.begin() as transaction:
+            try:
+                result = connection.execute(stmt)
+                return result.rowcount
+            except Exception as e:
+                transaction.rollback()
+                raise DatabaseError(f"Delete operation failed: {str(e)}")
