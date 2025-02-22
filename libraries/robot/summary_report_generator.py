@@ -70,11 +70,11 @@ class SummaryReportGenerator:
                         if parsed:
                             test_results.append(parsed)
             elif keyword.name == 'Execute Module':
-                test_case_id = test.name.split('.')[1]
-                page = keyword.args[0]
+                test_name_parts = test.name.split('.')
+                test_case_id = f'{test_name_parts[-2]}.{test_name_parts[-1]}'
                 for log_msg in keyword.messages:
                     if "UI Verification: Asserting" in log_msg.message:
-                        parsed = self._parse_ui_verification_log(log_msg.message, test_case_id,page, test.doc)
+                        parsed = self._parse_ui_verification_log(log_msg.message, test_case_id,test.doc)
                         if parsed:
                             test_results.append(parsed)
         return test_results
@@ -171,7 +171,7 @@ class SummaryReportGenerator:
             "Result": "Pass" if actual_value == expected_value else "Fail",
         }
 
-    def _parse_ui_verification_log(self, log_message, tcid,page, description):
+    def _parse_ui_verification_log(self, log_message, tcid,description):
         parts = re.split(r"UI Verification: Asserting:\s*(.*?),\s*(.*?),\s*Expected:\s*(.*?),\s*Actual:\s*([^<]*)", log_message)
         if len(parts) != 6:
             logging.error(f"Could not parse UI verification log message: {log_message}")
