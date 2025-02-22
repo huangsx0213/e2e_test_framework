@@ -62,7 +62,7 @@ class E2ERobotCasesGenerator:
             self.robot_suite = TestSuite('End To End TestSuite')
             self._import_required_libraries(self.robot_suite)
 
-            # 设置套件级别的 Setup 关键字以设置全局变量
+            # Set suite level Setup keyword for global variables
             self.robot_suite.setup.config(name='set_environment_variables', args=[])
 
             # Filter test cases
@@ -73,15 +73,29 @@ class E2ERobotCasesGenerator:
             if test_cases.empty:
                 logging.warning(f"{self.__class__.__name__}: No test cases found matching criteria.")
                 return self.robot_suite
-            # Iterate through test cases in order
+
+            # Organize test cases by Suite and Case ID
             for _, test_case in test_cases.iterrows():
                 # Add a new sub-suite for each unique 'Suite' value
                 suite_name = test_case['Suite']
-                if suite_name not in [suite.name for suite in self.robot_suite.suites]:
-                    self.sub_suite = self.robot_suite.suites.create(name=suite_name)
-                    self._import_required_libraries(self.sub_suite)
+                case_id = test_case['Case ID']
 
-                self.create_test_case(test_case)  # Create test case within the sub-suite
+                # Create or get the main suite layer
+                if suite_name not in [suite.name for suite in self.robot_suite.suites]:
+                    self.main_suite = self.robot_suite.suites.create(name=suite_name)
+                    self._import_required_libraries(self.main_suite)
+                else:
+                    self.main_suite = next(suite for suite in self.robot_suite.suites if suite.name == suite_name)
+
+                # Create or get the case ID suite layer
+                case_suite_name = f"Case_{case_id}"
+                if case_suite_name not in [suite.name for suite in self.main_suite.suites]:
+                    self.case_suite = self.main_suite.suites.create(name=case_suite_name)
+                    self._import_required_libraries(self.case_suite)
+                else:
+                    self.case_suite = next(suite for suite in self.main_suite.suites if suite.name == case_suite_name)
+
+                self.create_test_case(test_case)  # Create test case within the case suite
 
             # Configure suite teardown
             self.robot_suite.teardown.config(name='close_browser', args=[])
@@ -105,7 +119,7 @@ class E2ERobotCasesGenerator:
             # Generate tests for each data set
             for data_set_index, data_set in enumerate(test_data_sets, 1):
                 test_name = f"UI.{case_id}.{data_set_index}"
-                robot_test = self.sub_suite.tests.create(name=test_name, doc=test_case['Descriptions'])
+                robot_test = self.case_suite.tests.create(name=test_name, doc=test_case['Descriptions'])
                 robot_test.body.create_keyword(name='sanity_check', args=[])
 
                 # Add tags
@@ -139,11 +153,11 @@ class E2ERobotCasesGenerator:
                     page_name = step['Page Name']
                     module_name = step['Module Name']
 
-                # Generate steps based on module type
-                if module_name == 'API':
-                    self._generate_api_step(step, robot_test)
-                else:
-                    self._generate_ui_step(robot_test, step, page_name, module_name, data_set)
+                    # Generate steps based on module type
+                    if module_name == 'API':
+                        self._generate_api_step(step, robot_test)
+                    else:
+                        self._generate_ui_step(robot_test, step, page_name, module_name, data_set)
 
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error creating test steps: {str(e)}")
@@ -151,9 +165,9 @@ class E2ERobotCasesGenerator:
 
     def _generate_api_step(self, step, robot_test):
         try:
-            self.sub_suite.tests.remove(robot_test)
+            self.case_suite.tests.remove(robot_test)
             tc_id_list = step['APIs'].split(',')
-            self.api_robot_generator.create_test_suite(tc_id_list, None, self.sub_suite)
+            self.api_robot_generator.create_test_suite(tc_id_list, None, self.case_suite)
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error generating API step: {str(e)}")
             raise
@@ -161,7 +175,6 @@ class E2ERobotCasesGenerator:
     def _generate_ui_step(self, robot_ui_test, step, page_name, module_name, params):
         try:
             robot_ui_test.body.create_keyword(name='execute_module', args=[page_name, module_name, params])
-            # self.child_suite.teardown.config(name='close_browser', args=[])
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error generating UI step for {page_name}.{module_name}: {str(e)}")
             raise
