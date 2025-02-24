@@ -1,45 +1,32 @@
-import logging
 import os
+import logging
 from typing import Dict, List
 import pandas as pd
-from libraries.api.api_test_loader import APITestLoader
+from robot.api import TestSuite
 from libraries.common.config_manager import ConfigManager
 from libraries.common.utility_helpers import PROJECT_ROOT
-from robot.api import TestSuite
-from libraries.common.log_manager import logger_instance
+from libraries.api.api_test_loader import APITestLoader
+from libraries.robot.case_generator.base_generator import RobotCaseGenerator
 
-
-class APIRobotCasesGenerator:
-    def __init__(self, test_config_path: str = None, test_cases_path: str = None) -> None:
+class APIRobotCaseGenerator(RobotCaseGenerator):
+    def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root: str = PROJECT_ROOT
         self.test_config_path = test_config_path
         self.test_cases_path = test_cases_path
-        self.test_cases_df = None
+        self.test_config = None
+        self.api_test_loader = None
         self.api_suite = None
 
-        self._initialize()
-
-    def _initialize(self) -> None:
-        """Initialize the configuration and components."""
-        self._load_configuration()
-        self._initialize_components()
-
-    def _load_configuration(self) -> None:
-        """Load configuration from YAML file."""
+    def load_configuration(self):
         self.test_config_path = self.test_config_path or os.path.join(self.project_root, 'configs', 'api_test_config.yaml')
-
         try:
             self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
             logging.info(f"{self.__class__.__name__}: Configuration loaded successfully from {self.test_config_path}")
-        except FileNotFoundError:
-            logging.error(f"{self.__class__.__name__}: Config file not found at {self.test_config_path}")
-            raise
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error loading configuration: {str(e)}")
             raise
 
-    def _initialize_components(self) -> None:
-        """Initialize components required for test case generation."""
+    def initialize_components(self):
         default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
         self.test_cases_path = (
             os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
@@ -50,12 +37,12 @@ class APIRobotCasesGenerator:
         if not os.path.exists(self.test_cases_path):
             logging.error(f"{self.__class__.__name__}: Test cases file not found at {self.test_cases_path}")
             raise FileNotFoundError(f"{self.__class__.__name__}: Test cases file does not exist: {self.test_cases_path}")
-        logging.info(f"{self.__class__.__name__}: Test cases file {self.test_cases_path} located successfully")
-        self.test_cases_df = APITestLoader(self.test_cases_path)
+
+        self.api_test_loader = APITestLoader(self.test_cases_path)
         logging.info(f"{self.__class__.__name__}: Components initialized successfully")
 
-    def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None, test_suite=None) -> TestSuite:
-        self.api_suite = test_suite if test_suite else TestSuite('API TestSuite')
+    def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None, parent_suite=None) -> TestSuite:
+        self.api_suite = parent_suite or TestSuite('API TestSuite')
         self.api_suite.teardown.config(name='suite_teardown', args=[])
 
         self._configure_test_resources(self.api_suite)
@@ -70,45 +57,9 @@ class APIRobotCasesGenerator:
         logging.info(f"{self.__class__.__name__}: Test suite created successfully")
         return self.api_suite
 
-    def _filter_cases(self, tc_id_list: List[str], tags: List[str]) -> pd.DataFrame:
-        """Filter test cases based on the provided TC ID list and tags."""
+    def create_test_case(self, suite, test_case):
         try:
-            return self.test_cases_df.filter_cases(tcid_list=tc_id_list, tags=tags)
-        except Exception as e:
-            logging.error(f"{self.__class__.__name__}: Failed to filter test cases: {str(e)}")
-            raise
-
-    def _create_test_cases(self, filtered_cases: pd.DataFrame) -> None:
-        """Create test cases in the provided test suite."""
-        try:
-            # Iterate through the filtered cases in order
-            for index, row in filtered_cases.iterrows():
-                suite_name = row['Suite']
-
-                # If the suite doesn't exist yet, create it
-                if suite_name not in [suite.name for suite in self.api_suite.suites]:
-                    suite = self.api_suite.suites.create(name=suite_name)
-                    self._configure_test_resources(suite)
-
-                # Create the test case within the correct suite
-                self._create_single_test_case(row, suite)
-
-        except Exception as e:
-            logging.error(f"{self.__class__.__name__}: Error creating test cases: {str(e)}")
-            raise
-
-    def _configure_test_resources(self, suite) -> None:
-        """Configure the test resources for the test suite."""
-        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace(os.path.sep, '/')
-        suite.resource.imports.library(
-            'libraries.api.api_test_keywords.APITestKeywords',
-            args=[None, test_cases_path_arg]
-        )
-
-    def _create_single_test_case(self, test_case: pd.Series, suite: TestSuite) -> None:
-        """Create a single test case in the test suite."""
-        try:
-            robot_api_test_name = f"API.{test_case['TCID']}"
+            robot_api_test_name = f"{test_case['TCID']}"
             robot_api_test = suite.tests.create(
                 name=robot_api_test_name,
                 doc=test_case['Descriptions']
@@ -122,8 +73,37 @@ class APIRobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error creating test case {test_case.get('TCID', 'Unknown')}: {str(e)}")
             raise
 
+    def create_test_steps(self, robot_test, test_steps, data_set):
+        # API tests don't have specific steps like Web or E2E tests
+        pass
+
+    def _filter_cases(self, tc_id_list: List[str], tags: List[str]) -> pd.DataFrame:
+        try:
+            return self.api_test_loader.filter_cases(tcid_list=tc_id_list, tags=tags)
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Failed to filter test cases: {str(e)}")
+            raise
+
+    def _create_test_cases(self, filtered_cases: pd.DataFrame) -> None:
+        try:
+            for index, row in filtered_cases.iterrows():
+                suite_name = row['Suite']
+                if suite_name not in [suite.name for suite in self.api_suite.suites]:
+                    suite = self.api_suite.suites.create(name=suite_name)
+                    self._configure_test_resources(suite)
+                self.create_test_case(suite, row)
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error creating test cases: {str(e)}")
+            raise
+
+    def _configure_test_resources(self, suite) -> None:
+        test_cases_path_arg = os.path.normpath(self.test_cases_path).replace(os.path.sep, '/')
+        suite.resource.imports.library(
+            'libraries.api.api_test_keywords.APITestKeywords',
+            args=[None, test_cases_path_arg]
+        )
+
     def _add_test_tags(self, robot_api_test, test_case) -> None:
-        """Add tags to the test case."""
         try:
             if 'Tags' in test_case and pd.notna(test_case['Tags']):
                 tags = [tag.strip() for tag in test_case['Tags'].split(',')]
@@ -160,7 +140,6 @@ class APIRobotCasesGenerator:
                         args=[case_ids]
                     )
                     logging.info(f"{self.__class__.__name__}: Configured {condition_name} with case IDs: {case_ids}")
-
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error processing condition '{condition}': {str(e)}")
             raise

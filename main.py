@@ -5,10 +5,9 @@ from robot.reporting import ResultWriter
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.robot.summary_report_generator import SummaryReportGenerator
 from libraries.robot.robot_dashboard_generator import DashboardGenerator
-from libraries.web.web_robot_generator import WebUIRobotCasesGenerator
-from libraries.e2e.e2e_robot_generator import E2ERobotCasesGenerator
-from libraries.api.api_robot_generator import APIRobotCasesGenerator
 from libraries.performance.web_pt_robot_generator import WebPerformanceRobotCasesGenerator
+from libraries.robot.case_generator.unified_generator import UnifiedRobotCaseGenerator
+from libraries.common.log_manager import logger_instance
 
 
 class ExitOnFailureListener:
@@ -41,26 +40,6 @@ def run_test_suite(suite):
     report_generator.generate_html_report()
 
 
-def create_api_suite():
-    rcg = APIRobotCasesGenerator()
-    return rcg.create_test_suite()
-
-
-def create_web_suite():
-    rcg = WebUIRobotCasesGenerator()
-    return rcg.create_test_suite()
-
-
-def create_e2e_suite():
-    rcg = E2ERobotCasesGenerator()
-    return rcg.create_test_suite()
-
-
-def create_performance_suite():
-    rcg = WebPerformanceRobotCasesGenerator()
-    return rcg.create_test_suite()
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run API, Web UI, or E2E tests.')
     parser.add_argument('--api', action='store_true', help='Run API tests')
@@ -69,15 +48,18 @@ if __name__ == "__main__":
     parser.add_argument('--performance', action='store_true', help='Run performance tests')
     args = parser.parse_args()
 
+    default_test_type = 'e2e'
     if args.api:
-        suite_to_run = create_api_suite()
+        robot_case_generator = UnifiedRobotCaseGenerator('api')
     elif args.web:
-        suite_to_run = create_web_suite()
+        robot_case_generator = UnifiedRobotCaseGenerator('web')
     elif args.e2e:
-        suite_to_run = create_e2e_suite()
+        robot_case_generator = UnifiedRobotCaseGenerator('e2e')
     elif args.performance:
-        suite_to_run = create_performance_suite()
+        robot_case_generator = WebPerformanceRobotCasesGenerator()
     else:
-        suite_to_run = create_api_suite()
+        robot_case_generator = UnifiedRobotCaseGenerator(default_test_type)
 
+    suite_to_run = robot_case_generator.generate_test_cases()
     run_test_suite(suite_to_run)
+

@@ -1,26 +1,23 @@
-import logging
 import os
+import logging
 from typing import Dict, List
 import pandas as pd
 from robot.api import TestSuite
 from libraries.common.config_manager import ConfigManager
 from libraries.common.utility_helpers import PROJECT_ROOT
+from libraries.robot.case_generator.base_generator import RobotCaseGenerator
 from libraries.web.web_test_loader import WebTestLoader
 
-class WebUIRobotCasesGenerator:
+class WebRobotCaseGenerator(RobotCaseGenerator):
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root: str = PROJECT_ROOT
         self.test_config_path: str = test_config_path
         self.test_cases_path: str = test_cases_path
+        self.test_config = None
+        self.web_test_loader = None
+        self.robot_suite = None
 
-        try:
-            self._load_configuration()
-            self._initialize_components()
-        except Exception as e:
-            logging.error(f"{self.__class__.__name__}: Initialization failed: {str(e)}")
-            raise RuntimeError(f"{self.__class__.__name__}: Initialization failed: {str(e)}")
-
-    def _load_configuration(self):
+    def load_configuration(self):
         try:
             self.test_config_path = (
                 os.path.join(self.project_root, 'configs', 'web_test_config.yaml')
@@ -35,7 +32,7 @@ class WebUIRobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error loading configuration: {str(e)}")
             raise
 
-    def _initialize_components(self):
+    def initialize_components(self):
         try:
             default_test_cases_path: str = os.path.join('test_cases', 'web_test_cases.xlsx')
             self.test_cases_path: str = (
@@ -53,16 +50,13 @@ class WebUIRobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error initializing components: {str(e)}")
             raise
 
-    def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None) -> TestSuite:
+    def create_test_suite(self, tc_id_list: List[str] = None, tags: List[str] = None, parent_suite=None) -> TestSuite:
         try:
-            # Create main test suite
             self.robot_suite = TestSuite('Web UI TestSuite')
             self._import_required_libraries(self.robot_suite)
 
-            # 设置套件级别的 Setup 关键字以设置全局变量
             self.robot_suite.setup.config(name='set_environment_variables', args=[])
 
-            # Filter test cases
             tc_id_list = tc_id_list or self.test_config.get('tc_id_list', [])
             tags = tags or self.test_config.get('tags', [])
             test_cases = self.web_test_loader.filter_cases(tc_id_list, tags)
@@ -71,19 +65,13 @@ class WebUIRobotCasesGenerator:
                 logging.warning(f"{self.__class__.__name__}: No test cases found matching criteria")
                 return self.robot_suite
 
-            # Iterate through test cases in order
             for _, test_case in test_cases.iterrows():
                 suite_name = test_case['Suite']
-
-                # If the suite doesn't exist yet, create it
                 if suite_name not in [suite.name for suite in self.robot_suite.suites]:
                     sub_suite = self.robot_suite.suites.create(name=suite_name)
                     self._import_required_libraries(sub_suite)
-
-                # Create the test case within the correct suite
                 self.create_test_case(sub_suite, test_case)
 
-            # Configure suite teardown
             self.robot_suite.teardown.config(name='close_browser', args=[])
             return self.robot_suite
         except Exception as e:
@@ -92,29 +80,24 @@ class WebUIRobotCasesGenerator:
 
     def create_test_case(self, suite, test_case: Dict):
         try:
-            # Load test steps and data sets
             case_id = test_case['Case ID']
             test_steps = self.web_test_loader.get_test_steps(case_id)
             test_data_sets = self.web_test_loader.get_test_data(case_id)
 
-            # Create empty data set if none exists
             if not test_data_sets:
                 logging.warning(f"{self.__class__.__name__}: No data sets found for test case {case_id}. Using empty data")
                 test_data_sets = [{}]
 
-            # Generate tests for each data set
             for data_set_index, data_set in enumerate(test_data_sets, 1):
                 test_name = f"UI.{case_id}.{data_set_index}"
                 robot_test = suite.tests.create(name=test_name, doc=test_case['Descriptions'])
                 robot_test.body.create_keyword(name='sanity_check', args=[])
 
-                # Add tags
                 if 'Tags' in test_case and pd.notna(test_case['Tags']):
                     tags = [tag.strip() for tag in test_case['Tags'].split(',')]
                     for tag in tags:
                         robot_test.tags.add(tag)
 
-                # Create test steps
                 self.create_test_steps(robot_test, test_steps, data_set)
                 logging.info(f"{self.__class__.__name__}: Test case {case_id}.{data_set_index} created successfully.")
 
@@ -122,25 +105,23 @@ class WebUIRobotCasesGenerator:
             logging.error(f"{self.__class__.__name__}: Error creating test case {test_case.get('Case ID', 'Unknown')}: {str(e)}")
             raise
 
+    def create_test_steps(self, robot_test, test_steps: List[Dict], data_set: Dict):
+        try:
+            for _, step in test_steps.iterrows():
+                if step['Run'] == 'Y':
+                    page_name = step['Page Name']
+                    module_name = step['Module Name']
+                    self._generate_ui_step(robot_test, page_name, module_name, data_set)
+
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error creating test steps: {str(e)}")
+            raise
+
     def _import_required_libraries(self, suite):
         try:
             suite.resource.imports.library('libraries.web.page_object.PageObject')
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error importing required libraries: {str(e)}")
-            raise
-
-    def create_test_steps(self, robot_test, test_steps: List[Dict], data_set: Dict):
-        try:
-            for _, step in test_steps.iterrows():
-                if step['Run'] == 'Y':
-                    # Get step information
-                    page_name = step['Page Name']
-                    module_name = step['Module Name']
-                    # Create UI test step
-                    self._generate_ui_step(robot_test, page_name, module_name, data_set)
-
-        except Exception as e:
-            logging.error(f"{self.__class__.__name__}: Error creating test steps: {str(e)}")
             raise
 
     def _generate_ui_step(self, robot_test, page_name: str, module_name: str, params: Dict):
