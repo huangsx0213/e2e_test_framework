@@ -86,16 +86,18 @@ class PageObject:
     @property
     def driver(self):
         if self._driver is None:
-            active_env_config = self.env_config['environments'][self.test_config['active_environment']]
-            if not self._web_actions_instance:
-                self._driver = WebDriverSingleton.get_instance(active_env_config)
-                # self._driver.minimize_window()
+            logging.info(f"{self.__class__.__name__}: Driver not yet initialized. It will be initialized when web_actions is used.")
         return self._driver
 
     @property
     def web_actions(self):
         if self._web_actions_instance is None:
-            self._web_actions_instance = WebElementActions(self.driver)
+            if self._driver is None:
+                active_env_config = self.env_config['environments'][self.test_config['active_environment']]
+                self._driver = WebDriverSingleton.get_instance(active_env_config)
+                logging.info(f"{self.__class__.__name__}: Driver initialized lazily for web_actions.")
+            self._web_actions_instance = WebElementActions(self._driver)
+            logging.info(f"{self.__class__.__name__}: WebElementActions initialized.")
         return self._web_actions_instance
 
     def _load_page_elements(self) -> Dict[str, Dict[str, Tuple[str, str]]]:
