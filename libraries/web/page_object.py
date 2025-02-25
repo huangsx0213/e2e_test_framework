@@ -87,7 +87,7 @@ class PageObject:
     def driver(self):
         if self._driver is None:
             active_env_config = self.env_config['environments'][self.test_config['active_environment']]
-            if self._web_actions_instance:
+            if not self._web_actions_instance:
                 self._driver = WebDriverSingleton.get_instance(active_env_config)
                 # self._driver.minimize_window()
         return self._driver

@@ -78,6 +78,6 @@ if __name__ == "__main__":
     elif args.performance:
         suite_to_run = create_performance_suite()
     else:
-        suite_to_run = create_api_suite()
+        suite_to_run = create_e2e_suite()
 
     run_test_suite(suite_to_run)
