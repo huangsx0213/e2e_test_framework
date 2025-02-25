@@ -95,7 +95,6 @@ class PageObject:
             if self._driver is None:
                 active_env_config = self.env_config['environments'][self.test_config['active_environment']]
                 self._driver = WebDriverSingleton.get_instance(active_env_config)
-                self._driver.minimize_window()
                 logging.info(f"{self.__class__.__name__}: Driver initialized lazily for web_actions.")
             self._web_actions_instance = WebElementActions(self._driver)
             logging.info(f"{self.__class__.__name__}: WebElementActions initialized.")
