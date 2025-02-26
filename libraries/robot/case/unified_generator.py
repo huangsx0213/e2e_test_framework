@@ -1,6 +1,6 @@
-from libraries.robot.case_generator.api_generator import APIRobotCaseGenerator
-from libraries.robot.case_generator.e2e_generator import E2ERobotCaseGenerator
-from libraries.robot.case_generator.web_generator import WebRobotCaseGenerator
+from libraries.robot.case.api_generator import APIRobotCaseGenerator
+from libraries.robot.case.e2e_generator import E2ERobotCaseGenerator
+from libraries.robot.case.web_generator import WebRobotCaseGenerator
 
 class RobotCaseGeneratorFactory:
     @staticmethod

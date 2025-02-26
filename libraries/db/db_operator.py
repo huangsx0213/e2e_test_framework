@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from typing import Tuple, Any, Dict, Optional
-from libraries.common.db import SQLAlchemyDatabase, DatabaseError
+from libraries.db.db import SQLAlchemyDatabase
 from libraries.common.config_manager import ConfigManager
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.variable_generator import VariableGenerator

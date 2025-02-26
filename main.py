@@ -3,10 +3,10 @@ import argparse
 from robot.libraries.BuiltIn import BuiltIn
 from robot.reporting import ResultWriter
 from libraries.common.utility_helpers import PROJECT_ROOT
-from libraries.robot.summary_report_generator import SummaryReportGenerator
-from libraries.robot.robot_dashboard_generator import DashboardGenerator
+from libraries.robot.report.summary_report_generator import SummaryReportGenerator
+from libraries.robot.report.robot_dashboard_generator import DashboardGenerator
 from libraries.performance.web_pt_robot_generator import WebPerformanceRobotCasesGenerator
-from libraries.robot.case_generator.unified_generator import UnifiedRobotCaseGenerator
+from libraries.robot.case.unified_generator import UnifiedRobotCaseGenerator
 from libraries.common.log_manager import logger_instance
 
 

@@ -2,10 +2,10 @@ import logging
 import os
 import re
 from time import sleep
-from typing import Dict, List, Any
+from typing import Dict, List
 import pandas as pd
 from libraries.common.config_manager import ConfigManager
-from libraries.common.db_operator import DBOperator
+from libraries.db.db_operator import DBOperator
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.api.request_sender import RequestSender
 from libraries.api.body_generator import BodyGenerator

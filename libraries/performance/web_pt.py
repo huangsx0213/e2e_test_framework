@@ -7,7 +7,7 @@ from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
 from libraries.performance.web_pt_loader import PerformanceTestLoader
 from libraries.web.webdriver_factory import WebDriverFactory
-from libraries.web.web_actions import WebElementActions
+from libraries.robot.web_actions import WebElementActions
 from libraries.performance.web_pt_reporter import WebPerformanceReporter
 
 

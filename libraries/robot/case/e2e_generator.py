@@ -6,8 +6,8 @@ from robot.api import TestSuite
 from libraries.common.config_manager import ConfigManager
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.web.web_test_loader import WebTestLoader
-from libraries.robot.case_generator.base_generator import RobotCaseGenerator
-from libraries.robot.case_generator.api_generator import APIRobotCaseGenerator
+from libraries.robot.case.base_generator import RobotCaseGenerator
+from libraries.robot.case.api_generator import APIRobotCaseGenerator
 
 class E2ERobotCaseGenerator(RobotCaseGenerator):
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
@@ -153,7 +153,7 @@ class E2ERobotCaseGenerator(RobotCaseGenerator):
         try:
             test_config_path_arg = os.path.normpath(self.test_config_path).replace(os.path.sep, '/')
             test_cases_path_arg = os.path.normpath(self.test_cases_path).replace(os.path.sep, '/')
-            suite.resource.imports.library('libraries.web.page_object.PageObject', args=[test_config_path_arg, test_cases_path_arg])
+            suite.resource.imports.library('libraries.robot.robot_test_executor.RobotTestExecutor', args=[test_config_path_arg, test_cases_path_arg])
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error importing required libraries: {str(e)}")
             raise
