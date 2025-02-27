@@ -44,8 +44,19 @@ class DBOperator(metaclass=SingletonMeta):
         return BuiltIn().get_variable_value("${active_environment}")
 
     def _initialize_databases(self):
-        env_db_configs = self.db_configs.get('database', {}).get(self.active_environment, {})
-        self.db_connections = SQLAlchemyDatabase.create_databases(env_db_configs)
+        try:
+            env_db_configs = self.db_configs.get('database', {}).get(self.active_environment, {})
+            if not env_db_configs:
+                raise ValueError(f"No database configurations found for environment: {self.active_environment}")
+
+            self.db_connections = SQLAlchemyDatabase.create_databases(env_db_configs)
+            logging.info(f"Database connections initialized for environment: {self.active_environment}")
+        except ValueError as ve:
+            logging.error(f"Configuration error: {str(ve)}")
+            raise
+        except Exception as e:
+            logging.error(f"Unexpected error initializing databases: {str(e)}")
+            raise
 
     def get_db_connection(self, db_name: str) -> SQLAlchemyDatabase:
         try:
