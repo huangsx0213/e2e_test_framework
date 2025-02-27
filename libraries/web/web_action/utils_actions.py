@@ -5,9 +5,14 @@ import logging
 import time
 from PIL import Image
 from robot.libraries.BuiltIn import BuiltIn
+from robot.api.deco import keyword, library
 from .base import Base
 
+@library
 class UtilsActions(Base):
+    ROBOT_LIBRARY_SCOPE = 'TEST SUITE'
+
+    @keyword
     def capture_screenshot(self):
         try:
             if self.driver:
@@ -29,6 +34,7 @@ class UtilsActions(Base):
             logging.error(f"{self.__class__.__name__}: Failed to capture screenshot: {str(e)}")
             BuiltIn().log(f"{self.__class__.__name__}: Failed to capture screenshot: {str(e)}", level="ERROR")
 
+    @keyword
     def highlight_element(self, locator, duration=2, color="lightgreen", border="3px solid red", element_desc=None, condition="visibility"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)

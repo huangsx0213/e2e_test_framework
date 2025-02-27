@@ -6,8 +6,8 @@ from typing import Dict, Tuple
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
 from libraries.performance.web_pt_loader import PerformanceTestLoader
+from libraries.web.web_actions import WebActions
 from libraries.web.webdriver_factory import WebDriverFactory
-from libraries.web.web_actions import WebElementActions
 from libraries.performance.web_pt_reporter import WebPerformanceReporter
 
 
@@ -81,7 +81,7 @@ class WebPerformanceTester:
     @property
     def web_actions(self):
         if self._web_actions_instance is None:
-            self._web_actions_instance = WebElementActions(self.driver)
+            self._web_actions_instance = WebActions(self.driver)
         return self._web_actions_instance
 
     def get_js_memory(self):

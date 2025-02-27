@@ -10,15 +10,15 @@ from libraries.web.web_action.verification_actions import VerificationActions
 from libraries.web.web_action.wait_actions import WaitActions
 
 
-class WebElementActions(
-                        ElementActions,
-                        VerificationActions,
-                        WaitActions,
-                        WindowActions,
-                        JavaScriptActions,
-                        TableActions,
-                        NavigationActions,
-                        CookieActions,
-                        AlertActions,
-                        UtilsActions):
+class WebActions(
+    ElementActions,
+    VerificationActions,
+    WaitActions,
+    WindowActions,
+    JavaScriptActions,
+    TableActions,
+    NavigationActions,
+    CookieActions,
+    AlertActions,
+    UtilsActions):
     pass

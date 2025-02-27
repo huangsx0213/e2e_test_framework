@@ -7,7 +7,7 @@ import xmltodict
 from requests import Response
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api import logger
-from libraries.common.db_operator import DBOperator
+from libraries.db.db_operator import DBOperator
 from libraries.common.log_manager import ColorLogger
 from libraries.common.utility_helpers import UtilityHelpers
 from libraries.common.variable_transformer import VariableTransformer

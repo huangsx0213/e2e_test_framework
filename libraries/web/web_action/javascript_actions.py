@@ -1,21 +1,27 @@
 from .base import Base
 import logging
 from .js import click_by_js_script, fill_by_js_script
+from robot.api.deco import keyword, library
 
-
+@library
 class JavaScriptActions(Base):
+    ROBOT_LIBRARY_SCOPE = 'TEST SUITE'
+
+    @keyword
     def execute_script(self, script, *args):
         logging.debug(f"{self.__class__.__name__}: Executing JavaScript: {script}, Arguments: {args}")
         result = self.driver.execute_script(script, *args)
         logging.info(f"{self.__class__.__name__}: JavaScript executed successfully, Result: {result}")
         return result
 
+    @keyword
     def execute_async_script(self, script, *args):
         logging.debug(f"{self.__class__.__name__}: Executing asynchronous JavaScript: {script}, Arguments: {args}")
         result = self.driver.execute_async_script(script, *args)
         logging.info(f"{self.__class__.__name__}: Asynchronous JavaScript executed successfully, Result: {result}")
         return result
 
+    @keyword
     def js_scroll_into_view(self, locator, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -23,6 +29,7 @@ class JavaScriptActions(Base):
         self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
         logging.info(f"{self.__class__.__name__}: Scrolled element [ {element_desc}:{locator} ] into view using JavaScript successfully.")
 
+    @keyword
     def js_scroll_to_element(self, locator, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -30,6 +37,7 @@ class JavaScriptActions(Base):
         self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center', inline: 'nearest'});", element)
         logging.info(f"{self.__class__.__name__}: Scrolled to element [ {element_desc}:{locator} ] with smooth behavior using JavaScript successfully.")
 
+    @keyword
     def click_by_js(self, locator, element_desc=None, condition="clickable"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -38,6 +46,7 @@ class JavaScriptActions(Base):
         self.driver.execute_script(js, element)
         logging.info(f"{self.__class__.__name__}: Clicked element [ {element_desc}:{locator} ] using JavaScript successfully.")
 
+    @keyword
     def fill_by_js(self, locator, value, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -46,6 +55,7 @@ class JavaScriptActions(Base):
         self.driver.execute_script(js, element)
         logging.info(f"{self.__class__.__name__}: Sent keys to element [ {element_desc}:{locator} ] using JavaScript with value: [ {value} ] successfully.")
 
+    @keyword
     def js_click(self, locator, element_desc=None, condition="clickable"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -53,6 +63,7 @@ class JavaScriptActions(Base):
         self.driver.execute_script("arguments[0].click();", element)
         logging.info(f"{self.__class__.__name__}: Clicked element [ {element_desc}:{locator} ] using JavaScript successfully.")
 
+    @keyword
     def js_send_keys(self, locator, value, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -60,6 +71,7 @@ class JavaScriptActions(Base):
         self.driver.execute_script(f"arguments[0].value = '{value}';", element)
         logging.info(f"{self.__class__.__name__}: Sent keys to element [ {element_desc}:{locator} ] using JavaScript with value: [ {value} ] successfully.")
 
+    @keyword
     def js_clear(self, locator, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -67,6 +79,7 @@ class JavaScriptActions(Base):
         self.driver.execute_script("arguments[0].value = '';", element)
         logging.info(f"{self.__class__.__name__}: Cleared element [ {element_desc}:{locator} ] using JavaScript successfully.")
 
+    @keyword
     def js_select_option(self, locator, option_text, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -84,6 +97,7 @@ class JavaScriptActions(Base):
         )
         logging.info(f"{self.__class__.__name__}: Selected option [ {option_text} ] for element [ {element_desc}:{locator} ] using JavaScript successfully.")
 
+    @keyword
     def js_hover(self, locator, element_desc=None, condition="visibility"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)

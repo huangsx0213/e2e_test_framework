@@ -3,8 +3,8 @@ import codecs
 from robot.api import ExecutionResult
 from jinja2 import Environment, FileSystemLoader
 
-from libraries.robot.robot_result_visitor import CustomResultVisitor
-from libraries.robot.robot_report_data import ReportData
+from libraries.robot.report.robot_result_visitor import CustomResultVisitor
+from libraries.robot.report.robot_report_data import ReportData
 from libraries.common.utility_helpers import PROJECT_ROOT
 
 
