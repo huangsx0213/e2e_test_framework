@@ -5,7 +5,6 @@ from robot.reporting import ResultWriter
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.robot.report.summary_report_generator import SummaryReportGenerator
 from libraries.robot.report.robot_dashboard_generator import DashboardGenerator
-
 from libraries.robot.case.unified_generator import UnifiedRobotCaseGenerator
 from libraries.common.log_manager import logger_instance
 
