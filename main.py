@@ -5,7 +5,7 @@ from robot.reporting import ResultWriter
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.robot.report.summary_report_generator import SummaryReportGenerator
 from libraries.robot.report.robot_dashboard_generator import DashboardGenerator
-from libraries.performance.web_pt_robot_generator import WebPerformanceRobotCasesGenerator
+
 from libraries.robot.case.unified_generator import UnifiedRobotCaseGenerator
 from libraries.common.log_manager import logger_instance
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     parser.add_argument('--performance', action='store_true', help='Run performance tests')
     args = parser.parse_args()
 
-    default_test_type = 'e2e'
+    default_test_type = 'performance'
     if args.api:
         robot_case_generator = UnifiedRobotCaseGenerator('api')
     elif args.web:
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     elif args.e2e:
         robot_case_generator = UnifiedRobotCaseGenerator('e2e')
     elif args.performance:
-        robot_case_generator = WebPerformanceRobotCasesGenerator()
+        robot_case_generator = UnifiedRobotCaseGenerator('performance')
     else:
         robot_case_generator = UnifiedRobotCaseGenerator(default_test_type)
 

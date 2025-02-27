@@ -1,6 +1,8 @@
 from libraries.robot.case.api_generator import APIRobotCaseGenerator
 from libraries.robot.case.e2e_generator import E2ERobotCaseGenerator
 from libraries.robot.case.web_generator import WebRobotCaseGenerator
+from libraries.robot.case.web_pt_robot_generator import WebPerformanceRobotCaseGenerator
+
 
 class RobotCaseGeneratorFactory:
     @staticmethod
@@ -11,6 +13,8 @@ class RobotCaseGeneratorFactory:
             return WebRobotCaseGenerator()
         elif test_type == "e2e":
             return E2ERobotCaseGenerator()
+        elif test_type == "performance":
+            return WebPerformanceRobotCaseGenerator()
         else:
             raise ValueError(f"Unsupported test type: {test_type}")
 
