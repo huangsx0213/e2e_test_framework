@@ -47,7 +47,7 @@ if __name__ == "__main__":
     parser.add_argument('--performance', action='store_true', help='Run performance tests')
     args = parser.parse_args()
 
-    default_test_type = 'performance'
+    default_test_type = 'e2e'
     if args.api:
         robot_case_generator = UnifiedRobotCaseGenerator('api')
     elif args.web:
