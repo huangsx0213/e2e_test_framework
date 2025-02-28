@@ -26,15 +26,10 @@ class SingletonMeta(type):
 
 class DBOperator(metaclass=SingletonMeta):
     def __init__(self):
-        if not hasattr(self, '_initialized'):
-            try:
-                self.db_connections: Dict[str, SQLAlchemyDatabase] = {}
-                self.db_configs = self._load_db_configs()
-                self.active_environment = self._get_active_environment()
-                self._initialize_databases()
-                self._initialized = True
-            except Exception as e:
-                raise DBOperationError(f"Failed to initialize DBOperator: {str(e)}")
+        self.db_connections: Dict[str, SQLAlchemyDatabase] = {}
+        self.db_configs = self._load_db_configs()
+        self.active_environment = self._get_active_environment()
+        self._initialized = False
 
     def _load_db_configs(self) -> Dict[str, Any]:
         config_path = os.path.join(PROJECT_ROOT, 'configs', 'db_config.yaml')
@@ -44,10 +39,27 @@ class DBOperator(metaclass=SingletonMeta):
         return BuiltIn().get_variable_value("${active_environment}")
 
     def _initialize_databases(self):
-        env_db_configs = self.db_configs.get('database', {}).get(self.active_environment, {})
-        self.db_connections = SQLAlchemyDatabase.create_databases(env_db_configs)
+        if self._initialized:
+            logging.info("Databases already initialized, skipping.")
+            return
+        try:
+            env_db_configs = self.db_configs.get('database', {}).get(self.active_environment, {})
+            if not env_db_configs:
+                raise ValueError(f"No database configurations found for environment: {self.active_environment}")
+
+            self.db_connections = SQLAlchemyDatabase.create_databases(env_db_configs)
+            logging.info(f"Database connections initialized for environment: {self.active_environment}")
+            self._initialized = True
+        except ValueError as ve:
+            logging.error(f"Configuration error: {str(ve)}")
+            raise
+        except Exception as e:
+            logging.error(f"Unexpected error initializing databases: {str(e)}")
+            raise
 
     def get_db_connection(self, db_name: str) -> SQLAlchemyDatabase:
+        if not self._initialized:
+            self._initialize_databases()
         try:
             db_conn = self.db_connections[db_name]
             return db_conn
@@ -57,7 +69,7 @@ class DBOperator(metaclass=SingletonMeta):
     def validate_database_value(self, db_name: str, db_clause: str) -> Tuple[bool, str]:
         try:
             db = self.get_db_connection(db_name)
-            #db_{db_name}.TableName.FieldName[FilterField1=FilterValue1;FilterField2=FilterValue2][OrderBy=CreateTime]=ExpectedValue
+            # db_{db_name}.TableName.FieldName[FilterField1=FilterValue1;FilterField2=FilterValue2][OrderBy=CreateTime]=ExpectedValue
             pattern = r'^db_\w+\.(?P<Table>\w+)\.(?P<Field>\w+)\s*\[(?P<Filters>[^\]]+)\](?:\s*\[(?P<OrderBy>[^\]]+)\])?\s*=\s*(?P<ExpectedValue>.+)$'
             match = re.match(pattern, db_clause)
             if not match:

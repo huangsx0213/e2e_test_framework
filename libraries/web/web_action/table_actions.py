@@ -1,14 +1,9 @@
 from .base import Base
 from typing import Union, List, Dict
 from selenium.webdriver.remote.webelement import WebElement
-from robot.api.deco import keyword, library
 import logging
 
-@library
 class TableActions(Base):
-    ROBOT_LIBRARY_SCOPE = 'TEST SUITE'
-
-    @keyword
     def verify_table_exact(self, table_locator: Union[tuple, WebElement], expected_data: List[Dict[str, str]]):
         logging.info(f"{self.__class__.__name__}: Verifying entire table with exact match")
         table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
@@ -16,7 +11,6 @@ class TableActions(Base):
         self.table_verifier.verify_table(table_element, expected_data, match_type='exact')
         logging.info(f"{self.__class__.__name__}: Table verification (exact match) completed for table: {table_desc}")
 
-    @keyword
     def verify_table_row_exact(self, table_locator: Union[tuple, WebElement], row_index: int, expected_data: Dict[str, str]):
         logging.info(f"{self.__class__.__name__}: Verifying table row at index {row_index} with exact match")
         table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
@@ -24,7 +18,6 @@ class TableActions(Base):
         self.table_verifier.verify_table_row(table_element, row_index, expected_data, match_type='exact')
         logging.info(f"{self.__class__.__name__}: Table row verification (exact match) completed for table: {table_desc}, row: {row_index}")
 
-    @keyword
     def verify_specific_cell_exact(self, table_locator: Union[tuple, WebElement], row_index: int, column: Union[str, int], expected_value: str):
         logging.info(f"{self.__class__.__name__}: Verifying specific cell at row {row_index}, column {column} with exact match")
         table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
@@ -32,7 +25,6 @@ class TableActions(Base):
         self.table_verifier.verify_specific_cell(table_element, row_index, column, expected_value, match_type='exact')
         logging.info(f"{self.__class__.__name__}: Specific cell verification (exact match) completed for table: {table_desc}, row: {row_index}, column: {column}")
 
-    @keyword
     def verify_table_partial(self, table_locator: Union[tuple, WebElement], expected_data: List[Dict[str, str]]):
         logging.info(f"{self.__class__.__name__}: Verifying entire table with partial match")
         table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
@@ -40,7 +32,6 @@ class TableActions(Base):
         self.table_verifier.verify_table(table_element, expected_data, match_type='partial')
         logging.info(f"{self.__class__.__name__}: Table verification (partial match) completed for table: {table_desc}")
 
-    @keyword
     def verify_table_row_partial(self, table_locator: Union[tuple, WebElement], row_index: int, expected_data: Dict[str, str]):
         logging.info(f"{self.__class__.__name__}: Verifying table row at index {row_index} with partial match")
         table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
@@ -48,7 +39,6 @@ class TableActions(Base):
         self.table_verifier.verify_table_row(table_element, row_index, expected_data, match_type='partial')
         logging.info(f"{self.__class__.__name__}: Table row verification (partial match) completed for table: {table_desc}, row: {row_index}")
 
-    @keyword
     def verify_specific_cell_partial(self, table_locator: Union[tuple, WebElement], row_index: int, column: Union[str, int], expected_value: str):
         logging.info(f"{self.__class__.__name__}: Verifying specific cell at row {row_index}, column {column} with partial match")
         table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
@@ -56,7 +46,6 @@ class TableActions(Base):
         self.table_verifier.verify_specific_cell(table_element, row_index, column, expected_value, match_type='partial')
         logging.info(f"{self.__class__.__name__}: Specific cell verification (partial match) completed for table: {table_desc}, row: {row_index}, column: {column}")
 
-    @keyword
     def verify_table_regex(self, table_locator: Union[tuple, WebElement], expected_data: List[Dict[str, str]]):
         logging.info(f"{self.__class__.__name__}: Verifying entire table with regex match")
         table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
@@ -64,7 +53,6 @@ class TableActions(Base):
         self.table_verifier.verify_table(table_element, expected_data, match_type='regex')
         logging.info(f"{self.__class__.__name__}: Table verification (regex match) completed for table: {table_desc}")
 
-    @keyword
     def verify_table_row_regex(self, table_locator: Union[tuple, WebElement], row_index: int, expected_data: Dict[str, str]):
         logging.info(f"{self.__class__.__name__}: Verifying table row at index {row_index} with regex match")
         table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
@@ -72,7 +60,6 @@ class TableActions(Base):
         self.table_verifier.verify_table_row(table_element, row_index, expected_data, match_type='regex')
         logging.info(f"{self.__class__.__name__}: Table row verification (regex match) completed for table: {table_desc}, row: {row_index}")
 
-    @keyword
     def verify_specific_cell_regex(self, table_locator: Union[tuple, WebElement], row_index: int, column: Union[str, int], expected_value: str):
         logging.info(f"{self.__class__.__name__}: Verifying specific cell at row {row_index}, column {column} with regex match")
         table_element = self.wait_for_element(table_locator) if isinstance(table_locator, tuple) else table_locator
@@ -80,7 +67,6 @@ class TableActions(Base):
         self.table_verifier.verify_specific_cell(table_element, row_index, column, expected_value, match_type='regex')
         logging.info(f"{self.__class__.__name__}: Specific cell verification (regex match) completed for table: {table_desc}, row: {row_index}, column: {column}")
 
-    @keyword
     def verify_table_is_empty(self, table_locator: Union[tuple, WebElement]):
         logging.info(f"{self.__class__.__name__}: Verifying table is empty")
         try:
@@ -92,7 +78,6 @@ class TableActions(Base):
             logging.error(f"{self.__class__.__name__}: Error verifying table is empty: {str(e)}")
             raise
 
-    @keyword
     def verify_unique_column_values(self, table_locator: Union[tuple, WebElement], column: Union[str, int]):
         logging.info(f"{self.__class__.__name__}: Verifying unique values in column: {column}")
         try:
@@ -104,7 +89,6 @@ class TableActions(Base):
             logging.error(f"{self.__class__.__name__}: Error verifying unique column values: {str(e)}")
             raise
 
-    @keyword
     def verify_value_in_table(self, table_locator: Union[tuple, WebElement], search_value: str):
         logging.info(f"{self.__class__.__name__}: Verifying value '{search_value}' exists in table")
         try:
@@ -117,7 +101,6 @@ class TableActions(Base):
             logging.error(f"{self.__class__.__name__}: Error verifying value in table: {str(e)}")
             raise
 
-    @keyword
     def verify_row_count(self, table_locator: Union[tuple, WebElement], expected_row_count: int):
         logging.info(f"{self.__class__.__name__}: Verifying row count: expected {expected_row_count}")
         try:
@@ -129,7 +112,6 @@ class TableActions(Base):
             logging.error(f"{self.__class__.__name__}: Error verifying row count: {str(e)}")
             raise
 
-    @keyword
     def verify_column_sorted(self, table_locator: Union[tuple, WebElement], column: Union[str, int], expected_order='ascending', strip_spaces=True):
         logging.info(f"{self.__class__.__name__}: Verifying column '{column}' is sorted in {expected_order} order")
         try:
@@ -141,7 +123,6 @@ class TableActions(Base):
             logging.error(f"{self.__class__.__name__}: Error verifying column sorting: {str(e)}")
             raise
 
-    @keyword
     def select_table_row_checkbox(self, table_locator: Union[tuple, WebElement], identifier_column: Union[str, int], identifier_value: str, checkbox_column: int = 1):
         logging.info(f"{self.__class__.__name__}: Selecting checkbox for row with {identifier_column}: {identifier_value}")
         try:
@@ -153,7 +134,6 @@ class TableActions(Base):
             logging.error(f"{self.__class__.__name__}: Error selecting checkbox: {str(e)}")
             raise
 
-    @keyword
     def select_multiple_table_row_checkboxes(self, table_locator: Union[tuple, WebElement], identifier_column: Union[str, int], identifier_values: List[str], checkbox_column: int = 1):
         logging.info(f"{self.__class__.__name__}: Selecting checkboxes for multiple rows with {identifier_column}: {identifier_values}")
         try:

@@ -4,14 +4,10 @@ from robot.libraries.BuiltIn import BuiltIn
 from .base import Base
 import logging
 from robot.api import logger
-from robot.api.deco import keyword, library
 from libraries.common.log_manager import ColorLogger
 
-@library
-class VerificationActions(Base):
-    ROBOT_LIBRARY_SCOPE = 'TEST SUITE'
 
-    @keyword
+class VerificationActions(Base):
     def verify_text_is(self, locator, expected_text, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -22,7 +18,6 @@ class VerificationActions(Base):
         self._log_result(result, log_message)
         assert result, f"{self.__class__.__name__}: Expected text: '{expected_text}' is not matching actual text: '{actual_text}'"
 
-    @keyword
     def verify_figure_is(self, locator, expected_figure, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -42,7 +37,6 @@ class VerificationActions(Base):
         self._log_result(result, log_message)
         assert result, f"{self.__class__.__name__}: Expected figure: '{expected_value}' is not matching actual figure: '{actual_value}'"
 
-    @keyword
     def verify_text_contains(self, locator, expected_text, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -53,7 +47,6 @@ class VerificationActions(Base):
         self._log_result(result, log_message)
         assert result, f"{self.__class__.__name__}: Expected text: '{expected_text}' is not in actual text: '{actual_text}'"
 
-    @keyword
     def verify_figure_text_contains(self, locator, expected_text, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -65,7 +58,6 @@ class VerificationActions(Base):
         self._log_result(result, log_message)
         assert result, f"{self.__class__.__name__}: Expected text: '{expected_text_clean}' is not in actual text: '{actual_text_clean}'"
 
-    @keyword
     def verify_title_is(self, expected_title, element_desc="Page Title"):
         logging.debug(f"{self.__class__.__name__}: Checking if page title matches expected: '{expected_title}'")
         actual_title = self.driver.title
@@ -74,7 +66,6 @@ class VerificationActions(Base):
         self._log_result(result, log_message)
         assert result, f"{self.__class__.__name__}: Expected title: '{expected_title}' is not matching actual title: '{actual_title}'"
 
-    @keyword
     def verify_title_contains(self, expected_title, element_desc="Page Title"):
         logging.debug(f"{self.__class__.__name__}: Checking if page title contains expected: '{expected_title}'")
         actual_title = self.driver.title
@@ -83,7 +74,6 @@ class VerificationActions(Base):
         self._log_result(result, log_message)
         assert result, f"{self.__class__.__name__}: Expected title: '{expected_title}' is not in actual title: '{actual_title}'"
 
-    @keyword
     def verify_element_exists(self, locator, element_desc=None):
         element_desc = element_desc or self._get_element_description(locator)
         logging.debug(f"{self.__class__.__name__}: Checking if element exists: {element_desc}")
@@ -96,7 +86,6 @@ class VerificationActions(Base):
         self._log_result(result, log_message)
         return result
 
-    @keyword
     def verify_element_visible(self, locator, timeout=None, element_desc=None):
         element_desc = element_desc or self._get_element_description(locator)
         logging.debug(f"{self.__class__.__name__}: Checking if element is visible: {element_desc}, timeout: {timeout}")
@@ -109,7 +98,6 @@ class VerificationActions(Base):
         self._log_result(result, log_message)
         return result
 
-    @keyword
     def verify_element_invisible(self, locator, timeout=None, element_desc=None):
         element_desc = element_desc or self._get_element_description(locator)
         logging.debug(f"{self.__class__.__name__}: Checking if element is invisible: {element_desc}, timeout: {timeout}")
@@ -122,7 +110,6 @@ class VerificationActions(Base):
         self._log_result(result, log_message)
         return result
 
-    @keyword
     def verify_element_clickable(self, locator, timeout=None, element_desc=None):
         element_desc = element_desc or self._get_element_description(locator)
         logging.debug(f"{self.__class__.__name__}: Checking if element is clickable: {element_desc}, timeout: {timeout}")
@@ -135,7 +122,6 @@ class VerificationActions(Base):
         self._log_result(result, log_message)
         return result
 
-    @keyword
     def verify_element_selected(self, locator, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -146,7 +132,6 @@ class VerificationActions(Base):
         assert is_selected, f"{self.__class__.__name__}: Element {element_desc} is not selected as expected."
         return is_selected
 
-    @keyword
     def verify_element_enabled(self, locator, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -157,7 +142,6 @@ class VerificationActions(Base):
         assert is_enabled, f"{self.__class__.__name__}: Element {element_desc} is not enabled as expected."
         return is_enabled
 
-    @keyword
     def get_text_save_to_variable(self, locator, variable_name, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)
@@ -167,7 +151,6 @@ class VerificationActions(Base):
         logging.debug(f"{self.__class__.__name__}: Captured text: {value}")
         return value
 
-    @keyword
     def verify_element_value_diff(self, locator, initial_value_variable, expected_change, element_desc=None, condition="presence"):
         element = self._resolve_element(locator, element_desc, condition)
         element_desc = element_desc or self._get_element_description(locator)

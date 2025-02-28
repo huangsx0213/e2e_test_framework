@@ -47,18 +47,18 @@ if __name__ == "__main__":
     parser.add_argument('--performance', action='store_true', help='Run performance tests')
     args = parser.parse_args()
 
-    default_test_type = 'performance'
-    if args.api:
-        robot_case_generator = UnifiedRobotCaseGenerator('api')
-    elif args.web:
-        robot_case_generator = UnifiedRobotCaseGenerator('web')
-    elif args.e2e:
-        robot_case_generator = UnifiedRobotCaseGenerator('e2e')
-    elif args.performance:
-        robot_case_generator = UnifiedRobotCaseGenerator('performance')
-    else:
-        robot_case_generator = UnifiedRobotCaseGenerator(default_test_type)
-
+    test_type_map = {
+        'api': args.api,
+        'web': args.web,
+        'e2e': args.e2e,
+        'performance': args.performance
+    }
+    
+    # 获取第一个为True的测试类型，如果都为False则使用默认值
+    default_test_type = 'e2e'
+    test_type = next((t for t, enabled in test_type_map.items() if enabled), default_test_type)
+    
+    robot_case_generator = UnifiedRobotCaseGenerator(test_type)
     suite_to_run = robot_case_generator.generate_test_cases()
     run_test_suite(suite_to_run)
 
