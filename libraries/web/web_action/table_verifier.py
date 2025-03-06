@@ -130,11 +130,15 @@ class TableVerifier:
             self._log_result(result, log_message)
             assert result, f"Mismatch in column '{column}'. Expected: {expected_value}, Actual: {actual_value}"
         elif match_type == 'partial':
-            assert expected_value in actual_value, f"Value '{expected_value}' not found in column '{column}'. Actual: {actual_value}"
-            self.logger.info(f"Verified column '{column}': partial match: {expected_value} in {actual_value}")
+            result = expected_value in actual_value
+            log_message = f"UI Verification: Asserting: {column}, partial_match, Expected: {expected_value}, Actual: {actual_value}"
+            self._log_result(result, log_message)
+            assert result, f"Expected value '{expected_value}' not found in column '{column}'. Actual: {actual_value}"
         elif match_type == 'regex':
-            assert re.search(expected_value, actual_value), f"Regex '{expected_value}' did not match in column '{column}'. Actual: {actual_value}"
-            self.logger.info(f"Verified column '{column}': regex match: {expected_value} in {actual_value}")
+            result = re.search(expected_value, actual_value), f"Regex '{expected_value}' did not match in column '{column}'. Actual: {actual_value}"
+            log_message = f"UI Verification: Asserting: {column}, regex_match, Expected: {expected_value}, Actual: {actual_value}"
+            self._log_result(result, log_message)
+            assert result, f"Regex '{expected_value}' did not match in column '{column}'. Actual: {actual_value}"
         else:
             raise ValueError(f"Invalid match_type: {match_type}")
 
