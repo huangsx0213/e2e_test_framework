@@ -1,6 +1,8 @@
 import logging
 from selenium.webdriver.common.by import By
 import re
+from robot.api import logger
+from libraries.common.log_manager import ColorLogger
 
 
 class TableVerifier:
@@ -123,8 +125,10 @@ class TableVerifier:
         Verify cell value based on the specified match type.
         """
         if match_type == 'exact':
-            assert actual_value == expected_value, f"Mismatch in column '{column}'. Expected: {expected_value}, Actual: {actual_value}"
-            self.logger.info(f"Verified column '{column}': expected: {expected_value}, actual: {actual_value}")
+            result= actual_value == expected_value
+            log_message = f"UI Verification: Asserting: {column}, exact_match, Expected: {expected_value}, Actual: {actual_value}"
+            self._log_result(result, log_message)
+            assert result, f"Mismatch in column '{column}'. Expected: {expected_value}, Actual: {actual_value}"
         elif match_type == 'partial':
             assert expected_value in actual_value, f"Value '{expected_value}' not found in column '{column}'. Actual: {actual_value}"
             self.logger.info(f"Verified column '{column}': partial match: {expected_value} in {actual_value}")
@@ -134,7 +138,7 @@ class TableVerifier:
         else:
             raise ValueError(f"Invalid match_type: {match_type}")
 
-        self.logger.info(f"Verified column '{column}': {actual_value}")
+        self.logger.debug(f"Verified column '{column}': {actual_value}")
 
     def verify_table_is_empty(self, table_element):
         """
@@ -308,3 +312,8 @@ class TableVerifier:
         for identifier_value in identifier_values:
             self.select_table_row_checkbox(table_element, identifier_column, identifier_value, checkbox_column)
 
+    def _log_result(self, success: bool, message: str):
+        """Logs the result of a check with appropriate color."""
+        logging.debug(f"{self.__class__.__name__}: {message}")
+        logger.info(
+            ColorLogger.success(f"=> {message}") if success else ColorLogger.error(f"=> {message}"), html=True)
