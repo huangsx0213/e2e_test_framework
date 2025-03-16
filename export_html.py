@@ -140,7 +140,7 @@ def generate_file_structure(files_list, directory='.', prefix=''):
                     file_structure += f'{subindent}<a href="#{file_id}">{f}</a>\n'
     return file_structure
 
-def generate_html_file(html_content, output_file='report/e2e_test_framework.html'):
+def generate_html_file(html_content, output_file='reports/e2e_test_framework.html'):
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, 'w', encoding='utf-8') as file:
         file.write(html_content)
@@ -152,11 +152,11 @@ if __name__ == "__main__":
         'export_code.py'
         # Add more file paths as needed
     ]
-    exclude_directories = {'venv', '.idea', '__pycache__', '.git', 'report'}
+    exclude_directories = {'venv', '.idea', '__pycache__', '.git', 'reports'}
 
     files_list = read_files(exclude_files=exclude_files, exclude_directories=exclude_directories)
     code_blocks = generate_code_blocks_and_links(files_list)
     file_structure = generate_file_structure(files_list, directory='.')
     html_content = html_template.format(file_structure=file_structure, code_blocks=code_blocks)
     generate_html_file(html_content)
-    print(f"HTML file 'report/e2e_test_framework.html' generated successfully.")
+    print(f"HTML file 'reports/e2e_test_framework.html' generated successfully.")

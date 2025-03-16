@@ -23,7 +23,7 @@ class ExitOnFailureListener:
 
 def run_test_suite(suite):
     listener = ExitOnFailureListener()
-    output_dir = os.path.join(PROJECT_ROOT, 'report')
+    output_dir = os.path.join(PROJECT_ROOT, 'reports')
     output_xml = os.path.join(output_dir, 'output.xml')
     report_file = os.path.join(output_dir, 'report.html')
     log_file = os.path.join(output_dir, 'log.html')

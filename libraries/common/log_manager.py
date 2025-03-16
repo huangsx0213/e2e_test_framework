@@ -25,7 +25,7 @@ class Logger:
             with open(self.config_path, 'r', encoding='utf-8') as file:
                 config = yaml.safe_load(file)
 
-            log_file_path = os.path.join(PROJECT_ROOT, 'report', f"{self.log_file_name}.log")
+            log_file_path = os.path.join(PROJECT_ROOT, 'reports', f"{self.log_file_name}.log")
             os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
 
             if 'file' in config['handlers']:

@@ -80,7 +80,7 @@ class WebPerformanceReporter:
         return self._save_fig_as_base64()
 
     def save_to_csv(self):
-        output_dir = os.path.join(PROJECT_ROOT, 'report')
+        output_dir = os.path.join(PROJECT_ROOT, 'reports')
         response_time_data_path = os.path.join(output_dir, 'response_time_data.csv')
         memory_usage_data_path = os.path.join(output_dir, 'memory_usage_data.csv')
 
