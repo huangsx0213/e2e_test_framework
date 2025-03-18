@@ -31,6 +31,11 @@ class SavedFieldsManager:
             logging.error(f"{self.__class__.__name__}: Failed to load saved fields from the yaml file: {str(e)}")
             raise
 
+    def load_saved_fields_and_set_robot_global_variables(self) -> None:
+        saved_fields: Dict[str, Any] = self.load_saved_fields()
+        for key, value in saved_fields.items():
+            builtin_lib.set_global_variable(f'${{{key}}}', value)
+
     def save_fields(self, field_data: Dict[str, Any]) -> None:
         saved_fields: Dict[str, Any] = self.load_saved_fields()
         saved_fields.update(field_data)

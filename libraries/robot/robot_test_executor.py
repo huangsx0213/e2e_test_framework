@@ -5,6 +5,8 @@ import os
 import re
 from typing import Dict, Tuple, List
 from robot.api.deco import keyword
+
+from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.web.web_actions import WebActions
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
@@ -83,6 +85,8 @@ class RobotTestExecutor:
         self.page_elements = self._load_page_elements()
         self.page_modules = self._load_page_modules()
         self.custom_action_executor = CustomActionExecutor(self.web_test_loader.get_custom_actions())
+        self.saved_fields_manager = SavedFieldsManager()
+        self.saved_fields_manager.load_saved_fields_and_set_robot_global_variables()
 
     @property
     def driver(self):
@@ -244,5 +248,14 @@ class RobotTestExecutor:
                         logging.info(
                             f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for web_action: {action}"
                         )
+            elif isinstance(arg, dict):
+                for key, value in arg.items():
+                    if isinstance(value, str):
+                        matches = re.findall(r'\$\{([^}]+)\}', value)
+                        if matches:
+                            for match in matches:
+                                replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
+                                arg[key] = value.replace(f'${{{match}}}', str(replacement_value))
+                                logging.info(f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for web_action: {action}")
             new_args.append(arg)
         return new_args
