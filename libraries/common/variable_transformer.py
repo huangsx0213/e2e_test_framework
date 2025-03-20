@@ -1,8 +1,7 @@
-import re
 import datetime
-import pytz
+from zoneinfo import ZoneInfo
 from robot.libraries.BuiltIn import BuiltIn
-from typing import Any, Dict
+from typing import Any
 from robot.api import logger
 from libraries.common.log_manager import ColorLogger
 
@@ -18,16 +17,16 @@ class VariableTransformer:
             'assign_value': lambda x: x,
         }
 
-    def transform(self, function_name, input_value) -> Any:
+    def transform(self, function_name, input_value, *args) -> Any:
         if function_name not in self.functions:
             raise ValueError(f"Unknown function: {function_name}")
-        output_value = self.functions[function_name](input_value)
-        return output_value
+        result = self.functions[function_name](input_value, *args)
+        return result
 
-    def transform_and_save(self, function_name, input_value, output_field) -> None:
+    def transform_and_save(self, function_name, input_value, output_field, *args) -> None:
         if function_name not in self.functions:
             raise ValueError(f"Unknown function: {function_name}")
-        output_value = self.functions[function_name](input_value)
+        output_value = self.functions[function_name](input_value, *args)
         self._save_as_global_variable(output_field, output_value)
 
     def _save_as_global_variable(self, output_field: str, value: Any) -> None:
@@ -47,7 +46,7 @@ class VariableTransformer:
     # e.g. 2023-10-05T12:00:00.000Z -> 2023-10-05T14:00:00+02:00
     def _utc_to_poland_iso_datetime(self, utc_datetime_str: str) -> str:
         utc_datetime = datetime.datetime.strptime(utc_datetime_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(microsecond=0)
-        poland_zone = pytz.timezone('Europe/Warsaw')
+        poland_zone = ZoneInfo("Europe/Warsaw")
         poland_datetime = utc_datetime.astimezone(poland_zone)
         return poland_datetime.isoformat()
 

@@ -232,7 +232,7 @@ class SummaryReportGenerator:
             html_content = template.render(html_table=html_table)
 
             # Save the HTML report to a file
-            report_file = os.path.join(PROJECT_ROOT, "report", "test_summary.html")
+            report_file = os.path.join(PROJECT_ROOT, "reports", "test_summary.html")
             os.makedirs(os.path.dirname(report_file), exist_ok=True)  # Ensure the directory exists
             with codecs.open(report_file, "w", encoding="utf-8") as f:
                 f.write(html_content)

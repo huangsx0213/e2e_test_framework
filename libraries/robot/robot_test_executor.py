@@ -199,9 +199,9 @@ class RobotTestExecutor:
             if 'locator' in action.__code__.co_varnames:
                 kwargs['element_desc'] = element_desc
                 result = action(element, *args, **kwargs)
-            elif action_name == "modify_server_side_cookie":
+            elif action_name == "modify_server_side_cookies":
                 result = asyncio.run(action(*args, **kwargs))
-            elif 'locator' not in action.__code__.co_varnames and action_name != "modify_server_side_cookie":
+            elif 'locator' not in action.__code__.co_varnames and action_name != "modify_server_side_cookies":
                 result = action(*args, **kwargs)
             else:
                 raise ValueError(f"Action '{action_name}' requires a WebElement, but none was provided.")

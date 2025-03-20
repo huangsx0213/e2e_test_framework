@@ -214,8 +214,8 @@ class ResponseFieldSaver(ResponseHandler):
     def save_fields_to_robot_variables(self, response: Union[str, Response], test_case: dict) -> None:
         response_content, _ = self.get_content_and_format(response)
         save_fields = test_case.get('Save Fields', '').splitlines()
-        # Regular expression to match patterns like: assign_value($.result.amount,my_amount) or assign_value($.result.amount)
-        transform_pattern = re.compile(r'^\s*(\w+)\(([^,]+)(?:,\s*([^)]+))?\)\s*$')
+        # Regular expression to match patterns like: assign_value($.result.amount,my_amount) or assign_value($.result.amount) or assign_value($.result.amount,arg1,arg2,...)
+        transform_pattern = re.compile(r'^\s*(\w+)\(([^,]+)(?:,\s*([^)]+?))?(?:,\s*([^)]+?))*\)\s*$')
 
         for field in save_fields:
             if not field.strip():
@@ -224,12 +224,14 @@ class ResponseFieldSaver(ResponseHandler):
             # Check if field matches transform format
             match = transform_pattern.match(field)
             if match:
-                method_name, input_field, output_field = match.groups()
-                # If no second parameter, use JSON Path as Robot variable name
-                if output_field is None:
-                    output_field = input_field
+                method_name, input_field, output_field, *args = match.groups()
                 input_value = self._extract_value_from_response(response_content, input_field)
-                self.variable_transformer.transform_and_save(method_name, input_value, output_field)
+                if args[0]:
+                    # Handle transformation with arguments
+                    self.variable_transformer.transform_and_save(method_name, input_value, output_field, *args)
+                else:
+                    # Handle transformation without arguments
+                    self.variable_transformer.transform_and_save(method_name, input_value, output_field)
             else:
                 # Handle standard field format
                 try:
