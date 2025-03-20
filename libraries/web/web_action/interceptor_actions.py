@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from playwright.async_api import async_playwright
 from .base import Base
@@ -5,27 +6,44 @@ from .request_interceptor import RequestInterceptor
 
 
 class InterceptorActions(Base):
-    async def modify_server_side_cookie(self, url,intercept_url_pattern, cookie):
+    async def modify_server_side_cookies(self, cookies):
+        """
+        Modify multiple server-side cookies at once.
+
+        Args:
+            url (str): The domain URL for the cookies
+            cookies (list): List of cookie dictionaries to set
+        """
         try:
-            playwright, browser, page = await self.setup_playwright()
-            interceptor = RequestInterceptor()
-            cookie_name = cookie.get("name")
-            cookie_value = cookie.get("value")
-            await interceptor.modify_cookie(page, intercept_url_pattern, cookie_name, cookie_value, exact_match=True)
+            playwright, browser, page, client = await self.setup_playwright()
 
-            # Navigate to the target site to trigger interception
-            await page.goto(url)
-            logging.info(f"{self.__class__.__name__}: Navigating to {url} to trigger interception.")
+            cookie_name = cookies.get("name")
+            cookie_value = cookies.get("value")
 
-            cookie_value = self.driver.get_cookie(cookie_name)["value"]
-            logging.info(f"{self.__class__.__name__}: {cookie_name} value after triggering interception: {cookie_value}")
-            await interceptor.stop()
-            # await playwright.stop()
+            # Additional cookies parameters with defaults
+            domain = cookies.get("domain", '')
+            path = cookies.get("path", "/")
+            secure = cookies.get("secure", True)
+            httpOnly = cookies.get("httpOnly", True)
+            sameSite = cookies.get("sameSite", "None")
+
+            await client.send("Network.setCookie", {
+                "name": cookie_name,
+                "value": cookie_value,
+                "domain": domain,
+                "path": path,
+                "secure": secure,
+                "httpOnly": httpOnly,
+                "sameSite": sameSite
+            })
+
+            await asyncio.sleep(1)
+            await playwright.stop()
         except Exception as e:
-            logging.error(f"{self.__class__.__name__}: An error occurred while modifying server-side cookie: {e}")
+            logging.error(f"{self.__class__.__name__}: An error occurred while modifying server-side cookies: {e}")
 
     async def setup_playwright(self):
-        # Get debugger address
+        """Connect Playwright to browser and return essential objects."""
         capabilities = self.driver.capabilities
         debugger_address = None
 
@@ -41,23 +59,22 @@ class InterceptorActions(Base):
                     break
 
         if not debugger_address:
-            raise ValueError("Could not find debugger address in browser capabilities")
+            raise ValueError("Could not find browser debugger address")
 
-        # Connect Playwright to the browser
-        playwright = await async_playwright().start()
-        browser = await playwright.chromium.connect_over_cdp(f"http://{debugger_address}")
-        # Get first context and page
-        contexts = browser.contexts
-        if not contexts:
-            await playwright.stop()
-            raise ValueError("No browser contexts found")
+        try:
+            playwright = await async_playwright().start()
+            browser = await playwright.chromium.connect_over_cdp(f"http://{debugger_address}")
 
-        pages = contexts[0].pages
-        if not pages:
-            await playwright.stop()
-            raise ValueError("No pages found in browser context")
+            # Directly get the first context and page
+            context = browser.contexts[0]
+            page = context.pages[0]
+            client = await context.new_cdp_session(page)
 
-        page = pages[0]
-        logging.info(f"{self.__class__.__name__}: Successfully connected to page: {page.url}.")
+            logging.info(f"{self.__class__.__name__}: Connected to page: {page.url}")
+            return playwright, browser, page, client
 
-        return playwright, browser, page
+        except Exception as e:
+            if 'playwright' in locals():
+                await playwright.stop()
+            logging.error(f"{self.__class__.__name__}: Failed to set up Playwright: {e}")
+            raise

@@ -95,12 +95,36 @@ class TableActions(Base):
             table_element = self.wait_for_element(locator, element_desc=element_desc) if isinstance(locator, tuple) else locator
             table_desc = element_desc or self._get_element_description(table_element)
             result = self.table_verifier.verify_value_in_table(table_element, search_value)
+            assert result,f"Value '{search_value}' not found in table"
             logging.debug(f"{self.__class__.__name__}: Value verification in table completed successfully for table: {table_desc}")
             return result
         except Exception as e:
             logging.error(f"{self.__class__.__name__}: Error verifying value in table: {str(e)}")
             raise
 
+    def verify_value_not_in_table(self, locator: Union[tuple, WebElement], search_value: str, element_desc=None):
+        logging.debug(f"{self.__class__.__name__}: Verifying value '{search_value}' does not exist in table")
+        try:
+            table_element = self.wait_for_element(locator, element_desc=element_desc) if isinstance(locator, tuple) else locator
+            table_desc = element_desc or self._get_element_description(table_element)
+            result = self.table_verifier.verify_value_not_in_table(table_element, search_value)
+            assert result,f"Value '{search_value}' found in table when it should not be present"
+            logging.debug(f"{self.__class__.__name__}: Value absence verification in table completed successfully for table: {table_desc}")
+            return result
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error verifying value not in table: {str(e)}")
+            raise
+
+    def click_table_header_column(self, locator: Union[tuple, WebElement], column: Union[str, int], element_desc=None):
+        logging.debug(f"{self.__class__.__name__}: Clicking header column '{column}' in table")
+        try:
+            table_element = self.wait_for_element(locator, element_desc=element_desc) if isinstance(locator, tuple) else locator
+            table_desc = element_desc or self._get_element_description(table_element)
+            self.table_verifier.click_table_header_column(table_element, column)
+            logging.debug(f"{self.__class__.__name__}: Clicked header column '{column}' successfully in table: {table_desc}")
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error clicking table header column: {str(e)}")
+            raise
     def verify_row_count(self, locator: Union[tuple, WebElement], expected_row_count: int, element_desc=None):
         logging.debug(f"{self.__class__.__name__}: Verifying row count: expected {expected_row_count}")
         try:

@@ -1,4 +1,4 @@
-from selenium.webdriver import ActionChains
+from selenium.webdriver import ActionChains, Keys
 from selenium.webdriver.support.select import Select
 import logging
 from .base import Base
@@ -98,3 +98,11 @@ class ElementActions(Base):
         logging.debug(f"{self.__class__.__name__}: Selecting radio button with value '{value}' in radio group [ {element_desc}:{formatted_locator} ].")
         element.click()
         logging.info(f"{self.__class__.__name__}: Selected radio button with value '{value}' in radio group [ {element_desc}:{formatted_locator} ] successfully.")
+
+    def send_custom_key(self,locator, key='ENTER', element_desc=None, condition="clickable"):
+        element = self._resolve_element(locator, element_desc, condition)
+        element_desc = element_desc or self._get_element_description(locator)
+        logging.debug(f"{self.__class__.__name__}: Sending custom key '{key}' to element [ {element_desc}:{locator} ] with ActionChains.")
+        key_to_send = getattr(Keys, key.upper(), key)
+        ActionChains(self.driver).send_keys_to_element(element, key_to_send).perform()
+        logging.info(f"{self.__class__.__name__}: Sent custom key '{key}' to element [ {element_desc}:{locator} ] with ActionChains successfully.")

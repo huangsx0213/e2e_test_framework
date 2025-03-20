@@ -191,6 +191,7 @@ class TableVerifier:
 
         :param table_element: WebElement of the table
         :param search_value: The value to search for in the table
+        :return: True if the value is found, False if not
         """
         try:
             rows = table_element.find_elements(By.TAG_NAME, "tr")
@@ -202,9 +203,34 @@ class TableVerifier:
                         self.logger.info(f"Value '{search_value}' found in table.")
                         return True
 
-            raise ValueError(f"Value '{search_value}' not found in the table.")
+            self.logger.info(f"Value '{search_value}' not found in the table.")
+            return False
         except Exception as e:
             self.logger.error(f"Error verifying presence of value in table: {str(e)}")
+            raise
+
+    def verify_value_not_in_table(self, table_element, search_value):
+        """
+        Verify if a specific value does not exist in the table.
+
+        :param table_element: WebElement of the table
+        :param search_value: The value to verify is not in the table
+        :return: True if the value is not found, False if it is found
+        """
+        try:
+            rows = table_element.find_elements(By.TAG_NAME, "tr")
+
+            for row in rows[1:]:  # Skip header row
+                cells = row.find_elements(By.XPATH, ".//td|.//th")
+                for cell in cells:
+                    if search_value in cell.text.strip():
+                        self.logger.info(f"Value '{search_value}' found in table when it should not be present.")
+                        return False
+
+            self.logger.info(f"Value '{search_value}' not found in the table as expected.")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error verifying absence of value in table: {str(e)}")
             raise
 
     def verify_row_count(self, table_element, expected_row_count):
@@ -321,3 +347,31 @@ class TableVerifier:
         logging.debug(f"{self.__class__.__name__}: {message}")
         logger.info(
             ColorLogger.success(f"=> {message}") if success else ColorLogger.error(f"=> {message}"), html=True)
+
+    def click_table_header_column(self, table_element, column):
+        """
+        Click on a specific column header in the table.
+
+        :param table_element: WebElement of the table
+        :param column: Column name or index (1-based if index) to click
+        :return: None
+        """
+        try:
+            # Get the first row (header row)
+            header_row = table_element.find_element(By.TAG_NAME, "tr")
+            headers = [header.text.strip().lower() for header in header_row.find_elements(By.XPATH, ".//th | .//td")]
+
+            # Use existing _get_cell_index method to find the column index
+            column_index = self._get_cell_index(headers, column)
+
+            # Get all header elements and click the one at the determined index
+            header_elements = header_row.find_elements(By.XPATH, ".//th | .//td")
+            if column_index >= len(header_elements):
+                raise ValueError(f"Column index {column_index} is out of range. Found {len(header_elements)} header columns.")
+
+            header_elements[column_index].click()
+            self.logger.info(f"Clicked on table header column: '{column}'")
+
+        except Exception as e:
+            self.logger.error(f"Error clicking table header column: {str(e)}")
+            raise
