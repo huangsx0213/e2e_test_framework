@@ -237,25 +237,91 @@ class RobotTestExecutor:
 
     def _resolve_variable_in_parameters(self, action_params, action):
         new_args = []
+        # Enhanced regular expression to match patterns like:
+        # assign_value($.result.amount) or
+        # assign_value($.result.amount,arg1,arg2,...)
+        transform_pattern = re.compile(r'(\w+)\(([^,)]+)(?:,\s*([^)]+))?\)')
+
         for arg in action_params:
             if isinstance(arg, str):
-                # 使用正则匹配所有 ${...} 格式的变量
-                matches = re.findall(r'\$\{([^}]+)\}', arg)
-                if matches:
-                    for match in matches:
-                        replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
-                        arg = arg.replace(f'${{{match}}}', str(replacement_value))
-                        logging.info(
-                            f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for web_action: {action}"
-                        )
+                # First check if the arg matches a transformation pattern
+                match = transform_pattern.search(arg.strip())
+                if match:
+                    method_name, input_field = match.groups()[0:2]
+                    remaining_args_str = match.groups()[2]
+
+                    # Process additional arguments if they exist
+                    args_list = []
+                    if remaining_args_str:
+                        # Split remaining args by comma and strip whitespace
+                        args_list = [arg.strip() for arg in remaining_args_str.split(',')]
+
+                    # Extract input field value
+                    input_value = builtin_lib.get_variable_value(input_field)
+
+                    if input_value is None:
+                        logging.warning(f"{self.__class__.__name__}: Robot variable {input_field} not found for web_action: {action} while transforming")
+
+                    # Transform with dynamic arguments
+                    transformed_value = self.saved_fields_manager.variable_transformer.transform(method_name, input_value, *args_list)
+
+                    # Replace entire pattern with transformed value
+                    arg = transform_pattern.sub(str(transformed_value), arg)
+
+                    # Log the transformation
+                    args_log = ", ".join([input_field] + args_list)
+                    logging.info(f"{self.__class__.__name__}: Applied {method_name}({args_log}) -> [{transformed_value}] for web_action: {action}")
+                else:
+                    # Use regular expression to match all ${...} format variables
+                    matches = re.findall(r'\$\{([^}]+)\}', arg)
+                    if matches:
+                        for match in matches:
+                            replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
+                            arg = arg.replace(f'${{{match}}}', str(replacement_value))
+                            logging.info(
+                                f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for web_action: {action}"
+                            )
             elif isinstance(arg, dict):
+                # Handle dictionary arguments
                 for key, value in arg.items():
                     if isinstance(value, str):
-                        matches = re.findall(r'\$\{([^}]+)\}', value)
-                        if matches:
-                            for match in matches:
-                                replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
-                                arg[key] = value.replace(f'${{{match}}}', str(replacement_value))
-                                logging.info(f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for web_action: {action}")
+                        # First check if the value matches a transformation pattern
+                        match = transform_pattern.search(value.strip())
+                        if match:
+                            method_name, input_field = match.groups()[0:2]
+                            remaining_args_str = match.groups()[2]
+
+                            # Process additional arguments if they exist
+                            args_list = []
+                            if remaining_args_str:
+                                # Split remaining args by comma and strip whitespace
+                                args_list = [a.strip() for a in remaining_args_str.split(',')]
+
+                            # Extract input field value
+                            input_value = builtin_lib.get_variable_value(input_field)
+
+                            # Transform with dynamic arguments
+                            transformed_value = self.saved_fields_manager.variable_transformer.transform(
+                                method_name, input_value, *args_list
+                            )
+
+                            # Replace entire pattern with transformed value
+                            arg[key] = transform_pattern.sub(str(transformed_value), value)
+
+                            # Log the transformation
+                            args_log = ", ".join([input_field] + args_list)
+                            logging.info(
+                                f"{self.__class__.__name__}: Applied {method_name}({args_log}) -> [{transformed_value}] for web_action: {action}"
+                            )
+                        else:
+                            # Handle regular variable replacements
+                            matches = re.findall(r'\$\{([^}]+)\}', value)
+                            if matches:
+                                for match in matches:
+                                    replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
+                                    arg[key] = value.replace(f'${{{match}}}', str(replacement_value))
+                                    logging.info(
+                                        f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for web_action: {action}"
+                                    )
             new_args.append(arg)
         return new_args

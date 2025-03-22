@@ -294,6 +294,48 @@ class TableVerifier:
             self.logger.error(f"Error verifying sorting for column '{column}': {str(e)}")
             raise
 
+    def verify_numeric_column_sorted(self, table_element, column, expected_order='ascending', strip_spaces=True):
+
+        try:
+            # Retrieve all rows and headers of the table
+            rows = table_element.find_elements(By.TAG_NAME, "tr")
+            headers = [header.text.strip().lower() for header in rows[0].find_elements(By.XPATH, ".//th | .//td")]
+
+            # Get the index of the target column using the existing helper method
+            column_index = self._get_cell_index(headers, column)
+
+            # Collect numeric values from the target column (skipping the header row)
+            numeric_data = []
+            for row in rows[1:]:
+                cells = row.find_elements(By.XPATH, ".//td|.//th")
+                if column_index < len(cells):
+                    cell_text = cells[column_index].text
+                    if strip_spaces:
+                        cell_text = cell_text.strip()
+                    # Remove commas if present
+                    cell_text_no_comma = cell_text.replace(",", "")
+                    try:
+                        # Convert the processed string to a float
+                        numeric_value = float(cell_text_no_comma)
+                    except ValueError:
+                        raise ValueError(f"Cell value '{cell_text}' in column '{column}' is not a valid number.")
+                    numeric_data.append(numeric_value)
+                else:
+                    raise ValueError(f"Column '{column}' is out of range. This row has {len(cells)} columns.")
+
+            # Sort the numeric data based on the expected order
+            sorted_data = sorted(numeric_data)
+            if expected_order == 'descending':
+                sorted_data.reverse()
+
+            # Validate if the column data is sorted as expected
+            assert numeric_data == sorted_data, f"Column '{column}' is not sorted in {expected_order} order. Actual order: {numeric_data}"
+
+            self.logger.info(f"Numeric column '{column}' is correctly sorted in {expected_order} order.")
+        except Exception as e:
+            self.logger.error(f"Error verifying numeric sorting for column '{column}': {str(e)}")
+            raise
+
     def select_table_row_checkbox(self, table_element, identifier_column, identifier_value, checkbox_column=1):
         """
         Select the checkbox in a specific row based on an identifier value in a specific column.

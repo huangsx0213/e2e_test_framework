@@ -60,8 +60,10 @@ class SavedFieldsManager:
 
     def apply_suite_variables(self, test_case) -> None:
         try:
-            # Regular expression to match patterns like: assign_value($.result.amount,my_amount) or assign_value($.result.amount)
-            transform_pattern = re.compile(r'(\w+)\(([^,]+)(?:,\s*([^)]+))?\)')
+            # Enhanced regular expression to match patterns like:
+            # assign_value($.result.amount) or
+            # assign_value($.result.amount,arg1,arg2,...)
+            transform_pattern = re.compile(r'(\w+)\(([^,)]+)(?:,\s*([^)]+))?\)')
 
             for key in ['Body Override', 'Exp Result']:
                 if key not in test_case or not test_case[key]:
@@ -79,18 +81,30 @@ class SavedFieldsManager:
                     match = transform_pattern.search(line.strip())
                     if match:
                         # Handle transformation format
-                        method_name, input_field, output_field = match.groups()
-                        # If no second parameter, use input field as output variable name
-                        if output_field is None:
-                            output_field = input_field
+                        method_name, input_field = match.groups()[0:2]
+                        remaining_args_str = match.groups()[2]
 
-                        # Extract input field value and transform it
+                        # Process additional arguments if they exist
+                        args = []
+                        if remaining_args_str:
+                            # Split remaining args by comma and strip whitespace
+                            args = [arg.strip() for arg in remaining_args_str.split(',')]
+
+                        # Extract input field value
                         input_value = BuiltIn().get_variable_value(input_field)
-                        transformed_value = self.variable_transformer.transform(method_name, input_value)
+
+                        if input_value is None:
+                            logging.warning(f"{self.__class__.__name__}: Robot variable '{input_field}' not found.")
+
+                        # Transform with dynamic arguments
+                        transformed_value = self.variable_transformer.transform(method_name, input_value, *args)
 
                         # Replace entire pattern with transformed value
                         line = transform_pattern.sub(str(transformed_value), line)
-                        logging.info(f"{self.__class__.__name__}: [{key}] Replaced transform pattern {match.group(0)} with [{transformed_value}]")
+
+                        # Log the transformation
+                        args_log = ", ".join([input_field] + args)
+                        logging.info(f"{self.__class__.__name__}: [{key}] Applied {method_name}({args_log}) -> [{transformed_value}]")
                     else:
                         # Handle standard variable replacement
                         matches = re.findall(r'\$\{[^}]+\}', line)

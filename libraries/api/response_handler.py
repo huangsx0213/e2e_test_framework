@@ -212,6 +212,7 @@ class ResponseFieldSaver(ResponseHandler):
         self.variable_transformer = VariableTransformer()
 
     def save_fields_to_robot_variables(self, response: Union[str, Response], test_case: dict) -> None:
+        tcid = test_case['TCID']
         response_content, _ = self.get_content_and_format(response)
         save_fields = test_case.get('Save Fields', '').splitlines()
         # Regular expression to match patterns like: assign_value($.result.amount,my_amount) or assign_value($.result.amount) or assign_value($.result.amount,arg1,arg2,...)
@@ -225,13 +226,23 @@ class ResponseFieldSaver(ResponseHandler):
             match = transform_pattern.match(field)
             if match:
                 method_name, input_field, output_field, *args = match.groups()
+
+                if output_field:
+                    output_field = f"{tcid}.{output_field.strip()}"
+
                 input_value = self._extract_value_from_response(response_content, input_field)
+
+                if input_value is None:
+                    logging.warning(f"{self.__class__.__name__}: Robot variable {input_field} not found. Skipping transformation.")
+
                 if args[0]:
                     # Handle transformation with arguments
                     self.variable_transformer.transform_and_save(method_name, input_value, output_field, *args)
+                    logging.info(f"{self.__class__.__name__}: Transformed {input_field} to {output_field} using {method_name} with arguments {args}.")
                 else:
                     # Handle transformation without arguments
                     self.variable_transformer.transform_and_save(method_name, input_value, output_field)
+                    logging.info(f"{self.__class__.__name__}: Transformed {input_field} to {output_field} using {method_name}.")
             else:
                 # Handle standard field format
                 try:

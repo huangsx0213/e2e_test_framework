@@ -147,6 +147,17 @@ class TableActions(Base):
             logging.error(f"{self.__class__.__name__}: Error verifying column sorting: {str(e)}")
             raise
 
+    def verify_numeric_column_sorted(self, locator: Union[tuple, WebElement], column: Union[str, int], expected_order='ascending', strip_spaces=True, element_desc=None):
+        logging.debug(f"{self.__class__.__name__}: Verifying numeric column '{column}' is sorted in {expected_order} order")
+        try:
+            table_element = self.wait_for_element(locator, element_desc=element_desc) if isinstance(locator, tuple) else locator
+            table_desc = element_desc or self._get_element_description(table_element)
+            self.table_verifier.verify_numeric_column_sorted(table_element, column, expected_order, strip_spaces)
+            logging.debug(f"{self.__class__.__name__}: Numeric column sorting verification completed successfully for table: {table_desc}, column: {column}")
+        except Exception as e:
+            logging.error(f"{self.__class__.__name__}: Error verifying numeric column sorting: {str(e)}")
+            raise
+
     def select_table_row_checkbox(self, locator: Union[tuple, WebElement], identifier_column: Union[str, int], identifier_value: str, checkbox_column: int = 1, element_desc=None):
         logging.debug(f"{self.__class__.__name__}: Selecting checkbox for row with {identifier_column}: {identifier_value}")
         try:
