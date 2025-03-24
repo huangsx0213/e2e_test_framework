@@ -2,6 +2,8 @@ import logging
 from selenium.webdriver.common.by import By
 import re
 from robot.api import logger
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from libraries.common.log_manager import ColorLogger
 
 
@@ -282,7 +284,7 @@ class TableVerifier:
                     raise ValueError(f"Column '{column}' is out of range. This row has {len(cells)} columns.")
 
             # Sort the column data based on the expected order
-            sorted_data = sorted(column_data)
+            sorted_data = sorted(column_data, key=lambda x: (x == '', x))
             if expected_order == 'descending':
                 sorted_data.reverse()
 
@@ -411,7 +413,10 @@ class TableVerifier:
             if column_index >= len(header_elements):
                 raise ValueError(f"Column index {column_index} is out of range. Found {len(header_elements)} header columns.")
 
-            header_elements[column_index].click()
+            header_element = header_elements[column_index]
+            WebDriverWait(self.driver, 60).until(EC.element_to_be_clickable(header_element))
+            self.driver.execute_script("arguments[0].scrollIntoView();", header_element)
+            header_element.click()
             self.logger.info(f"Clicked on table header column: '{column}'")
 
         except Exception as e:
