@@ -8,7 +8,7 @@ from robot.libraries.BuiltIn import BuiltIn
 from .base import Base
 
 class UtilsActions(Base):
-    def capture_screenshot(self):
+    def capture_screenshot(self,description=None):
         try:
             if self.driver:
                 screenshot_binary = self.driver.get_screenshot_as_png()
@@ -21,7 +21,7 @@ class UtilsActions(Base):
                 image.save(buffer, format="WebP", quality=30)
                 encoded_string = base64.b64encode(buffer.getvalue()).decode('utf-8')
                 logging.info(
-                    f"{self.__class__.__name__}: Screenshot captured successfully at: " + str(datetime.datetime.now()))
+                    f"{self.__class__.__name__}: Screenshot captured successfully at: " + str(datetime.datetime.now())+ " with description: " + str(description))
                 BuiltIn().log(f'<img src="data:image/webp;base64,{encoded_string}" width="1440px">', html=True)
             else:
                 logging.error(f"{self.__class__.__name__}: WebDriver is not initialized.")

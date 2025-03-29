@@ -120,7 +120,8 @@ class RobotTestExecutor:
                 'parameter_names': row['Parameter Name'].split(',') if row['Parameter Name'] else [],
                 'highlight': row['Highlight'],
                 'screen_capture': row['Screenshot'],
-                'wait': row['Wait']
+                'wait': row['Wait'],
+                'description': row['Descriptions']
             }
             modules.setdefault(row['Page Name'], {}).setdefault(row['Module Name'], []).append(action_info)
         return modules
@@ -152,6 +153,7 @@ class RobotTestExecutor:
             action = action_info['web_action']
             highlight = action_info['highlight']
             screen_capture = action_info['screen_capture']
+            description = action_info['description']
             wait = action_info['wait']
             locator = self.page_elements[page_name][element_name] if element_name else None
             action_params = self._extract_parameters(data_set, action_info['parameter_names'])
@@ -180,7 +182,7 @@ class RobotTestExecutor:
                     logging.warning(f"Invalid wait value: {wait}. Skipping wait.")
 
             if screen_capture:
-                self.execute_action('capture_screenshot', locator, element_desc)
+                self.execute_action('capture_screenshot', locator, element_desc,description)
 
             logging.info("=" * 80)
 
