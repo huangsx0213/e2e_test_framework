@@ -229,6 +229,8 @@ class ResponseFieldSaver(ResponseHandler):
 
                 if output_field:
                     output_field = f"{tcid}.{output_field.strip()}"
+                else:
+                    output_field = f"{tcid}.{input_field.strip()}"
 
                 input_value = self._extract_value_from_response(response_content, input_field)
 
