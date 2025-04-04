@@ -69,7 +69,7 @@ class BodyGenerator:
         if field_string is None or field_string.strip() == "":
             return {}
         try:
-            field_string = field_string.replace(":", ": ")
+            field_string = re.sub(r'(".*?"):\s*', r'\1: ', field_string)
             return yaml.safe_load(field_string)
         except yaml.YAMLError as e:
             logging.error(f"Error parsing user-defined fields: {e}")
