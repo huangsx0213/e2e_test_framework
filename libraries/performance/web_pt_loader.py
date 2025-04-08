@@ -97,7 +97,7 @@ class PerformanceTestLoader:
             logging.error("PerformanceTestLoader: WebEnvironments sheet is empty or does not exist.")
             return
 
-        required_columns = ['Environment', 'TargetURL', 'Rounds', 'LogDetails', 'Browser', 'IsRemote', 'RemoteURL', 'ChromePath', 'ChromeDriverPath', 'EdgePath', 'EdgeDriverPath',
+        required_columns = ['Environment', 'Rounds', 'LogDetails', 'Browser', 'IsRemote', 'RemoteURL', 'ChromePath', 'ChromeDriverPath', 'EdgePath', 'EdgeDriverPath',
                             'BrowserOptions']
         missing_columns = set(required_columns) - set(web_environments.columns)
         if missing_columns:
@@ -114,9 +114,6 @@ class PerformanceTestLoader:
                 continue
             if pd.isna(row['Environment']) or row['Environment'] == '':
                 logging.error(f"PerformanceTestLoader: Empty Environment name in WebEnvironments row {index + 2}")
-
-            if pd.isna(row['TargetURL']) or row['TargetURL'] == '':
-                logging.error(f"PerformanceTestLoader: TargetURL cannot be empty in WebEnvironments row {index + 2}")
 
             if pd.isna(row['Rounds']) or row['Rounds'] == '':
                 logging.error(f"PerformanceTestLoader: Rounds cannot be empty in WebEnvironments row {index + 2}")

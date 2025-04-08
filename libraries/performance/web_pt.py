@@ -37,7 +37,6 @@ class WebPerformanceTester:
         active_env = self.test_config['active_environment']
         env_config = web_environments[web_environments['Environment'] == active_env].iloc[0].to_dict()
         return {
-            'Target URL': env_config['TargetURL'],
             'Rounds': env_config['Rounds'],
             'Log Details': env_config['LogDetails']
         }
@@ -102,16 +101,14 @@ class WebPerformanceTester:
         if test_case['Run'] != 'Y':
             logging.warning(f"Test case {case_id} is not marked to run.")
             return
-
         rounds = int(self.main_config['Rounds'])
-        target_url = self.main_config['Target URL']
         case_functions = self.test_functions[self.test_functions['Case ID'] == case_id].sort_values('Execution Order')
+
+        self._execute_setup_function()
 
         for round_num in range(rounds):
             try:
                 logging.info(f"Starting round {round_num + 1}/{rounds}")
-                self.driver.get(target_url)
-
                 memory_usage = self.get_js_memory()
                 if memory_usage is not None:
                     self.memory_usage_data.append({
@@ -137,6 +134,16 @@ class WebPerformanceTester:
                 continue
 
         logging.info(f"Finished executing test case: {case_id} - {case_name}")
+
+    def _execute_setup_function(self):
+        try:
+            setup_steps = self.sub_functions[
+                self.sub_functions['Sub Function Name'] == 'TestSetup'].sort_values('Step Order')
+            for _, step in setup_steps.iterrows():
+                self._execute_step(step)
+        except Exception as e:
+            logging.error(f"Error executing function 'Setup': {e}")
+            raise
 
     def _execute_test_function(self, round_num: int, function_name: str, case_id: str):
         function_steps = self.test_functions[self.test_functions['Function Name'] == function_name].iloc[0]
