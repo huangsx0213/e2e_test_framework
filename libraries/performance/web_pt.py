@@ -1,14 +1,20 @@
 import logging
 import os
 import json
+import re
 import time
 from typing import Dict, Tuple
+
+from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.config_manager import ConfigManager
 from libraries.performance.web_pt_loader import PerformanceTestLoader
 from libraries.web.web_actions import WebActions
 from libraries.web.webdriver_factory import WebDriverFactory
 from libraries.performance.web_pt_reporter import WebPerformanceReporter
+from robot.libraries.BuiltIn import BuiltIn
+
+builtin_lib = BuiltIn()
 
 
 class WebPerformanceTester:
@@ -69,6 +75,8 @@ class WebPerformanceTester:
         self.locators = self.performance_test_loader.get_locators()
         self.page_elements = self._load_page_elements()
         self.custom_actions = self.performance_test_loader.get_custom_actions()
+        self.saved_fields_manager = SavedFieldsManager()
+        self.saved_fields_manager.load_saved_fields_and_set_robot_global_variables()
 
     @property
     def driver(self):
@@ -212,6 +220,15 @@ class WebPerformanceTester:
                 raise ValueError(f"Unknown action type: {action_name}")
 
             action = getattr(self.web_actions, action_name)
+
+            if input_value is not None:  # Check if input_value exists
+                input_value = str(input_value)  # Convert to string
+                matches = re.findall(r'\$\{([^}]+)\}', input_value)
+                if matches:
+                    for match in matches:
+                        replacement_value = builtin_lib.get_variable_value(f'${{{match}}}')
+                        input_value = input_value.replace(f'${{{match}}}', str(replacement_value))
+                        logging.info(f"{self.__class__.__name__}: Replaced {match} with value: {replacement_value} for web_action: {action}")
 
             if locator is not None:
                 action(locator, input_value) if input_value else action(locator)
