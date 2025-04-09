@@ -1,3 +1,5 @@
+import json
+
 from .base import Base
 import logging
 
@@ -24,6 +26,12 @@ class CookieActions(Base):
         logging.info(f"{self.__class__.__name__}: All cookies deleted successfully")
 
     def set_cookie(self, cookies: dict):
+        if isinstance(cookies, str):
+            try:
+                cookies = json.loads(cookies)
+            except json.JSONDecodeError:
+                logging.error(f"{self.__class__.__name__}: Invalid JSON string for cookies: {cookies}")
+                return
         # Validate required fields
         for key in ("name", "value"):
             if key not in cookies:
