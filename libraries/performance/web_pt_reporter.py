@@ -27,7 +27,7 @@ class WebPerformanceReporter:
     def generate_response_time_statistics_chart(self, case_id, case_name):
         df = pd.DataFrame(self.response_time_data)
         stats = df.groupby("function_name").agg({"response_time": ["mean", "max"]})
-        stats.columns = ["Mean", "Max"]
+        stats.columns = ["Avg", "Max"]
         stats.reset_index(inplace=True)
 
         stats.plot(kind="bar", x="function_name", figsize=(15, 6), colormap="coolwarm")
@@ -66,16 +66,16 @@ class WebPerformanceReporter:
             ]
         }).reset_index()
 
-        stats.columns = ["Function Name", "Mean (s)", "Max (s)", "Min (s)",
+        stats.columns = ["Function Name", "Avg (s)", "Max (s)", "Min (s)",
                          "Median (s)", "P90 (s)", "P95 (s)", "P99 (s)"]
 
-        fig, ax = plt.subplots(figsize=(16, len(stats) * 0.5))
+        fig, ax = plt.subplots(figsize=(17, len(stats) * 0.4))
         ax.axis("tight")
         ax.axis("off")
         table = plt.table(cellText=stats.values, colLabels=stats.columns, cellLoc="center", loc="center")
         table.auto_set_font_size(False)
         table.set_fontsize(8)
-        table.scale(1.0, 1.5)
+        table.scale(1.0, 1.3)
         plt.title(f"Response Time Statistics Table - Case ID: {case_id}, Case Name: {case_name}", y=1.1)
         return self._save_fig_as_base64()
 
