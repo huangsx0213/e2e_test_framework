@@ -94,4 +94,4 @@ class WaitActions(Base):
         Pauses execution for the given number of seconds.
         """
         logging.info(f"{self.__class__.__name__}: Waiting for {seconds} seconds.")
-        time.sleep(int(seconds))
+        time.sleep(float(seconds))
