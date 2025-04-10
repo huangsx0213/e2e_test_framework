@@ -4,6 +4,7 @@ import pandas as pd
 import os
 from typing import Dict, List
 
+
 class PerformanceTestLoader:
     _instances = {}
 
@@ -97,7 +98,7 @@ class PerformanceTestLoader:
             logging.error("PerformanceTestLoader: WebEnvironments sheet is empty or does not exist.")
             return
 
-        required_columns = ['Environment', 'Rounds', 'LogDetails', 'Browser', 'IsRemote', 'RemoteURL', 'ChromePath', 'ChromeDriverPath', 'EdgePath', 'EdgeDriverPath',
+        required_columns = ['Environment', 'Rounds', 'MaxMinutes', 'LogDetails', 'Browser', 'IsRemote', 'RemoteURL', 'ChromePath', 'ChromeDriverPath', 'EdgePath', 'EdgeDriverPath',
                             'BrowserOptions']
         missing_columns = set(required_columns) - set(web_environments.columns)
         if missing_columns:
@@ -117,6 +118,8 @@ class PerformanceTestLoader:
 
             if pd.isna(row['Rounds']) or row['Rounds'] == '':
                 logging.error(f"PerformanceTestLoader: Rounds cannot be empty in WebEnvironments row {index + 2}")
+            if pd.isna(row['MaxMinutes']) or row['MaxMinutes'] == '':
+                logging.error(f"PerformanceTestLoader: MaxMinutes cannot be empty in WebEnvironments row {index + 2}")
             else:
                 try:
                     rounds = int(row['Rounds'])

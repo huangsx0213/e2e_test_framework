@@ -45,6 +45,7 @@ class WebPerformanceTester:
         env_config = web_environments[web_environments['Environment'] == active_env].iloc[0].to_dict()
         return {
             'Rounds': env_config['Rounds'],
+            'MaxMinutes': env_config['MaxMinutes'],
             'Log Details': env_config['LogDetails']
         }
 
@@ -110,14 +111,25 @@ class WebPerformanceTester:
         if test_case['Run'] != 'Y':
             logging.warning(f"Test case {case_id} is not marked to run.")
             return
-        rounds = int(self.main_config['Rounds'])
+
         case_functions = self.test_functions[self.test_functions['Case ID'] == case_id].sort_values('Execution Order')
+        max_rounds = int(self.main_config['Rounds'])
+        max_minutes = float(self.main_config.get('MaxMinutes', float('inf')))  # Default to infinity if not specified
+        start_time = time.perf_counter()
+        round_num = 0
 
         self._execute_setup_function()
 
-        for round_num in range(rounds):
+        while round_num < max_rounds:
+            current_time = time.perf_counter()
+            elapsed_minutes = (current_time - start_time) / 60
+
+            if elapsed_minutes >= max_minutes:
+                logging.info(f"Time limit of {max_minutes} minutes reached after {round_num} rounds")
+                break
+
             try:
-                logging.info(f"Starting round {round_num + 1}/{rounds}")
+                logging.info(f"Starting round {round_num + 1}/{max_rounds}")
                 memory_usage = self.get_js_memory()
                 if memory_usage is not None:
                     self.memory_usage_data.append({
@@ -132,17 +144,18 @@ class WebPerformanceTester:
                         self._execute_test_function(round_num, function_name, case_id)
                     except Exception as e:
                         logging.error(f"Error in function '{function_name}' during round {round_num + 1}: {e}")
-                        # Continue with next function
                         continue
 
-                logging.info(f"Completed round {round_num + 1}/{rounds}")
+                logging.info(f"Completed round {round_num + 1}/{max_rounds}")
+                round_num += 1
 
             except Exception as e:
                 logging.error(f"Error in round {round_num + 1}: {e}")
-                # Continue with next round
                 continue
 
         logging.info(f"Finished executing test case: {case_id} - {case_name}")
+        logging.info(f"Total rounds completed: {round_num}")
+        logging.info(f"Total time elapsed: {(time.time() - start_time) / 60:.2f} minutes")
 
     def _execute_setup_function(self):
         try:
