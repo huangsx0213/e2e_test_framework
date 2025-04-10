@@ -21,7 +21,7 @@ class WebPerformanceTester:
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root = PROJECT_ROOT
         self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'web_pt_config.yaml')
-        self.test_cases_path = test_cases_path or os.path.join(self.project_root, 'test_cases', 'web_pt_cases.xlsx')
+        self.test_cases_path = test_cases_path  or os.path.join(self.project_root, 'test_cases', 'web_pt_cases.xlsx')
 
         self._web_actions_instance = None
         self._driver = None
@@ -34,6 +34,7 @@ class WebPerformanceTester:
 
     def _load_configuration(self):
         self.test_config = ConfigManager.load_yaml(self.test_config_path)
+        self.test_cases_path = self.test_config.get('test_cases_path', self.test_cases_path)
         self.performance_test_loader = PerformanceTestLoader(self.test_cases_path, self.test_config)
         self.env_config = self._load_environment_config()
         self.main_config = self._load_main_config()

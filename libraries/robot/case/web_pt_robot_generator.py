@@ -7,6 +7,7 @@ from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.robot.case.base_generator import RobotCaseGenerator
 from libraries.performance.web_pt_loader import PerformanceTestLoader
 
+
 class WebPerformanceRobotCaseGenerator(RobotCaseGenerator):
     def __init__(self, test_config_path: str = None, test_cases_path: str = None):
         self.project_root: str = PROJECT_ROOT
@@ -18,11 +19,8 @@ class WebPerformanceRobotCaseGenerator(RobotCaseGenerator):
 
     def load_configuration(self):
         try:
-            self.test_config_path = (
-                os.path.join(self.project_root, 'configs', 'web_pt_config.yaml')
-                if self.test_config_path is None
-                else self.test_config_path
-            )
+            self.test_config_path = (os.path.join(self.project_root, 'configs', 'web_pt_config.yaml') if self.test_config_path is None
+                                     else self.test_config_path)
             self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
         except FileNotFoundError:
             logging.error(f"{self.__class__.__name__}: Config file not found at {self.test_config_path}")
