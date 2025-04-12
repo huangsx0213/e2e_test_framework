@@ -6,6 +6,7 @@ import re
 from typing import Dict, Tuple, List
 from robot.api.deco import keyword
 
+from libraries.api.api_test_loader import APITestLoader
 from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.web.web_actions import WebActions
 from libraries.common.utility_helpers import PROJECT_ROOT
@@ -50,7 +51,7 @@ class RobotTestExecutor:
         self._driver = None
         self._load_configuration()
         self._initialize_components()
-        self.database_operator = DBOperator()
+        self.database_operator = DBOperator(self.active_db_configs)
 
     def _load_configuration(self):
         self.test_config = ConfigManager.load_yaml(self.test_config_path)
@@ -63,6 +64,10 @@ class RobotTestExecutor:
         builtin_lib.set_global_variable('${active_environment}', active_env)
         env_config = environments[environments['Environment'] == active_env].iloc[0].to_dict()
         env_config['BrowserOptions'] = json.loads(env_config['BrowserOptions'])
+        self.api_test_loader = APITestLoader(self.test_cases_path)
+        self.active_db_configs = self.api_test_loader.get_db_configs(active_env)
+        if not self.active_db_configs:
+            raise ValueError(f"No database configuration for environment: {active_env}")
 
         return {
             'environments': {
