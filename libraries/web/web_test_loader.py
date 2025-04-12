@@ -5,6 +5,7 @@ import os
 from typing import Dict, List
 from robot.libraries.BuiltIn import BuiltIn
 
+
 class WebTestLoader:
     _instances = {}
 
@@ -41,7 +42,7 @@ class WebTestLoader:
 
     def _validate_db_configs(self):
         db_configs = self.get_data_by_sheet_name('DBConfigs')
-        required_columns = ['Environment', 'DatabaseName', 'Type', 'User', 'Password', 'Host', 'Port', 'Database', 'Schema', 'ServiceName', 'MinConnections', 'MaxConnections']
+        required_columns = ['Environment', 'DatabaseName', 'Type', 'User', 'Password', 'Host', 'Port', 'Database', 'Schema', 'ServiceName']
         missing_columns = set(required_columns) - set(db_configs.columns)
         if missing_columns:
             logging.error(f"WebTestLoader: Missing required columns in DBConfigs sheet: {', '.join(missing_columns)}")
@@ -60,7 +61,7 @@ class WebTestLoader:
         db_configs = self.get_data_by_sheet_name('DBConfigs')
         env_configs = db_configs[db_configs['Environment'] == environment]
         if env_configs.empty:
-            logging.error(f"WebTestLoader: No database configurations found for environment: {environment}")
+            logging.warning(f"WebTestLoader: No database configurations found for environment: {environment}")
             return {}
 
         configs = {}
@@ -79,11 +80,7 @@ class WebTestLoader:
                     'schema': row['Schema'],
                 })
             elif row['Type'].lower() == 'oracle':
-                config.update({
-                    'service_name': row['ServiceName'],
-                    'min_connections': int(row['MinConnections']) if pd.notna(row['MinConnections']) else None,
-                    'max_connections': int(row['MaxConnections']) if pd.notna(row['MaxConnections']) else None,
-                })
+                config.update({'service_name': row['ServiceName'], })
 
             configs[row['DatabaseName']] = config
 

@@ -1,6 +1,5 @@
 from libraries.web.web_action.alert_actions import AlertActions
 from libraries.web.web_action.element_actions import ElementActions
-from libraries.web.web_action.interceptor_actions import InterceptorActions
 from libraries.web.web_action.navigation_actions import NavigationActions
 from libraries.web.web_action.cookie_actions import CookieActions
 from libraries.web.web_action.window_actions import WindowActions
@@ -21,6 +20,5 @@ class WebActions(
     NavigationActions,
     CookieActions,
     AlertActions,
-    UtilsActions,
-    InterceptorActions):
+    UtilsActions):
     pass

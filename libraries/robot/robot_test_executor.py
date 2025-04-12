@@ -1,12 +1,9 @@
-import asyncio
 import json
 import logging
 import os
 import re
 from typing import Dict, Tuple, List
 from robot.api.deco import keyword
-
-from libraries.api.api_test_loader import APITestLoader
 from libraries.api.saved_fields_manager import SavedFieldsManager
 from libraries.web.web_actions import WebActions
 from libraries.common.utility_helpers import PROJECT_ROOT
@@ -51,20 +48,25 @@ class RobotTestExecutor:
         self._driver = None
         self._load_configuration()
         self._initialize_components()
-        self.database_operator = DBOperator(self.active_db_configs)
 
     def _load_configuration(self):
         """Load test configurations and initialize loaders"""
         try:
             # Load main test configuration
             self.test_config = ConfigManager.load_yaml(self.test_config_path)
+            self.active_env = self.test_config['active_environment']
             if not self.test_config:
                 raise ValueError("Empty or invalid test configuration")
+            if not self.active_env:
+                raise ValueError("Active environment not specified in configuration")
+
             # Initialize test loaders
             self.web_test_loader = WebTestLoader(self.test_cases_path, self.test_config)
-            self.api_test_loader = APITestLoader(self.test_cases_path)
+            self.active_db_configs = self.web_test_loader.get_db_configs(self.active_env)
+
             # Load environment configuration
             self.env_config = self._load_environment_config()
+
         except Exception as e:
             logging.error(f"Failed to load configuration: {str(e)}")
             raise
@@ -72,28 +74,21 @@ class RobotTestExecutor:
     def _load_environment_config(self):
         """Load environment specific configurations"""
         try:
-            # Get active environment
-            active_env = self.test_config['active_environment']
-            if not active_env:
-                raise ValueError("Active environment not specified in configuration")
             # Set global variable
-            builtin_lib.set_global_variable('${active_environment}', active_env)
+            builtin_lib.set_global_variable('${active_environment}', self.active_env)
             # Get environment specific settings
             environments = self.web_test_loader.get_web_environments()
-            env_config = environments[environments['Environment'] == active_env]
+            env_config = environments[environments['Environment'] == self.active_env]
             if env_config.empty:
-                raise ValueError(f"Environment '{active_env}' not found in configurations")
+                raise ValueError(f"Environment '{self.active_env}' not found in configurations")
             # Convert to dict and parse browser options
             env_settings = env_config.iloc[0].to_dict()
             env_settings['BrowserOptions'] = json.loads(env_settings['BrowserOptions'])
-            # Load database configurations
-            self.active_db_configs = self.api_test_loader.get_db_configs(active_env)
-            if not self.active_db_configs:
-                raise ValueError(f"No database configuration found for environment: {active_env}")
+
             # Return formatted configuration
             return {
                 'environments': {
-                    active_env: {
+                    self.active_env: {
                         'browser': env_settings['Browser'],
                         'is_remote': env_settings['IsRemote'],
                         'remote_url': env_settings['RemoteURL'],
@@ -119,12 +114,11 @@ class RobotTestExecutor:
             self.page_elements = self._load_page_elements()
             self.page_modules = self._load_page_modules()
             # Initialize executors and managers
-            self.custom_action_executor = CustomActionExecutor(
-                self.web_test_loader.get_custom_actions()
-            )
+            self.custom_action_executor = CustomActionExecutor(self.web_test_loader.get_custom_actions())
             self.saved_fields_manager = SavedFieldsManager()
             # Load saved fields and set variables
             self.saved_fields_manager.load_saved_fields_and_set_robot_global_variables()
+            self.database_operator = DBOperator(self.active_db_configs)
         except Exception as e:
             logging.error(f"Failed to initialize components: {str(e)}")
             raise
@@ -223,7 +217,7 @@ class RobotTestExecutor:
                     logging.warning(f"Invalid wait value: {wait}. Skipping wait.")
 
             if screen_capture:
-                self.execute_action('capture_screenshot', locator, element_desc,description)
+                self.execute_action('capture_screenshot', locator, element_desc, description)
 
             logging.info("=" * 80)
 
@@ -242,9 +236,7 @@ class RobotTestExecutor:
             if 'locator' in action.__code__.co_varnames:
                 kwargs['element_desc'] = element_desc
                 result = action(element, *args, **kwargs)
-            elif action_name == "modify_server_side_cookies":
-                result = asyncio.run(action(*args, **kwargs))
-            elif 'locator' not in action.__code__.co_varnames and action_name != "modify_server_side_cookies":
+            elif 'locator' not in action.__code__.co_varnames:
                 result = action(*args, **kwargs)
             else:
                 raise ValueError(f"Action '{action_name}' requires a WebElement, but none was provided.")
