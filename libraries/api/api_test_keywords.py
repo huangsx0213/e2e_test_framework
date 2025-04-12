@@ -28,40 +28,79 @@ class APITestKeywords:
         self._load_configuration(test_config_path, test_cases_path)
         self._initialize_components()
 
-    def _load_configuration(self, test_config_path, test_cases_path):
+    def _load_configuration(self, test_config_path: str, test_cases_path: str) -> None:
+        """Load and validate test configurations"""
+        try:
+            # Set config paths with defaults
+            self.test_config_path = test_config_path or os.path.join(
+                self.project_root,
+                'configs',
+                'api_test_config.yaml'
+            )
 
-        self.test_config_path = test_config_path or os.path.join(self.project_root, 'configs', 'api_test_config.yaml')
+            # Load and validate test config
+            self.test_config = ConfigManager.load_yaml(self.test_config_path)
+            if not self.test_config:
+                raise ValueError("Empty or invalid test configuration")
 
-        self.test_config: Dict = ConfigManager.load_yaml(self.test_config_path)
+            # Set active environment
+            self.active_environment = self.test_config.get('active_environment')
+            if not self.active_environment:
+                raise ValueError("Active environment not specified")
+            builtin_lib.set_global_variable('${active_environment}', self.active_environment)
 
-        default_test_cases_path: str = os.path.join('test_cases', 'api_test_cases.xlsx')
-        self.test_cases_path: str = test_cases_path or os.path.join(self.project_root, self.test_config.get('test_cases_path', default_test_cases_path))
+            # Set test cases path
+            default_cases_path = os.path.join('test_cases', 'api_test_cases.xlsx')
+            self.test_cases_path = test_cases_path or os.path.join(
+                self.project_root,
+                self.test_config.get('test_cases_path', default_cases_path)
+            )
+            if not os.path.exists(self.test_cases_path):
+                raise FileNotFoundError(f"Test cases file not found: {self.test_cases_path}")
 
-        self.active_environment = self.test_config['active_environment']
-        builtin_lib.set_global_variable('${active_environment}', self.active_environment)
+        except Exception as e:
+            logging.error(f"Failed to load configuration: {str(e)}")
+            raise
 
-
-    def _load_endpoints(self):
-        endpoints = self.api_test_loader.get_endpoints()
-        self.endpoints = {}
-        for _, row in endpoints[endpoints['Environment'] == self.active_environment].iterrows():
-            self.endpoints[row['Endpoint']] = {
-                'method': row['Method'],
-                'path': row['Path']
+    def _load_endpoints(self) -> None:
+        """Load and validate endpoint configurations"""
+        try:
+            endpoints_df = self.api_test_loader.get_endpoints()
+            env_endpoints = endpoints_df[endpoints_df['Environment'] == self.active_environment]
+            if env_endpoints.empty:
+                raise ValueError(f"No endpoints found for environment: {self.active_environment}")
+            self.endpoints = {
+                row['Endpoint']: {
+                    'method': row['Method'],
+                    'path': row['Path']
+                }
+                for _, row in env_endpoints.iterrows()
             }
+        except Exception as e:
+            logging.error(f"Failed to load endpoints: {str(e)}")
+            raise
 
-    def _initialize_components(self):
-        self.saved_fields_manager: SavedFieldsManager = SavedFieldsManager()
-        self.api_test_loader = APITestLoader(self.test_cases_path)
-        self._load_endpoints()
-        self.active_db_configs = self.api_test_loader.get_db_configs(self.active_environment)
-        if not self.active_db_configs:
-            raise ValueError(f"No database configuration for environment: {self.active_environment}")
-        self.body_generator: BodyGenerator = BodyGenerator(self.api_test_loader)
-        self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
-        self.api_response_validator: ResponseValidator = ResponseValidator(self.active_db_configs)
-        self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
-        self.db_validator = DBOperator(self.active_db_configs)
+    def _initialize_components(self) -> None:
+        """Initialize API test components"""
+        try:
+            # Initialize core components
+            self.saved_fields_manager = SavedFieldsManager()
+            self.api_test_loader = APITestLoader(self.test_cases_path)
+            # Load endpoint configurations
+            self._load_endpoints()
+            # Load and validate database configurations
+            self.active_db_configs = self.api_test_loader.get_db_configs(self.active_environment)
+            if not self.active_db_configs:
+                raise ValueError(f"No database configuration for environment: {self.active_environment}")
+            # Initialize API test components
+            self.body_generator = BodyGenerator(self.api_test_loader)
+            self.headers_generator = HeadersGenerator(self.api_test_loader)
+            self.api_response_validator = ResponseValidator(self.active_db_configs)
+            self.response_field_saver = ResponseFieldSaver()
+            self.db_validator = DBOperator(self.active_db_configs)
+        except Exception as e:
+            logging.error(f"Failed to initialize components: {str(e)}")
+            raise
 
     @keyword
     def api_sanity_check(self) -> None:

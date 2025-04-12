@@ -40,7 +40,6 @@ class APITestLoader:
         if missing_sheets:
             logging.error(f"{self.__class__.__name__}: Missing required sheets: {', '.join(missing_sheets)}")
             raise ValueError(f"Missing required sheets: {', '.join(missing_sheets)}")
-
         for sheet_name, df in self.data.items():
             self.validate_sheet_data(sheet_name, df)
 
@@ -178,7 +177,7 @@ class APITestLoader:
                 raise ValueError(f"Referenced value '{value}' in '{sheet_name}' sheet not found for TCID '{tcid}'")
 
     def _validate_db_configs_sheet(self, df: pd.DataFrame):
-        required_columns = ['Environment', 'DatabaseName', 'Type', 'User', 'Password', 'Host', 'Port', 'Database', 'Schema', 'ServiceName', 'MinConnections', 'MaxConnections']
+        required_columns = ['Environment', 'DatabaseName', 'Type', 'User', 'Password', 'Host', 'Port', 'Database', 'Schema', 'ServiceName']
         self._check_required_columns(df, required_columns, 'DBConfigs')
 
         if df.duplicated(subset=['Environment', 'DatabaseName']).any():
