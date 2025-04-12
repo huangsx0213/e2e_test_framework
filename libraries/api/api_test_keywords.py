@@ -61,7 +61,7 @@ class APITestKeywords:
         self.headers_generator: HeadersGenerator = HeadersGenerator(self.api_test_loader)
         self.api_response_validator: ResponseValidator = ResponseValidator(self.active_db_configs)
         self.response_field_saver: ResponseFieldSaver = ResponseFieldSaver()
-        self.db_validator = DBOperator()
+        self.db_validator = DBOperator(self.active_db_configs)
 
     @keyword
     def api_sanity_check(self) -> None:

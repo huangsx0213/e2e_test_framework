@@ -5,7 +5,6 @@ import os
 from typing import Dict, List
 from robot.libraries.BuiltIn import BuiltIn
 
-
 class WebTestLoader:
     _instances = {}
 
@@ -27,7 +26,7 @@ class WebTestLoader:
         self.initialized = True
 
     def _load_excel_data(self) -> Dict[str, pd.DataFrame]:
-        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments', 'CustomActions', 'EnvVariables']
+        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments', 'CustomActions', 'EnvVariables', 'DBConfigs']
         return {sheet: pd.read_excel(self.excel_path, sheet_name=sheet).fillna("") for sheet in sheets}
 
     def _validate_data(self):
@@ -37,7 +36,58 @@ class WebTestLoader:
         self._validate_test_data()
         self._validate_web_environments()
         self._validate_custom_actions()
-        self._validate_environments()  # 验证新添加的 Environments Sheet
+        self._validate_environments()
+        self._validate_db_configs()
+
+    def _validate_db_configs(self):
+        db_configs = self.get_data_by_sheet_name('DBConfigs')
+        required_columns = ['Environment', 'DatabaseName', 'Type', 'User', 'Password', 'Host', 'Port', 'Database', 'Schema', 'ServiceName', 'MinConnections', 'MaxConnections']
+        missing_columns = set(required_columns) - set(db_configs.columns)
+        if missing_columns:
+            logging.error(f"WebTestLoader: Missing required columns in DBConfigs sheet: {', '.join(missing_columns)}")
+            raise ValueError(f"WebTestLoader: Missing required columns in DBConfigs sheet: {', '.join(missing_columns)}")
+
+        for index, row in db_configs.iterrows():
+            if pd.isna(row['Environment']) or row['Environment'] == '':
+                logging.error(f"WebTestLoader: Empty Environment in DBConfigs row {index + 2}")
+            if pd.isna(row['DatabaseName']) or row['DatabaseName'] == '':
+                logging.error(f"WebTestLoader: Empty DatabaseName in DBConfigs row {index + 2}")
+            if row['Type'].lower() not in ['postgresql', 'mysql', 'oracle']:
+                logging.error(f"WebTestLoader: Invalid database type '{row['Type']}' in DBConfigs row {index + 2}")
+
+    def get_db_configs(self, environment: str) -> Dict[str, Dict]:
+        """获取指定环境的数据库配置"""
+        db_configs = self.get_data_by_sheet_name('DBConfigs')
+        env_configs = db_configs[db_configs['Environment'] == environment]
+        if env_configs.empty:
+            logging.error(f"WebTestLoader: No database configurations found for environment: {environment}")
+            return {}
+
+        configs = {}
+        for _, row in env_configs.iterrows():
+            config = {
+                'type': row['Type'],
+                'user': row['User'],
+                'password': row['Password'],
+                'host': row['Host'],
+                'port': int(row['Port']),
+            }
+
+            if row['Type'].lower() in ['postgresql', 'mysql']:
+                config.update({
+                    'database': row['Database'],
+                    'schema': row['Schema'],
+                })
+            elif row['Type'].lower() == 'oracle':
+                config.update({
+                    'service_name': row['ServiceName'],
+                    'min_connections': int(row['MinConnections']) if pd.notna(row['MinConnections']) else None,
+                    'max_connections': int(row['MaxConnections']) if pd.notna(row['MaxConnections']) else None,
+                })
+
+            configs[row['DatabaseName']] = config
+
+        return configs
 
     def _validate_environments(self):
         environments = self.get_data_by_sheet_name('EnvVariables')

@@ -83,8 +83,7 @@ class ResponseHandler:
 class ResponseValidator(ResponseHandler):
     def __init__(self, db_configs):
         super().__init__()
-        self.db_configs = db_configs
-        self.db_validator = DBOperator()
+        self.db_validator = DBOperator(db_configs)
         self.is_main_test = False
 
     def validate(self, test_case: dict, response, pre_check_responses=None, post_check_responses=None) -> None:
@@ -188,12 +187,6 @@ class ResponseValidator(ResponseHandler):
         result = {"Result": "Pass" if is_valid else "Fail"}
         self._log_result(is_valid, msg)
         return result
-
-    def _get_db_config_by_prefix(self, prefix: str) -> dict:
-        db_config = self.db_configs.get(prefix.lower(), {})
-        if not db_config:
-            raise ValueError(f"No database configuration found for prefix: {prefix}")
-        return db_config
 
     def _log_result(self, success: bool, message: str):
         """Logs the result of a check with appropriate color."""

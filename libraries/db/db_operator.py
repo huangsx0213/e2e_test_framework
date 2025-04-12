@@ -1,10 +1,7 @@
 import logging
-import os
 import re
 from typing import Tuple, Any, Dict, Optional
 from libraries.db.db import SQLAlchemyDatabase
-from libraries.common.config_manager import ConfigManager
-from libraries.common.utility_helpers import PROJECT_ROOT
 from libraries.common.variable_generator import VariableGenerator
 from robot.libraries.BuiltIn import BuiltIn
 
@@ -25,34 +22,19 @@ class SingletonMeta(type):
 
 
 class DBOperator(metaclass=SingletonMeta):
-    def __init__(self):
+    def __init__(self, db_configs=None):
         self.db_connections: Dict[str, SQLAlchemyDatabase] = {}
-        self.db_configs = self._load_db_configs()
-        self.active_environment = self._get_active_environment()
+        self.env_db_configs = db_configs
         self._initialized = False
-
-    def _load_db_configs(self) -> Dict[str, Any]:
-        config_path = os.path.join(PROJECT_ROOT, 'configs', 'db_config.yaml')
-        return ConfigManager.load_yaml(config_path)
-
-    def _get_active_environment(self) -> str:
-        return BuiltIn().get_variable_value("${active_environment}")
 
     def _initialize_databases(self):
         if self._initialized:
             logging.info("Databases already initialized, skipping.")
             return
         try:
-            env_db_configs = self.db_configs.get('database', {}).get(self.active_environment, {})
-            if not env_db_configs:
-                raise ValueError(f"No database configurations found for environment: {self.active_environment}")
-
-            self.db_connections = SQLAlchemyDatabase.create_databases(env_db_configs)
-            logging.info(f"Database connections initialized for environment: {self.active_environment}")
+            self.db_connections = SQLAlchemyDatabase.create_databases(self.env_db_configs)
+            logging.info(f"Database connections initialized.")
             self._initialized = True
-        except ValueError as ve:
-            logging.error(f"Configuration error: {str(ve)}")
-            raise
         except Exception as e:
             logging.error(f"Unexpected error initializing databases: {str(e)}")
             raise
