@@ -94,7 +94,7 @@ def read_files(directory='.', exclude_files=None, exclude_directories=None):
     # Convert exclude_files to absolute paths
     exclude_files = [os.path.abspath(file) for file in exclude_files]
 
-    supported_extensions = ('.py', '.json', '.yaml', '.html', '.xml', '.md')
+    supported_extensions = ('.py', '.json', '.yaml', '.html', '.xml', '.md', '.txt')
     files_list = []
     for root, dirs, files in os.walk(directory):
         # Modify dirs in place to exclude specified directories
@@ -110,14 +110,18 @@ def escape_html(text):
     return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
 def generate_code_blocks_and_links(files_list):
-    code_blocks = ''
-    for file_path in files_list:
-        file_id = file_path.replace('\\', '_').replace('/', '_').replace('.', '_')
-        with open(file_path, 'r', encoding='utf-8') as file:
-            code_content = escape_html(file.read())
-            code_block = code_block_template.format(file_id=file_id, file_name=file_path, code_content=code_content)
-            code_blocks += code_block + '\n'
-    return code_blocks
+	code_blocks = ''
+	for file_path in files_list:
+		file_id = file_path.replace('\\', '_').replace('/', '_').replace('.', '_')
+		try:
+			with open(file_path, 'r', encoding='utf-8') as file:
+				code_content = escape_html(file.read())
+		except UnicodeDecodeError:
+			with open(file_path, 'r', encoding='utf-16') as file:  # 尝试使用utf-16编码打开
+				code_content = escape_html(file.read())
+		code_block = code_block_template.format(file_id=file_id, file_name=file_path, code_content=code_content)
+		code_blocks += code_block + '\n'
+	return code_blocks
 
 def generate_file_structure(files_list, directory='.', prefix=''):
     file_structure = ''
@@ -136,7 +140,7 @@ def generate_file_structure(files_list, directory='.', prefix=''):
                     file_structure += f'{subindent}<a href="#{file_id}">{f}</a>\n'
     return file_structure
 
-def generate_html_file(html_content, output_file='report/e2e_test_framework.html'):
+def generate_html_file(html_content, output_file='reports/e2e_test_framework.html'):
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, 'w', encoding='utf-8') as file:
         file.write(html_content)
@@ -148,11 +152,11 @@ if __name__ == "__main__":
         'export_code.py'
         # Add more file paths as needed
     ]
-    exclude_directories = {'venv', '.idea', '__pycache__', '.git', 'report'}
+    exclude_directories = {'venv', '.idea', '__pycache__', '.git', 'reports'}
 
     files_list = read_files(exclude_files=exclude_files, exclude_directories=exclude_directories)
     code_blocks = generate_code_blocks_and_links(files_list)
     file_structure = generate_file_structure(files_list, directory='.')
     html_content = html_template.format(file_structure=file_structure, code_blocks=code_blocks)
     generate_html_file(html_content)
-    print(f"HTML file 'report/e2e_test_framework.html' generated successfully.")
+    print(f"HTML file 'reports/e2e_test_framework.html' generated successfully.")

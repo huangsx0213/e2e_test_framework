@@ -6,11 +6,23 @@ from typing import List, Dict
 
 
 class APITestLoader:
+    _instances = {}
+
+    def __new__(cls, excel_path: str):
+        if excel_path not in cls._instances:
+            instance = super().__new__(cls)
+            instance.__init__(excel_path)
+            cls._instances[excel_path] = instance
+        return cls._instances[excel_path]
+
     def __init__(self, excel_path: str):
+        if hasattr(self, 'initialized'):
+            return
         self.excel_path = excel_path
         self.data: Dict[str, pd.DataFrame] = {}
         self._load_all_excel_data()
         self.validate_excel_structure()
+        self.initialized = True
 
     def _load_all_excel_data(self):
         try:
@@ -23,12 +35,11 @@ class APITestLoader:
             raise ValueError(f"Error loading Excel file: {e}")
 
     def validate_excel_structure(self):
-        required_sheets = ['API', 'BodyTemplates', 'BodyDefaults', 'Headers', 'Endpoints']
+        required_sheets = ['API', 'BodyTemplates', 'BodyDefaults', 'Headers', 'Endpoints', 'DBConfigs']
         missing_sheets = set(required_sheets) - set(self.data.keys())
         if missing_sheets:
             logging.error(f"{self.__class__.__name__}: Missing required sheets: {', '.join(missing_sheets)}")
             raise ValueError(f"Missing required sheets: {', '.join(missing_sheets)}")
-
         for sheet_name, df in self.data.items():
             self.validate_sheet_data(sheet_name, df)
 
@@ -69,13 +80,14 @@ class APITestLoader:
             'BodyTemplates': self._validate_body_templates_sheet,
             'BodyDefaults': self._validate_body_defaults_sheet,
             'Headers': self._validate_headers_sheet,
-            'Endpoints': self._validate_endpoints_sheet
+            'Endpoints': self._validate_endpoints_sheet,
+            'DBConfigs': self._validate_db_configs_sheet
         }
         if sheet_name in validation_methods:
             validation_methods[sheet_name](df)
 
     def _validate_api_sheet(self, df: pd.DataFrame):
-        required_columns = ['TCID', 'Name', 'Run', 'Endpoint', 'Body Template', 'Body Default', 'Body User-defined Fields', 'Headers', 'Exp Result']
+        required_columns = ['TCID', 'Run', 'Suite', 'Endpoint', 'Body Template', 'Body Default', 'Body Override', 'Headers', 'Exp Result']
         self._check_required_columns(df, required_columns, 'API')
 
         if df['TCID'].duplicated().any():
@@ -98,9 +110,9 @@ class APITestLoader:
 
         # Validate mandatory fields based on HTTP method
         if method in ['GET', 'DELETE']:
-            mandatory_fields = ['TCID', 'Name', 'Endpoint', 'Headers', 'Exp Status']
+            mandatory_fields = ['TCID', 'Endpoint', 'Headers', 'Exp Status']
         else:
-            mandatory_fields = ['TCID', 'Name', 'Endpoint', 'Body Template', 'Body Default', 'Headers', 'Exp Status']
+            mandatory_fields = ['TCID', 'Endpoint', 'Body Template', 'Body Default', 'Headers', 'Exp Status']
 
         for field in mandatory_fields:
             if pd.isna(row[field]) or row[field] == '':
@@ -125,9 +137,9 @@ class APITestLoader:
 
         for _, row in df.iterrows():
             try:
-                json.loads(row['Content'])
-            except json.JSONDecodeError:
-                raise ValueError(f"Invalid JSON in BodyDefaults sheet for Name: {row['Name']}")
+                yaml.safe_load(row['Content'])
+            except yaml.YAMLError as e:
+                raise ValueError(f"Invalid YAML in BodyDefaults sheet for Name: {row['Name']}. Error: {e}")
 
     def _validate_headers_sheet(self, df: pd.DataFrame):
         required_columns = ['HeaderName', 'Content']
@@ -163,3 +175,40 @@ class APITestLoader:
             referenced_sheet = self.get_data(sheet_name)
             if value not in referenced_sheet[column_name].values:
                 raise ValueError(f"Referenced value '{value}' in '{sheet_name}' sheet not found for TCID '{tcid}'")
+
+    def _validate_db_configs_sheet(self, df: pd.DataFrame):
+        required_columns = ['Environment', 'DatabaseName', 'Type', 'User', 'Password', 'Host', 'Port', 'Database', 'Schema', 'ServiceName']
+        self._check_required_columns(df, required_columns, 'DBConfigs')
+
+        if df.duplicated(subset=['Environment', 'DatabaseName']).any():
+            raise ValueError("Duplicate Environment-DatabaseName combination found in DBConfigs sheet")
+
+        valid_types = ['postgresql', 'mysql', 'oracle']
+        if not df['Type'].str.lower().isin(valid_types).all():
+            raise ValueError(f"Invalid values in 'Type' column. Allowed values are: {', '.join(valid_types)}")
+
+    def get_db_configs(self, environment: str) -> Dict[str, Dict]:
+        db_configs = self.get_data('DBConfigs')
+        env_configs = db_configs[db_configs['Environment'] == environment]
+        if env_configs.empty:
+            logging.error(f"{self.__class__.__name__}: No database configurations found for environment: {environment}")
+            return {}
+
+        configs = {}
+        for _, row in env_configs.iterrows():
+            config = {
+                'type': row['Type'],
+                'user': row['User'],
+                'password': row['Password'],
+                'host': row['Host'],
+                'port': int(row['Port']),
+                'database': row['Database'],
+                'schema': row['Schema'],
+            }
+
+            if row['Type'].lower() == 'oracle':
+                config.update({'service_name': row['ServiceName']})
+
+            configs[row['DatabaseName']] = config
+
+        return configs

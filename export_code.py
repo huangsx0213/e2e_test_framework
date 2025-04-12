@@ -27,15 +27,15 @@ def write_contents_to_file(files_list, output_file):
 
 if __name__ == '__main__':
     exclude_scripts = ['__init__.py', 'export_code.py', 'export_html.py', 'gen_temp_default.py']  # Replace with your actual script names
-    directory_to_search = '.'
+    directory_to_search = './libraries'
     extensions = ('.py', '.json', '.xml', '.yaml', '.html', '.md')
-    exclude_directories = {'venv', '.idea', '__pycache__', '.git', 'testing_server', 'report'}
+    exclude_directories = {'venv', '.idea', '__pycache__', '.git', 'testing_server', 'reports'}
 
     # Listing the files
     files = list_files(directory_to_search, extensions, exclude_directories, exclude_scripts)
 
-    # Writing the file contents to the report txt file
-    output_txt_file = 'report/collected_files_content.txt'
+    # Writing the file contents to the reports txt file
+    output_txt_file = 'reports/collected_files_content.txt'
     write_contents_to_file(files, output_txt_file)
 
     print(f'Content of files has been written to {output_txt_file}.')

@@ -31,6 +31,7 @@ This automated testing framework offers the following features:
 11. Error Handling and Retry Mechanism: Implements robust error handling and test retry logic.
 12. CI-Friendly: Easy to integrate into CI/CD processes.
 13. Extensibility: Modular framework design, easy to add new features and customize.
+14. Sanity Check Feature: Supports automatic skipping of subsequent tests if a designated sanity check test fails.
 
 ## 2. Installation and Setup
 
@@ -173,11 +174,24 @@ python yaml_config_cli.py configs/api_test_config.yaml --remove-from-list tags d
 | Headers | Request header template name | String | Must match definitions in Headers sheet |
 | Body Template | Request body template name | String | Must match definitions in BodyTemplates sheet |
 | Body Default | Default request body name | String | Must match definitions in BodyDefaults sheet |
-| Body User-defined Fields | Custom request body fields | JSON format string | Overrides or adds to default request body |
+| Body Override | Custom request body fields | JSON format string | Overrides or adds to default request body |
 | Exp Result | Expected results | JSONPath expressions | Used to validate response content |
 | Save Fields | Save response fields | JSONPath expressions | Used to save specific fields from the response |
 | Conditions | Special conditions | Specific format string | E.g., [Checkwith], [TestSetup], [TestTeardown] |
 | Wait | Wait time after test execution | Number (seconds) | Pause execution for specified time |
+
+#### Sanity Check:
+To designate a test case as a sanity check:
+1. In the 'Tags' column of the API sheet, include the tag 'sanity check' (case-insensitive).
+2. If a test case with the 'sanity check' tag fails, all subsequent test cases will be automatically skipped.
+
+Example:
+```
+TCID | Name           | ... | Tags
+-----|----------------|-----|----------------
+TC001| Sanity Check   | ... | critical, sanity check
+TC002| Regular Test   | ... | regression
+```
 
 ### 4.3 BodyTemplates Sheet:
 | Column Name | Description | Possible Values | Logic |
@@ -226,6 +240,19 @@ python yaml_config_cli.py configs/api_test_config.yaml --remove-from-list tags d
 | Run | Whether to execute this case | "Y" or "N" | Y means execute, N means skip |
 | Tags | Case tags | Comma-separated string | For categorizing and filtering cases |
 
+#### Sanity Check:
+To designate a test case as a sanity check:
+1. In the 'Tags' column of the TestCases sheet, include the tag 'sanity check' (case-insensitive).
+2. If a test case with the 'sanity check' tag fails, all subsequent test cases will be automatically skipped.
+
+Example:
+```
+Case ID | Name           | ... | Tags
+--------|----------------|-----|----------------
+UITC001 | Sanity Check   | ... | critical, sanity check
+UITC002 | Regular Test   | ... | regression
+```
+
 ### 5.3 TestSteps Sheet:
 | Column Name | Description | Possible Values | Logic |
 |-------------|-------------|-----------------|-------|
@@ -233,7 +260,6 @@ python yaml_config_cli.py configs/api_test_config.yaml --remove-from-list tags d
 | Step ID | Unique identifier for each step | Integer | Defines execution order of steps |
 | Page Name | Page object name | String | Must match definitions in PageModules |
 | Module Name | Module name | String | Specific module within the page object |
-| Parameter Name | Parameter names | Comma-separated string | Corresponds to parameters in TestData |
 | Run | Whether to execute this step | "Y" or "N" | Y means execute, N means skip |
 
 ### 5.4 TestData Sheet:
@@ -292,7 +318,7 @@ python yaml_config_cli.py configs/api_test_config.yaml --remove-from-list tags d
 #### Body-related fields:
 - Body Template: Use Jinja2 syntax for dynamic values.
 - Body Default: Provide default values in JSON format.
-- Body User-defined Fields: Override default values or add new fields in JSON format.
+- Body Override: Override default values or add new fields in JSON format.
   - Supports dynamic values using `${variable_name}` syntax.
   - These variables are replaced with actual values from the Robot Framework variable scope.
 - Use `{{variable_name}}` in templates for dynamic values.
@@ -311,7 +337,7 @@ python yaml_config_cli.py configs/api_test_config.yaml --remove-from-list tags d
 
 #### Example of using dynamic values:
 ```
-Body User-defined Fields: {"user_id": "${USER_ID}", "timestamp": "{{timestamp}}"}
+Body Override: {"user_id": "${USER_ID}", "timestamp": "{{timestamp}}"}
 Exp Result: $.response.status=${EXPECTED_STATUS}
 ```
 
@@ -364,6 +390,8 @@ You can specify test case IDs or tags in the respective configuration files (api
 6. Use parameterization to create data-driven tests.
 7. Implement proper error handling and logging in test scripts.
 8. Regularly review and optimize test suites for efficiency.
+9. Use the 'sanity check' tag for critical tests that, if failed, should prevent further testing.
+10. Order your test cases so that sanity checks run first, followed by other tests.
 
 ## 10. Troubleshooting
 
@@ -380,7 +408,7 @@ You can specify test case IDs or tags in the respective configuration files (api
 
 The framework supports the use of dynamic values in two key areas of API tests:
 
-1. Body User-defined Fields
+1. Body Override
 2. Expected Results (Exp Result)
 
 #### Usage:
@@ -390,7 +418,7 @@ The framework supports the use of dynamic values in two key areas of API tests:
 
 #### Example:
 ```yaml
-Body User-defined Fields: {"token": "${AUTH_TOKEN}", "user_id": "${CURRENT_USER_ID}"}
+Body Override: {"token": "${AUTH_TOKEN}", "user_id": "${CURRENT_USER_ID}"}
 Exp Result: $.status_code=200
 $.response.user.name=${EXPECTED_USER_NAME}
 ```
@@ -398,6 +426,28 @@ $.response.user.name=${EXPECTED_USER_NAME}
 ### 11.2 Custom Python Actions in Web UI Tests
 
 You can define custom Python actions in the CustomActions sheet of the Web UI test cases Excel file. These actions can be called from your test steps to perform complex operations or validations.
+
+### 11.3 Sanity Check Implementation
+
+The framework now supports a 'sanity check' feature:
+
+- Tests tagged with 'sanity check' (case-insensitive) are treated as critical tests.
+- If a sanity check test fails, all subsequent tests in the suite will be automatically skipped.
+- This feature helps to quickly identify fundamental issues and saves time by not running further tests when basic functionality fails.
+
+To use this feature:
+1. Add the tag 'sanity check' to critical test cases in your Excel file.
+2. Run your test suite as usual.
+3. If a sanity check fails, you'll see skip messages for subsequent tests in the logs.
+
+Example log output when a sanity check fails:
+```
+FAIL: Sanity Check Test
+SKIP: Subsequent Test 1 - Skip current test TC002 due to Sanity Check failure
+SKIP: Subsequent Test 2 - Skip current test TC003 due to Sanity Check failure
+```
+
+This feature is automatically enabled and requires no additional configuration beyond tagging your tests appropriately.
 
 ## 12. Maintenance and Updates
 

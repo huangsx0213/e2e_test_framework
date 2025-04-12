@@ -3,9 +3,12 @@ import logging
 import re
 
 from typing import Any, Dict, Union
+
+import yaml
+
 from libraries.common.utility_helpers import UtilityHelpers
 from libraries.api.template_renderer import TemplateRenderer
-from libraries.api.variable_generator import VariableGenerator
+from libraries.common.variable_generator import VariableGenerator
 
 
 class BodyGenerator:
@@ -21,8 +24,8 @@ class BodyGenerator:
 
             template_content, template_format = self.load_template(test_case['Body Template'])
             default_values = self.load_default_values(test_case['Body Default'])
-            user_defined_fields = self.parse_user_defined_fields(test_case['Body User-defined Fields'])
-            logging.info(f"{self.__class__.__name__}:Body user-defined fields for test case {test_case['TCID']}: \n{user_defined_fields}")
+            user_defined_fields = self.parse_user_defined_fields(test_case['Body Override'])
+            logging.info(f"{self.__class__.__name__}:Body Override for test case {test_case['TCID']}: \n{user_defined_fields}")
             combined_data = self.merge_values(default_values, user_defined_fields, test_case)
             request_data = self.generate_dynamic_values(combined_data, test_case)
             logging.info(f"{self.__class__.__name__}:Request data for test case {test_case['TCID']}: \n{self.format_json(request_data)}")
@@ -57,15 +60,18 @@ class BodyGenerator:
             default = defaults[defaults['Name'] == default_name]
             if default.empty:
                 raise ValueError(f"Default values '{default_name}' not found.")
-            return json.loads(default.iloc[0]['Content'])
-        except Exception as e:
+            return yaml.safe_load(default.iloc[0]['Content'])
+        except yaml.YAMLError as e:
             logging.error(f"Error loading default values: {e}")
             raise
 
     def parse_user_defined_fields(self, field_string):
+        if field_string is None or field_string.strip() == "":
+            return {}
         try:
-            return json.loads(field_string)
-        except json.JSONDecodeError as e:
+            field_string = re.sub(r'(".*?"):\s*', r'\1: ', field_string)
+            return yaml.safe_load(field_string)
+        except yaml.YAMLError as e:
             logging.error(f"Error parsing user-defined fields: {e}")
             raise
 

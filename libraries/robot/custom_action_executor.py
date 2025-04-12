@@ -22,7 +22,7 @@ class CustomActionExecutor:
                 raise ValueError(f"Syntax error in custom action '{action_name}'")
 
         # 创建一个新的命名空间来执行代码
-        namespace = {'element': element, 'web_actions': web_actions, **kwargs}
+        namespace = {'element': element, 'web_action': web_actions, **kwargs}
         exec(self.parsed_actions[action_name], namespace)
 
         if 'execute' not in namespace:

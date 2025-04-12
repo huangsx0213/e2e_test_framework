@@ -3,7 +3,7 @@
         "USD": 13500.0,
         "EUR": 8000.0,
         "HKD": 50000.0,
-        "CNY": 55900.0
+        "CNY": 56900.0
     },
     "transactions": {
         "USD": {
@@ -43,14 +43,14 @@
             }
         },
         "CNY": {
-            "2024-08-25": {
+            "2025-03-22": {
                 "inbound": {
-                    "count": 0,
-                    "total_amount": 0.0
+                    "count": 7,
+                    "total_amount": 700.0
                 },
                 "outbound": {
-                    "count": 1,
-                    "total_amount": 100.0
+                    "count": 4,
+                    "total_amount": 400.0
                 }
             }
         }

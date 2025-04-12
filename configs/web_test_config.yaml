@@ -1,5 +1,5 @@
 active_environment: SIT
-test_case_path : test_cases/web_test_cases.xlsx
+test_cases_path : test_cases/web_test_cases.xlsx
 # List of Test Case IDs to run.
 # Specify one or more Test Case IDs here.
 # If this list is empty, all test cases will be run.

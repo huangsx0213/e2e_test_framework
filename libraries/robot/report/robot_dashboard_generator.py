@@ -3,8 +3,8 @@ import codecs
 from robot.api import ExecutionResult
 from jinja2 import Environment, FileSystemLoader
 
-from libraries.robot.robot_result_visitor import CustomResultVisitor
-from libraries.robot.robot_report_data import ReportData
+from libraries.robot.report.robot_result_visitor import CustomResultVisitor
+from libraries.robot.report.robot_report_data import ReportData
 from libraries.common.utility_helpers import PROJECT_ROOT
 
 
@@ -29,7 +29,7 @@ class DashboardGenerator:
     def generate_dashboard(self, robot_output_path):
         self._load_data(robot_output_path)
         result_file_name = 'dashboard.html'
-        result_file_directory = os.path.join(PROJECT_ROOT, 'report')
+        result_file_directory = os.path.join(PROJECT_ROOT, 'reports')
         os.makedirs(result_file_directory, exist_ok=True)
         result_file_path = os.path.join(result_file_directory, result_file_name)
         templates_dir = os.path.join(PROJECT_ROOT, 'templates')
@@ -48,4 +48,4 @@ class DashboardGenerator:
 if __name__ == '__main__':
     # Example usage:
     generator = DashboardGenerator()
-    generator.generate_dashboard(os.path.join(PROJECT_ROOT, 'report', 'output.xml'))
+    generator.generate_dashboard(os.path.join(PROJECT_ROOT, 'reports', 'output.xml'))

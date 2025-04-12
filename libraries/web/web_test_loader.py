@@ -3,16 +3,30 @@ import logging
 import pandas as pd
 import os
 from typing import Dict, List
-
+from robot.libraries.BuiltIn import BuiltIn
 
 class WebTestLoader:
-    def __init__(self, excel_path):
+    _instances = {}
+
+    def __new__(cls, excel_path, test_config):
+        key = (excel_path, id(test_config))  # Use a tuple of excel_path and test_config id as the key
+        if key not in cls._instances:
+            instance = super().__new__(cls)
+            instance.__init__(excel_path, test_config)
+            cls._instances[key] = instance
+        return cls._instances[key]
+
+    def __init__(self, excel_path, test_config):
+        if hasattr(self, 'initialized'):
+            return
         self.excel_path = excel_path
+        self.test_config = test_config
         self.data = self._load_excel_data()
         self._validate_data()
+        self.initialized = True
 
     def _load_excel_data(self) -> Dict[str, pd.DataFrame]:
-        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments', 'CustomActions']
+        sheets = ['Locators', 'PageModules', 'TestCases', 'TestSteps', 'TestData', 'WebEnvironments', 'CustomActions', 'EnvVariables', 'DBConfigs']
         return {sheet: pd.read_excel(self.excel_path, sheet_name=sheet).fillna("") for sheet in sheets}
 
     def _validate_data(self):
@@ -22,6 +36,66 @@ class WebTestLoader:
         self._validate_test_data()
         self._validate_web_environments()
         self._validate_custom_actions()
+        self._validate_environments()
+        self._validate_db_configs()
+
+    def _validate_db_configs(self):
+        db_configs = self.get_data_by_sheet_name('DBConfigs')
+        required_columns = ['Environment', 'DatabaseName', 'Type', 'User', 'Password', 'Host', 'Port', 'Database', 'Schema', 'ServiceName', 'MinConnections', 'MaxConnections']
+        missing_columns = set(required_columns) - set(db_configs.columns)
+        if missing_columns:
+            logging.error(f"WebTestLoader: Missing required columns in DBConfigs sheet: {', '.join(missing_columns)}")
+            raise ValueError(f"WebTestLoader: Missing required columns in DBConfigs sheet: {', '.join(missing_columns)}")
+
+        for index, row in db_configs.iterrows():
+            if pd.isna(row['Environment']) or row['Environment'] == '':
+                logging.error(f"WebTestLoader: Empty Environment in DBConfigs row {index + 2}")
+            if pd.isna(row['DatabaseName']) or row['DatabaseName'] == '':
+                logging.error(f"WebTestLoader: Empty DatabaseName in DBConfigs row {index + 2}")
+            if row['Type'].lower() not in ['postgresql', 'mysql', 'oracle']:
+                logging.error(f"WebTestLoader: Invalid database type '{row['Type']}' in DBConfigs row {index + 2}")
+
+    def get_db_configs(self, environment: str) -> Dict[str, Dict]:
+        """获取指定环境的数据库配置"""
+        db_configs = self.get_data_by_sheet_name('DBConfigs')
+        env_configs = db_configs[db_configs['Environment'] == environment]
+        if env_configs.empty:
+            logging.error(f"WebTestLoader: No database configurations found for environment: {environment}")
+            return {}
+
+        configs = {}
+        for _, row in env_configs.iterrows():
+            config = {
+                'type': row['Type'],
+                'user': row['User'],
+                'password': row['Password'],
+                'host': row['Host'],
+                'port': int(row['Port']),
+            }
+
+            if row['Type'].lower() in ['postgresql', 'mysql']:
+                config.update({
+                    'database': row['Database'],
+                    'schema': row['Schema'],
+                })
+            elif row['Type'].lower() == 'oracle':
+                config.update({
+                    'service_name': row['ServiceName'],
+                    'min_connections': int(row['MinConnections']) if pd.notna(row['MinConnections']) else None,
+                    'max_connections': int(row['MaxConnections']) if pd.notna(row['MaxConnections']) else None,
+                })
+
+            configs[row['DatabaseName']] = config
+
+        return configs
+
+    def _validate_environments(self):
+        environments = self.get_data_by_sheet_name('EnvVariables')
+        required_columns = ['Environment', 'Variable Name', 'Variable Value']
+        missing_columns = set(required_columns) - set(environments.columns)
+        if missing_columns:
+            logging.error(f"WebTestLoader: Missing required columns in Environments sheet: {', '.join(missing_columns)}")
+            raise ValueError(f"WebTestLoader: Missing required columns in Environments sheet: {', '.join(missing_columns)}")
 
     def _validate_test_cases(self):
         test_cases = self.get_data_by_sheet_name('TestCases')
@@ -58,16 +132,6 @@ class WebTestLoader:
             for param in module_params:
                 expected_params.update(param.split(','))
 
-            provided_params = set(step_row['Parameter Name'].split(',')) if step_row['Parameter Name'] else set()
-
-            missing_params = expected_params - provided_params
-            extra_params = provided_params - expected_params
-
-            if missing_params:
-                logging.error(f"Missing parameters {missing_params} in TestSteps for Case ID '{step_row['Case ID']}', Step '{step_row['Step ID']}'")
-            if extra_params:
-                logging.error(f"Extra parameters {extra_params} in TestSteps for Case ID '{step_row['Case ID']}', Step '{step_row['Step ID']}'")
-
             case_data = test_data[test_data['Case ID'] == step_row['Case ID']]
             for param in expected_params:
                 if param not in case_data['Parameter Name'].values:
@@ -81,6 +145,7 @@ class WebTestLoader:
         for _, row in page_objects[page_objects['Run'] == 'Y'].iterrows():
             if row['Element Name'] and (row['Page Name'], row['Element Name']) not in locator_map:
                 logging.error(f"WebTestLoader: Element '{row['Element Name']}' on page '{row['Page Name']}' not found in Locators sheet.")
+
     def _validate_test_data(self):
         test_data = self.get_data_by_sheet_name('TestData')
         test_steps = self.get_data_by_sheet_name('TestSteps')
@@ -103,7 +168,14 @@ class WebTestLoader:
             logging.error(f"WebTestLoader: Missing required columns in WebEnvironments sheet: {', '.join(missing_columns)}")
             return
 
+        # Check if active_environment exists in WebEnvironments
+        active_environment = self.test_config.get('active_environment')
+        if active_environment and active_environment not in web_environments['Environment'].values:
+            logging.error(f"WebTestLoader: Active environment '{active_environment}' specified in config file does not exist in WebEnvironments sheet.")
+
         for index, row in web_environments.iterrows():
+            if self.test_config.get('active_environment') != row['Environment']:
+                continue
             if pd.isna(row['Environment']) or row['Environment'] == '':
                 logging.error(f"WebTestLoader: Empty Environment name in row {index + 2}")
 
@@ -137,6 +209,7 @@ class WebTestLoader:
                 logging.error(f"WebTestLoader: Invalid JSON in BrowserOptions in row {index + 2}")
 
         logging.info("WebTestLoader: WebEnvironments data validation completed.")
+
     def _validate_custom_actions(self):
         custom_actions = self.get_data_by_sheet_name('CustomActions')
         if custom_actions.empty:
@@ -153,7 +226,7 @@ class WebTestLoader:
             if pd.isna(row['Action Name']) or row['Action Name'] == '':
                 logging.error(f"WebTestLoader: Empty Action Name in CustomActions row {index + 2}")
             if pd.isna(row['Python Code']) or row['Python Code'] == '':
-                logging.error(f"WebTestLoader: Empty Python Code for action '{row['Action Name']}' in CustomActions row {index + 2}")
+                logging.error(f"WebTestLoader: Empty Python Code for web_element_actions '{row['Action Name']}' in CustomActions row {index + 2}")
 
     def get_data_by_sheet_name(self, sheet_name: str) -> pd.DataFrame:
         return self.data.get(sheet_name, pd.DataFrame())
@@ -166,6 +239,10 @@ class WebTestLoader:
 
         if tags:
             test_cases = test_cases[test_cases['Tags'].apply(lambda x: any(tag in str(x).split(',') for tag in tags))]
+
+        if test_cases.empty:
+            logging.error("WebTestLoader: No test cases found matching criteria.")
+            raise ValueError("No test cases found matching criteria.")
 
         test_cases = test_cases[test_cases['Run'] == 'Y']
 
@@ -180,7 +257,6 @@ class WebTestLoader:
         if result.empty:
             logging.warning(f"WebTestLoader: No test steps found for case ID: {case_id}")
         return result
-
 
     def get_test_data(self, case_id: str) -> List[Dict]:
         test_data = self.get_data_by_sheet_name('TestData')
@@ -241,3 +317,26 @@ class WebTestLoader:
     def get_custom_actions(self) -> Dict[str, str]:
         custom_actions_df = self.get_data_by_sheet_name('CustomActions')
         return dict(zip(custom_actions_df['Action Name'], custom_actions_df['Python Code']))
+
+    def get_environments_variables(self) -> List[Dict[str, str]]:
+        """获取当前激活环境的所有变量"""
+        environments = self.get_data_by_sheet_name('EnvVariables')
+        active_env = self.test_config.get('active_environment')
+        if not active_env:
+            logging.error("WebTestLoader: 'active_environment' is not defined in test_config.")
+            return []
+        env_vars = environments[environments['Environment'] == active_env]
+        if env_vars.empty:
+            logging.warning(f"WebTestLoader: No variables found for environment '{active_env}'.")
+            return []
+        return env_vars.to_dict('records')
+
+    def set_global_variables(self):
+        """将环境变量设置为Robot Framework的全局变量"""
+        env_variables = self.get_environments_variables()
+        built_in = BuiltIn()
+        for var in env_variables:
+            var_name = var['Variable Name']
+            var_value = var['Variable Value']
+            built_in.set_global_variable(f"${{{var_name}}}", var_value)
+            logging.info(f"WebTestLoader: Set global variable ${{{var_name}}} = {var_value}")

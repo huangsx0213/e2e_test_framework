@@ -25,7 +25,7 @@ class Logger:
             with open(self.config_path, 'r', encoding='utf-8') as file:
                 config = yaml.safe_load(file)
 
-            log_file_path = os.path.join(PROJECT_ROOT, 'report', f"{self.log_file_name}.log")
+            log_file_path = os.path.join(PROJECT_ROOT, 'reports', f"{self.log_file_name}.log")
             os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
 
             if 'file' in config['handlers']:
@@ -41,7 +41,20 @@ class Logger:
         return self.logger
 
 
+class ColorLogger:
+    @staticmethod
+    def success(message):
+        return f'<span style="background-color: #90EE90; padding: 2px 5px; border-radius: 3px;">{message}</span>'
+
+    @staticmethod
+    def error(message):
+        return f'<span style="background-color: #FFB6C1; padding: 2px 5px; border-radius: 3px;">{message}</span>'
+
+    @staticmethod
+    def info(message):
+        return f'<span style="background-color: #B8E2F2; padding: 2px 5px; border-radius: 3px;">{message}</span>'
+
 logger_instance = Logger()
 logger = logger_instance.get_logger()
 
-__all__ = ['logger', 'logger_instance']
+__all__ = ['logger', 'logger_instance', 'ColorLogger']
